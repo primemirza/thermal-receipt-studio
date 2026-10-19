@@ -78,7 +78,7 @@ Status fase: **IMPLEMENTED** (menunggu CI dan verifikasi pengguna)
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
 | 3.1 | Model dokumen berversi dan struktur blok | IMPLEMENTED | Schema v1: teks, garis, item, total; ID unik dan lebar kertas |
-| 3.2 | Validasi model dan perhitungan total | IMPLEMENTED | Validasi tipe, ID, harga, jumlah blok, dan lebar kertas |
+| 3.2 | Validasi model dan perhitungan total | IMPLEMENTED | Validasi tipe, ID, harga, jumlah blok, dan lebar kertas; nilai total disimpan eksplisit, tidak dihitung otomatis |
 | 3.3 | Sinkronisasi model ke kanvas dan preview | IMPLEMENTED | Renderer membuat kedua tampilan dari model yang sama |
 | 3.4 | Pilih elemen di kanvas | IMPLEMENTED | Klik/keyboard menyeleksi blok dan membuka inspector |
 | 3.5 | Edit teks, nama item, harga, dan perataan | IMPLEMENTED | Perubahan diterapkan ke model dan preview |
@@ -167,3 +167,9 @@ Poles konfigurasi builder & workflow, penamaan output, versi, README final (buil
 
 ## Riwayat eksekusi CI aktual (diperbarui otomatis)
 - 2026-10-19 Run #1/#2 (sha 5955d25): unit Node 20 ubuntu+windows LULUS; Node 22 GAGAL (`node --test tests/` → Cannot find module, keduanya); build Windows gagal di step unit-test yang sama. Perbaikan: skrip test glob + CI dikunci Node 20 + job smoke Ubuntu wajib marker TRS_SMOKE_OK. Menunggu run pascaperbaikan.
+
+
+### Koreksi scope Fase 3 — nilai total dan tampilan angka
+- Nilai pada blok Total sekarang merupakan nilai eksplisit di model dokumen, bukan hasil penjumlahan harga item.
+- Tampilan angka item dan total tidak menambahkan prefix mata uang `Rp`; angka tetap memakai pemisah ribuan lokal.
+- Tes regresi memastikan perubahan harga item tidak mengubah nilai Total.
