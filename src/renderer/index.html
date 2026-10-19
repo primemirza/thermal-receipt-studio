@@ -4,41 +4,86 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Thermal Receipt Studio</title>
   <link rel="stylesheet" href="./app.css" />
 </head>
 <body>
-  <header class="titlebar">
+  <header class="app-header">
     <div class="brand">
-      <span class="logo" aria-hidden="true">🧾</span>
-      <h1>Thermal Receipt Studio</h1>
+      <span class="logo" aria-hidden="true">▤</span>
+      <div><h1>Thermal Receipt Studio</h1><p class="subtitle">Desain struk thermal offline</p></div>
     </div>
-    <div class="app-meta" id="app-meta" aria-live="polite"></div>
+    <div class="app-meta" id="app-meta">v0.1.0</div>
   </header>
 
+  <nav class="toolbar" aria-label="Toolbar utama">
+    <div class="tool-group">
+      <span class="tool-label">Kertas</span>
+      <div class="segmented" role="group" aria-label="Lebar kertas">
+        <button type="button" class="segment is-active" data-paper="58" aria-pressed="true">58 mm</button>
+        <button type="button" class="segment" data-paper="80" aria-pressed="false">80 mm</button>
+      </div>
+    </div>
+    <div class="toolbar-divider" aria-hidden="true"></div>
+    <div class="tool-group">
+      <span class="tool-label">Zoom preview</span>
+      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil">−</button>
+      <output id="zoom-value" class="zoom-value" aria-live="polite">100%</output>
+      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar">+</button>
+      <button type="button" class="text-button" id="zoom-fit">Sesuaikan</button>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <button type="button" class="text-button" id="toggle-guides" aria-pressed="false">Panduan: mati</button>
+    <span class="toolbar-badge">CONTOH</span>
+  </nav>
+
   <main class="workspace">
-    <section class="panel editor-panel" aria-label="Area kerja editor">
-      <h2>Editor</h2>
-      <p class="hint">Panel editor akan dibangun pada Fase 2–3. Fondasi aplikasi tersedia.</p>
-      <div class="placeholder-box" id="editor-placeholder">Area kerja dasar</div>
+    <section class="panel editor-panel" aria-label="Editor struk">
+      <div class="panel-heading">
+        <div><h2>Editor</h2><p class="hint">Susunan contoh struk</p></div>
+        <span class="panel-count" id="element-count">5 elemen</span>
+      </div>
+      <div class="editor-surface" id="editor-surface">
+        <div class="canvas-ruler"><span>0</span><span id="canvas-width-label">58 mm</span></div>
+        <div class="design-paper" id="design-paper" data-paper="58">
+          <div class="design-block center"><span class="block-type">TEKS</span><strong>WARUNG CONTOH</strong></div>
+          <div class="design-block"><span class="block-type">GARIS</span><span class="design-rule"></span></div>
+          <div class="design-block"><span class="block-type">ITEM</span><span>Teh hangat</span><span class="block-price">Rp 5.000</span></div>
+          <div class="design-block"><span class="block-type">ITEM</span><span>Nasi goreng</span><span class="block-price">Rp 15.000</span></div>
+          <div class="design-block"><span class="block-type">TOTAL</span><strong>Total</strong><strong class="block-price">Rp 20.000</strong></div>
+          <div class="design-block center muted-block"><span class="block-type">TEKS</span><span>Terima kasih!</span></div>
+        </div>
+      </div>
+      <div class="panel-footnote"><span class="status-dot"></span> Contoh lokal · belum disimpan sebagai dokumen</div>
     </section>
 
     <section class="panel preview-panel" aria-label="Preview struk">
-      <h2>Preview</h2>
-      <p class="hint">Lebar kertas: <strong>58 mm</strong> / <strong>80 mm</strong> (dipilih pada Fase 2).</p>
-      <div class="receipt-preview" aria-label="Contoh tampilan struk">
-        <div class="receipt-line center"><b>THERMAL RECEIPT STUDIO</b></div>
-        <div class="receipt-line">--------------------------------</div>
-        <div class="receipt-line"><span>Item contoh</span><span class="right">Rp 0</span></div>
-        <div class="receipt-line">--------------------------------</div>
-        <div class="receipt-line"><span>Total</span><span class="right"><b>Rp 0</b></span></div>
+      <div class="panel-heading">
+        <div><h2>Preview</h2><p class="hint">Hasil render untuk kertas thermal</p></div>
+        <span class="paper-chip" id="paper-chip">58 mm</span>
       </div>
+      <div class="preview-stage" id="preview-stage">
+        <div class="preview-ruler"><span>PREVIEW CETAK</span><span id="preview-dimensions">58 mm · 32 kolom</span></div>
+        <div class="receipt-viewport" id="receipt-viewport">
+          <article class="receipt-preview" id="receipt-preview" aria-label="Preview hasil struk">
+            <div class="receipt-line center"><b>WARUNG CONTOH</b></div>
+            <div class="receipt-line rule">--------------------------------</div>
+            <div class="receipt-line"><span>Teh hangat</span><span class="right">Rp 5.000</span></div>
+            <div class="receipt-line"><span>Nasi goreng</span><span class="right">Rp 15.000</span></div>
+            <div class="receipt-line rule">--------------------------------</div>
+            <div class="receipt-line"><b>Total</b><b class="right">Rp 20.000</b></div>
+            <div class="receipt-line center receipt-thanks">Terima kasih!</div>
+          </article>
+        </div>
+      </div>
+      <div class="preview-footer"><span id="preview-status">Preview diperbarui</span><span id="zoom-status">Zoom 100%</span></div>
     </section>
   </main>
 
   <footer class="statusbar">
-    <span id="status-text">Siap</span>
-    <span id="status-version" class="right"></span>
+    <span class="status-left"><span class="status-dot"></span><span id="status-text" role="status" aria-live="polite">Siap · bekerja offline</span></span>
+    <span id="status-version" class="status-version">v0.1.0</span>
   </footer>
 
   <script type="module" src="./renderer.js"></script>
