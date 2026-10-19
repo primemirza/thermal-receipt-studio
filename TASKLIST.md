@@ -73,12 +73,23 @@ Status fase: **ACCEPTED** (CI hijau dan verifikasi manual pengguna selesai)
 
 ## FASE 3 — MODEL DOKUMEN DAN EDITOR HIBRIDA
 
-Status fase: **NOT STARTED**
+Status fase: **IMPLEMENTED** (menunggu CI dan verifikasi pengguna)
 
-Node: `document, paragraph, text, image, qrCode, barcode, separator, spacer, table, tableRow, tableCell, columnLayout, dynamicField`.
-Editor: keputusan ProseMirror vs contentEditable dibuat di Fase 0 (lihat ADR-005), implementasi di fase ini. Operasi sisip/edit/pilih/reorder/hapus, validasi, sinkron model↔preview, undo/redo.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 3.1 | Model dokumen berversi dan struktur blok | IMPLEMENTED | Schema v1: teks, garis, item, total; ID unik dan lebar kertas |
+| 3.2 | Validasi model dan perhitungan total | IMPLEMENTED | Validasi tipe, ID, harga, jumlah blok, dan lebar kertas |
+| 3.3 | Sinkronisasi model ke kanvas dan preview | IMPLEMENTED | Renderer membuat kedua tampilan dari model yang sama |
+| 3.4 | Pilih elemen di kanvas | IMPLEMENTED | Klik/keyboard menyeleksi blok dan membuka inspector |
+| 3.5 | Edit teks, nama item, harga, dan perataan | IMPLEMENTED | Perubahan diterapkan ke model dan preview |
+| 3.6 | Tambah dan hapus elemen teks/item | IMPLEMENTED | Operasi dasar dengan validasi |
+| 3.7 | Undo/redo | IMPLEMENTED | Snapshot riwayat dibatasi 80 langkah |
+| 3.8 | Tes regresi model dan editor | IMPLEMENTED | Tes model, validasi, total, clone, dan wiring editor |
+| 3.9 | CI dan build portable | NOT STARTED | Menunggu hasil GitHub Actions |
 
-**Kriteria:** model tervalidasi · perubahan editor → model · perubahan model → preview · tes operasi dasar otomatis.
+**Batasan:** Fase ini belum mencakup buka/simpan file .trstudio, gambar, QR/barcode, tabel, drag-and-drop reorder, atau pencetakan. Fitur tersebut berada di fase berikutnya.
+
+**Kriteria:** model tervalidasi · perubahan editor → model → preview · operasi dasar otomatis lulus. Status TESTED setelah CI hijau; ACCEPTED setelah verifikasi pengguna.
 
 ---
 
