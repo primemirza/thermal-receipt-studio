@@ -1,0 +1,145 @@
+# TASKLIST — Thermal Receipt Studio
+
+> Status yang digunakan: `NOT STARTED` | `IN PROGRESS` | `BLOCKED` | `IMPLEMENTED` | `TESTED` | `ACCEPTED`.
+> Aturan: `TESTED` hanya diberikan setelah tes benar-benar dijalankan dan lulus. `ACCEPTED` hanya setelah pengguna menyetujui fase.
+
+---
+
+## FASE 0 — AUDIT DAN PERENCANAAN
+
+Status fase: **IMPLEMENTED** (dokumen selesai; menunggu persetujuan pengguna → belum `ACCEPTED`)
+
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 0.1 | Periksa kondisi repository (`/workspace`) | TESTED | Hasil aktual: folder kosong, **bukan** git repo, tidak ada remote/branch/commit. Lihat PROGRESS.md §1 |
+| 0.2 | Identifikasi kemampuan & keterbatasan workspace | TESTED | Node v20.20.2, npm 10.8.2, git 2.39.5, akses registry npm & GitHub OK. Tidak ada Windows/printer/GUI. Lihat PROGRESS.md §3 |
+| 0.3 | Audit `@point-of-sale/receipt-printer-encoder` (API, lisensi, kompatibilitas) | TESTED | v4.0.1, MIT, ESM/CJS/browser bundles, tanpa peer deps. API terverifikasi dari dokumentasi resmi. Lihat PROGRESS.md §4 |
+| 0.4 | Evaluasi integrasi `ReceiptLine` | TESTED | Opsional via opsi `receiptline` + paket `@point-of-sale/receiptline`; diputuskan TIDAK dipakai sebagai format inti (model JSON internal lebih sesuai editor hibrida). Lihat PROGRESS.md ADR-006 |
+| 0.5 | Evaluasi pustaka pendukung lain (sqlite, zip, qr, barcode, prosemirror) | TESTED | Metadata registry diverifikasi per paket. Lihat PROGRESS.md §4 |
+| 0.6 | Tentukan strategi file `.trstudio` | IMPLEMENTED | ZIP lokal (fflate), struktur manifest+document+assets, proteksi path traversal, validasi skema. Lihat PROGRESS.md ADR-004 |
+| 0.7 | Tentukan strategi pengujian otomatis | IMPLEMENTED | `node --test` untuk unit/integrasi lintas-platform; `npm run start:test` smoke Electron di CI Windows. Lihat PROGRESS.md ADR-008 |
+| 0.8 | Tentukan strategi build portable Windows via GitHub Actions | IMPLEMENTED | electron-builder target `portable`, runner `windows-latest`, artifact `.exe`. Lihat PROGRESS.md ADR-007 |
+| 0.9 | Buat `TASKLIST.md` | IMPLEMENTED | File ini |
+| 0.10 | Buat `PROGRESS.md` | IMPLEMENTED | Termasuk hasil audit & risiko |
+| 0.11 | Dokumentasi keputusan arsitektur awal (ADR) | IMPLEMENTED | `docs/ARCHITECTURE.md` (ADR-001 s.d. ADR-010) |
+| 0.12 | Catat fitur yang tidak dapat diuji langsung di workspace | IMPLEMENTED | Daftar di PROGRESS.md §3.3 & §7 |
+
+**Kriteria penerimaan Fase 0:** arsitektur awal terdokumentasi ✔ · dependensi utama dievaluasi ✔ · risiko diketahui ✔ · strategi tes & build jelas ✔ · tasklist lengkap ✔ — **menunggu persetujuan pengguna.**
+
+**Tes wajib Fase 0:** inspeksi repository (aktual, terekam di PROGRESS.md §1) + verifikasi metadata/dokumentasi pustaka terhadap sumber resmi (aktual, terekam di PROGRESS.md §4). Tidak ada tes kode karena tidak ada implementasi kode pada fase ini (sesuai aturan).
+
+---
+
+## FASE 1 — FONDASI ELECTRON DAN BUILD PORTABLE
+
+Status fase: **NOT STARTED** (tidak boleh dimulai sebelum Fase 0 disetujui)
+
+| # | Tugas | Status |
+|---|-------|--------|
+| 1.1 | Struktur proyek (`src/main`, `src/preload`, `src/renderer`, `tests`, dsb.) | NOT STARTED |
+| 1.2 | `package.json` + skrip `start`, `test`, `dist:win`, `start:test` | NOT STARTED |
+| 1.3 | Main process Electron (window, single-instance, keamanan) | NOT STARTED |
+| 1.4 | Preload dengan API terbatas (contextIsolation on, nodeIntegration off) | NOT STARTED |
+| 1.5 | Renderer HTML/CSS/JS ES modules — UI minimal "Thermal Receipt Studio" | NOT STARTED |
+| 1.6 | Konfigurasi CSP & keamanan Electron | NOT STARTED |
+| 1.7 | Konfigurasi electron-builder target `portable` win x64 | NOT STARTED |
+| 1.8 | Workflow CI: test (ubuntu, Node 20/22) | NOT STARTED |
+| 1.9 | Workflow CI: build+smoke di `windows-latest`, upload artifact `.exe` | NOT STARTED |
+| 1.10 | Tes dasar (validasi konfigurasi build + harness smoke) | NOT STARTED |
+
+**Kriteria penerimaan:** struktur valid ✔rencana · tanpa React/Vite · konfigurasi portable tersedia · tes dasar jalan · workflow Windows menghasilkan artifact `.exe` (diverifikasi dari run aktual, bukan asumsi).
+
+---
+
+## FASE 2 — UI UTAMA DAN PREVIEW AWAL
+
+Status fase: **NOT STARTED**
+
+Tugas: panel editor kiri · preview kanan · toolbar · menu file · pilihan kertas 58/80 mm · kontrol zoom preview · status bar · gaya Windows 11 · dokumen contoh lokal berlabel "contoh" terhubung mekanisme rendering.
+
+**Kriteria:** layout utama tersedia · lebar kertas mengubah preview · nol CDN · interaksi dasar berfungsi · tes rendering dasar.
+
+---
+
+## FASE 3 — MODEL DOKUMEN DAN EDITOR HIBRIDA
+
+Status fase: **NOT STARTED**
+
+Node: `document, paragraph, text, image, qrCode, barcode, separator, spacer, table, tableRow, tableCell, columnLayout, dynamicField`.
+Editor: keputusan ProseMirror vs contentEditable dibuat di Fase 0 (lihat ADR-005), implementasi di fase ini. Operasi sisip/edit/pilih/reorder/hapus, validasi, sinkron model↔preview, undo/redo.
+
+**Kriteria:** model tervalidasi · perubahan editor → model · perubahan model → preview · tes operasi dasar otomatis.
+
+---
+
+## FASE 4 — PENYIMPANAN FILE .TRSTUDIO
+
+Status fase: **NOT STARTED**
+
+ZIP: `manifest.json`, `document.json`, `assets/images/`, `preview.png` (opsional). New/Open/Save/Save As, versioning skema, atomic write, penanganan korup, batas ukuran, anti path-traversal, validasi konten arsip, portabilitas aset.
+
+**Kriteria:** round-trip tanpa kehilangan data · file invalid ditangani aman · tes otomatis.
+
+---
+
+## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
+
+Status fase: **NOT STARTED**
+
+Separator, spacer, gambar (aset internal), QR & barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran & opsi objek.
+
+**Kriteria:** semua objek dibuat/diedit/disimpan/dibuka · preview sesuai · unit test objek & layout.
+
+---
+
+## FASE 6 — LAYOUT THERMAL DAN ENCODER
+
+Status fase: **NOT STARTED**
+
+Modul layout murni (kolom efektif 58/80 mm, wrapping, alignment, tabel/kolom, gambar, QR, barcode, feed, cut) → dipetakan ke API nyata `ReceiptPrinterEncoder` (hanya method terdokumentasi). Integrasi `SystemReceiptPrinter` dievaluasi di fase ini (keputusan raw-vs-driver di-backlogkan ke Fase 7).
+
+**Kriteria:** output layout & encoder teruji · fixture & tes · batasan kompatibilitas terdokumentasi · tanpa klaim tanpa bukti.
+
+---
+
+## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN
+
+Status fase: **NOT STARTED**
+
+Dua jalur terpisah: (1) cetak via driver Windows (`webContents.print` / `SystemReceiptPrinter` bila native rebuild OK), (2) raw ESC/POS (USB/network) — dengan dokumentasi bahwa printer non-ESC/POS tidak boleh dikirim raw. Deteksi, pemilihan, profil, kirim job, offline/error handling, reprint, feed/cut, pesan error informatif.
+
+**Kriteria:** tiap jalur punya tes yang dapat diotomatisasi · keterbatasan terdokumentasi · tanpa klaim uji fisik yang belum dilakukan.
+
+---
+
+## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY
+
+Status fase: **NOT STARTED**
+
+`better-sqlite3` (native, direbuild saat dist): preferensi, profil printer, metadata, recovery autosave. Migrasi, penanganan DB rusak/gagal tulis, lokasi data user (bukan dir aplikasi). `.trstudio` tetap sumber utama desain.
+
+**Kriteria:** DB dibuat & dimigrasikan · preferensi persisten · error ditangani · desain tetap portabel.
+
+---
+
+## FASE 9 — INTEGRASI DAN PENGUJIAN END-TO-END
+
+Status fase: **NOT STARTED**
+
+Cakupan penuh (dokumen, edit, objek, save/open, preview 58/80, layout, gambar/QR/barcode, keamanan file, DB/recovery, encoder, error printer, offline, keamanan IPC, build portable). Perbaiki regresi; laporkan pengecualian dengan jujur.
+
+---
+
+## FASE 10 — BUILD PORTABLE DAN DOKUMENTASI FINAL
+
+Status fase: **NOT STARTED**
+
+Poles konfigurasi builder & workflow, penamaan output, versi, README final (build, tes, offline, batasan printer, unduh artifact). Verifikasi run workflow aktual & tautan artifact sebelum mengklaim sukses.
+
+---
+
+## Backlog risiko tinggi (dijadwal ulang eksplisit bila gagal)
+
+1. Rebuild native `better-sqlite3` + `@grandchef/node-printer` untuk Electron ABI di CI Windows (Fase 8/7).
+2. Keputusan jalur cetak raw ESC/POS USB (butuh perangkat keras pengguna).
+3. Uji visual & fisik printer thermal (hanya bisa dilakukan pengguna).
