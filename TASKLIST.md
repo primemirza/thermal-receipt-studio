@@ -53,11 +53,21 @@ Status fase: **TESTED** (tes lokal dijalankan & lulus; hasil workflow GitHub Act
 
 ## FASE 2 — UI UTAMA DAN PREVIEW AWAL
 
-Status fase: **NOT STARTED**
+Status fase: **IMPLEMENTED** (menunggu hasil CI dan verifikasi pengguna)
 
-Tugas: panel editor kiri · preview kanan · toolbar · menu file · pilihan kertas 58/80 mm · kontrol zoom preview · status bar · gaya Windows 11 · dokumen contoh lokal berlabel "contoh" terhubung mekanisme rendering.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 2.1 | Layout utama editor kiri dan preview kanan | IMPLEMENTED | Panel responsif dengan header, toolbar, dan status bar |
+| 2.2 | Toolbar pemilih kertas 58 mm / 80 mm | IMPLEMENTED | Tombol segmented mengubah lebar kanvas dan preview |
+| 2.3 | Kontrol zoom preview | IMPLEMENTED | 60–150% dalam kenaikan 10%, serta tombol Sesuaikan |
+| 2.4 | Panduan visual editor/preview | IMPLEMENTED | Toggle menampilkan outline elemen dan label blok |
+| 2.5 | Data struk contoh lokal terhubung ke renderer | IMPLEMENTED | Contoh Warung, item, total IDR, footer; belum menjadi model dokumen persisten |
+| 2.6 | Gaya visual Windows 11 dan layout responsif | IMPLEMENTED | CSS lokal, tanpa CDN, breakpoint untuk jendela sempit |
+| 2.7 | Status bar, versi aplikasi, dan status interaksi | IMPLEMENTED | Status perubahan kertas, zoom, dan panduan |
+| 2.8 | Tes regresi UI Fase 2 | IMPLEMENTED | Tes kontrak HTML, kontrol renderer, CSP/offline, dan kelas CSS; menunggu CI |
+| 2.9 | Build portable dan smoke test setelah perubahan UI | NOT STARTED | Menunggu CI pada branch/PR Fase 2 |
 
-**Kriteria:** layout utama tersedia · lebar kertas mengubah preview · nol CDN · interaksi dasar berfungsi · tes rendering dasar.
+**Kriteria penerimaan:** layout tersedia · lebar kertas mengubah preview · zoom berfungsi · panduan dapat ditoggle · tidak ada resource remote · tes lulus · artifact portable berhasil dibangun. Status TESTED hanya setelah CI benar-benar hijau; status ACCEPTED menunggu persetujuan pengguna.
 
 ---
 
