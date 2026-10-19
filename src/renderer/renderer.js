@@ -28,8 +28,11 @@ const money = (amount) => 'Rp ' + currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
+function captureHistoryState() {
+  return { document: cloneDocument(documentModel), selectedBlockId };
+}
 function saveUndoPoint() {
-  state.undo.push(cloneDocument(documentModel));
+  state.undo.push(captureHistoryState());
   if (state.undo.length > 80) state.undo.shift();
   state.redo = [];
   updateHistoryButtons();
@@ -47,9 +50,13 @@ function mutate(mutator, message) {
 }
 function restoreHistory(from, to, message) {
   if (!from.length) return;
-  to.push(cloneDocument(documentModel));
-  documentModel = from.pop();
-  selectedBlockId = documentModel.blocks.some(block => block.id === selectedBlockId) ? selectedBlockId : null;
+  to.push(captureHistoryState());
+  const snapshot = from.pop();
+  documentModel = cloneDocument(snapshot.document);
+  selectedBlockId = documentModel.blocks.some(block => block.id === snapshot.selectedBlockId)
+    ? snapshot.selectedBlockId
+    : null;
+  validateDocument(documentModel);
   renderAll();
   setStatus(message);
 }
