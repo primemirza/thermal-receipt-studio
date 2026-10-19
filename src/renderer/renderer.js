@@ -33,7 +33,7 @@ function setStatus(message) {
 
 function renderReceipt() {
   const columns = state.paper === 58 ? 32 : 42;
-    const money = (amount) => currency.format(amount).replace('IDR', 'Rp').replace(/\u00a0/g, ' ').trim();
+  const money = (amount) => currency.format(amount).replace('IDR', 'Rp').replace(/\u00a0/g, ' ').trim();
   const lines = [];
   const line = (className, children) => {
     const element = document.createElement('div');
@@ -60,7 +60,7 @@ function renderReceipt() {
     total += item.price;
     lines.push(line('', [text(item.name), text(money(item.price), 'right')]));
   }
-  lines.push(line('rule', [text('-'.repeat(columns)]));
+  lines.push(line('rule', [text('-'.repeat(columns))]));
   lines.push(line('', [strong('Total'), strong(money(total), 'right')]));
   lines.push(line('center receipt-thanks', [text(sampleReceipt.footer)]));
   receiptPreview.replaceChildren(...lines);
