@@ -55,7 +55,7 @@ function renderReceipt() {
     return node;
   };
   lines.push(line('center', [strong(sampleReceipt.store)]));
-  lines.push(line('rule', [text('-'.repeat(columns)]));
+  lines.push(line('rule', [text('-'.repeat(columns))]));
   let total = 0;
   for (const item of sampleReceipt.items) {
     total += item.price;
