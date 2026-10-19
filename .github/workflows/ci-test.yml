@@ -11,9 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        # Node dikunci ke LTS 20 untuk determinisme (lihat PROGRESS.md: skrip test lama
-        # `node --test tests/` gagal di Node 22; glob kini dipakai, tetap dikunci agar stabil).
-        node: ['20']
+        # Node 22 memenuhi engine requirement Electron 44 dan toolchain terkait.
+        node: ['22']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +23,13 @@ jobs:
       - run: npm ci
       - run: npm test
   electron-smoke-ubuntu:
-    # Bukti nyata bahwa jendela Electron benar-benar boot (bukan hanya exit code):
-    # wajib memunculkan marker TRS_SMOKE_OK pada stdout.
+    # Wajib memunculkan marker TRS_SMOKE_OK pada stdout.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
       - run: npm ci
       - name: Electron smoke (Xvfb)
