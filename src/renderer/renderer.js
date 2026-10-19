@@ -22,6 +22,8 @@ const selectedLabel = $('selected-block-label');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
+let isDirty = false;
+let currentFilePath = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
 const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 // Harga ditampilkan sebagai angka berkelompok; mata uang/prefix tidak dipaksakan oleh editor.
@@ -45,6 +47,7 @@ function updateHistoryButtons() {
 function mutate(mutator, message) {
   saveUndoPoint();
   mutator();
+  isDirty = true;
   validateDocument(documentModel);
   renderAll();
   setStatus(message);
@@ -54,6 +57,7 @@ function restoreHistory(from, to, message) {
   to.push(captureHistoryState());
   const snapshot = from.pop();
   documentModel = cloneDocument(snapshot.document);
+  isDirty = true;
   selectedBlockId = documentModel.blocks.some(block => block.id === snapshot.selectedBlockId)
     ? snapshot.selectedBlockId
     : null;
@@ -230,6 +234,37 @@ $('delete-block-button').addEventListener('click', () => {
 $('undo-button').addEventListener('click', () => restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'));
 $('redo-button').addEventListener('click', () => restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'));
 
+
+async function saveCurrent(mode = 'save') {
+  const result = await window.trs.saveDocument(cloneDocument(documentModel), mode);
+  if (!result?.ok) { setStatus('Gagal menyimpan: ' + (result?.message || result?.error || 'kesalahan tidak diketahui')); return false; }
+  if (!result.value) { setStatus('Penyimpanan dibatalkan.'); return false; }
+  currentFilePath = result.value.path;
+  isDirty = false;
+  setStatus('Dokumen tersimpan: ' + currentFilePath);
+  return true;
+}
+function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
+$('new-document-button').addEventListener('click', () => {
+  if (!confirmDiscard()) return;
+  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; isDirty = false;
+  state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen baru dibuat.');
+});
+$('open-document-button').addEventListener('click', async () => {
+  if (!confirmDiscard()) return;
+  const result = await window.trs.openDocument();
+  if (!result?.ok) { setStatus('Gagal membuka file: ' + (result?.message || result?.error || 'file tidak valid')); return; }
+  if (!result.value) { setStatus('Buka file dibatalkan.'); return; }
+  try {
+    validateDocument(result.value.document);
+    documentModel = cloneDocument(result.value.document);
+    selectedBlockId = null; currentFilePath = result.value.path; isDirty = false;
+    state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
+  } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
+});
+$('save-document-button').addEventListener('click', () => saveCurrent('save'));
+$('save-as-document-button').addEventListener('click', () => saveCurrent('saveAs'));
+
 async function boot() {
   renderAll();
   try {
@@ -237,7 +272,7 @@ async function boot() {
     if (ver.ok) { const label = 'v' + ver.value; statusVersion.textContent = label; appMeta.textContent = label; }
     const dir = await window.trs.getUserDataDir();
     if (dir.ok) console.info('User data dir:', dir.value);
-    setStatus('Model dokumen siap · perubahan belum disimpan');
+    setStatus('Dokumen siap · perubahan belum disimpan');
   } catch (err) {
     console.error(err);
     setStatus('Model dokumen siap; metadata aplikasi tidak tersedia.');
