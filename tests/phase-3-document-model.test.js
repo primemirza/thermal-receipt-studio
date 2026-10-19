@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSampleDocument, validateDocument, cloneDocument, totalAmount } from '../src/renderer/document-model.js';
+import { createSampleDocument, validateDocument, cloneDocument } from '../src/renderer/document-model.js';
 
 test('sample document has schema version, unique IDs, supported blocks, and 58 mm width', () => {
   const doc = createSampleDocument();
@@ -10,11 +10,12 @@ test('sample document has schema version, unique IDs, supported blocks, and 58 m
   assert.equal(new Set(doc.blocks.map(block => block.id)).size, doc.blocks.length);
 });
 
-test('total amount derives from item blocks only', () => {
+test('total amount is explicit and does not change when item prices change', () => {
   const doc = createSampleDocument();
-  assert.equal(totalAmount(doc), 20000);
-  doc.blocks.push({ id: 'b-item-3', type: 'item', name: 'Air mineral', price: 3000 });
-  assert.equal(totalAmount(doc), 23000);
+  const total = doc.blocks.find(block => block.type === 'total');
+  assert.equal(total.amount, 20000);
+  doc.blocks.find(block => block.type === 'item').price = 8000;
+  assert.equal(total.amount, 20000);
 });
 
 test('document clone is independent from original', () => {
@@ -24,7 +25,7 @@ test('document clone is independent from original', () => {
   assert.equal(original.blocks[0].text, 'WARUNG CONTOH');
 });
 
-test('validator rejects unsupported paper widths, duplicate IDs, and invalid prices', () => {
+test('validator rejects unsupported paper widths, duplicate IDs, invalid prices and invalid totals', () => {
   const width = createSampleDocument();
   width.paperWidthMm = 76;
   assert.throws(() => validateDocument(width), /Lebar kertas/);
@@ -34,9 +35,12 @@ test('validator rejects unsupported paper widths, duplicate IDs, and invalid pri
   const price = createSampleDocument();
   price.blocks.find(block => block.type === 'item').price = -1;
   assert.throws(() => validateDocument(price), /Data item/);
+  const amount = createSampleDocument();
+  amount.blocks.find(block => block.type === 'total').amount = -1;
+  assert.throws(() => validateDocument(amount), /Data total/);
 });
 
-test('renderer wires selection, property editing, add/delete, undo and redo', async () => {
+test('renderer uses prefix-free number formatting and explicit total values in both outputs', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const { fileURLToPath } = await import('node:url');
@@ -46,6 +50,10 @@ test('renderer wires selection, property editing, add/delete, undo and redo', as
   for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId']) {
     assert.ok(js.includes(expected), 'renderer memuat ' + expected);
   }
+  assert.match(js, /const money = \(amount\) => currency\.format\(amount\)/);
+  assert.doesNotMatch(js, /'Rp\\s*'\s*\+\s*currency\.format/);
+  assert.match(js, /block\.amount/);
+  assert.doesNotMatch(js, /totalAmount/);
   assert.match(html, /id="undo-button"[^>]*>Undo<\/button>/);
   assert.match(html, /id="redo-button"[^>]*>Redo<\/button>/);
 });
