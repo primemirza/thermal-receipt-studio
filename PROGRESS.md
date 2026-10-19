@@ -156,3 +156,27 @@ Fase 0 dinyatakan **ACCEPTED** oleh pengguna (dokumen di-merge ke repo GitHub). 
 ## Menunggu persetujuan pengguna
 - Verifikasi hasil run workflow setelah push (langkah di laporan fase).
 - Persetujuan Fase 1 sebelum memulai Fase 2.
+
+---
+
+# CATATAN SINKRONISASI GitHub — 2026-10-19/20 (percobaan opsi 3)
+
+## Tindakan yang BENAR-BENAR dijalankan (hasil aktual, bukan asumsi)
+1. Remote `origin` = `https://github.com/primemirza/thermal-receipt-studio.git` berhasil ditambahkan; credential helper store diisi token yang diberikan pengguna.
+2. `git ls-remote` dan `git fetch origin main` → **SUKSES (read-only)**: branch terjauh = `main` (HEAD `ade65c0`, berisi dokumen Fase 0 saja) dan `thermal-receipt-studio-development-3c807`.
+3. Merge lokal `origin/main` ke `master` → sukses (`d35c938`), riwayat bersih (merge-base `c7e62fb`).
+4. Percobaan push via git HTTPS → **GAGAL `403`**: `Permission to primemirza/thermal-receipt-studio.git denied to primemirza`. Dicoba juga branch baru (`phase1-foundation`, `thermal-receipt-studio-development-3c807`) dan format auth `oauth2:` / `x-access-token:` → semuanya 403 identik.
+5. Diagnostik REST API dengan token yang sama:
+   - GET repo, GET contents (mis. `TASKLIST.md?ref=main`) → **200** (baca berfungsi).
+   - POST `git/blobs`, POST `git/refs`, PUT `contents/...`, POST `pulls` → **semua 403 "Resource not accessible by personal access token"** (tulis ditolak).
+   - `/collaborators/primemirza/permission` melaporkan `push: true` — bukti bahwa izin akun OK dan pembatasnya adalah **konfigurasi token**, bukan hak akun.
+6. Workflow Actions: `GET /actions/runs` dan `/actions/workflows` dapat diakses token (read) → saat ini `total_count: 0`; belum ada run karena file workflow belum pernah masuk repo.
+
+## Kesimpulan & penanganan
+- Token fine-grained yang diterima hanya memiliki izin **Contents: Read-only** (dan tidak bisa membuat PR). Semua jalur tulis (git push, blobs/trees/refs API, contents API) diverifikasi langsung ditolak GitHub. Saya TIDAK mem-push apa pun dan TIDAK membuat PR.
+- Branch kerja sementara lokal sudah dihapus; `master` lokal kini identik dengan isi Fase 1 + merge `origin/main`, siap push begitu token diperbaiki.
+- **Tindakan yang diperlukan dari pengguna (salah satu):**
+  - **A. Perbaiki token yang ada**: GitHub → Settings → Developer settings → Fine-grained tokens → token ini → Repository access: *thermal-receipt-studio*; Permissions → *Contents*: **Read and write**; simpan. (Kirim token baru ke chat bila ID berubah.)
+  - **B. Atau buat token classic** dengan scope `repo` (+`workflow`), lalu kirim.
+  - **C. Alternatif tanpa token**: unduh/masuk repo Anda dan push manual branch `master` workspace — saya sediakan perintahnya; namun A/B lebih sederhana dan mengotomatiskan langkah berikutnya.
+- Setelah token menulis aktif, rencana otomatis: push `master` → pantau workflow *Tests* & *Build portable Windows EXE* via API (read sudah terbukti berfungsi) → laporkan status run + tautan artifact `.exe` kepada pengguna.
