@@ -53,7 +53,7 @@ Status fase: **TESTED** (tes lokal dijalankan & lulus; hasil workflow GitHub Act
 
 ## FASE 2 — UI UTAMA DAN PREVIEW AWAL
 
-Status fase: **IMPLEMENTED** (menunggu hasil CI dan verifikasi pengguna)
+Status fase: **ACCEPTED** (CI hijau dan verifikasi manual pengguna selesai)
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
@@ -64,10 +64,10 @@ Status fase: **IMPLEMENTED** (menunggu hasil CI dan verifikasi pengguna)
 | 2.5 | Data struk contoh lokal terhubung ke renderer | IMPLEMENTED | Contoh Warung, item, total IDR, footer; belum menjadi model dokumen persisten |
 | 2.6 | Gaya visual Windows 11 dan layout responsif | IMPLEMENTED | CSS lokal, tanpa CDN, breakpoint untuk jendela sempit |
 | 2.7 | Status bar, versi aplikasi, dan status interaksi | IMPLEMENTED | Status perubahan kertas, zoom, dan panduan |
-| 2.8 | Tes regresi UI Fase 2 | IMPLEMENTED | Tes kontrak HTML, kontrol renderer, CSP/offline, dan kelas CSS; menunggu CI |
-| 2.9 | Build portable dan smoke test setelah perubahan UI | NOT STARTED | Menunggu CI pada branch/PR Fase 2 |
+| 2.8 | Tes regresi UI Fase 2 | TESTED | Tes otomatis lulus pada workflow GitHub Actions terbaru |
+| 2.9 | Build portable dan smoke test setelah perubahan UI | TESTED | Build portable pada main sukses; pengguna menguji EXE dan mengonfirmasi tombol berfungsi |
 
-**Kriteria penerimaan:** layout tersedia · lebar kertas mengubah preview · zoom berfungsi · panduan dapat ditoggle · tidak ada resource remote · tes lulus · artifact portable berhasil dibangun. Status TESTED hanya setelah CI benar-benar hijau; status ACCEPTED menunggu persetujuan pengguna.
+**Kriteria penerimaan:** layout tersedia · lebar kertas mengubah preview · zoom berfungsi · panduan dapat ditoggle · tidak ada resource remote · tes lulus · artifact portable berhasil dibangun. Kriteria terpenuhi: CI hijau, artifact portable berhasil dibangun, dan pengguna mengonfirmasi kontrol utama berfungsi.
 
 ---
 
