@@ -258,3 +258,10 @@ Belum menyatakan fase TESTED sampai GitHub Actions selesai. Setelah build portab
 - Riwayat sekarang menyimpan snapshot dokumen sekaligus ID elemen terpilih; undo/redo memulihkan keduanya dalam satu aksi.
 - Label tombol diubah menjadi **Undo** dan **Redo** sesuai istilah yang diminta.
 - Tes regresi memeriksa snapshot riwayat dan label tombol. Status tetap menunggu hasil CI dan uji manual Windows.
+
+
+### Koreksi lanjutan Fase 3 — total statis dan angka tanpa prefix
+- Blok Total menyimpan nilai eksplisit `amount`; renderer tidak lagi menjumlahkan harga item untuk menghasilkan total.
+- Prefix `Rp` dihapus dari angka item dan total pada kanvas maupun preview. Pemisah ribuan tetap digunakan.
+- Tes diperbarui untuk memastikan total tidak berubah saat harga item diedit dan nilai total negatif ditolak.
+- Menunggu CI; Fase 4 belum dimulai.
