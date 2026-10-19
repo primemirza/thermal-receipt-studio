@@ -20,11 +20,12 @@ test('Fase 2 menyediakan kontrol kertas, zoom, dan panduan yang dapat diakses', 
 
 test('renderer menghubungkan lebar kertas dan zoom dengan render preview', () => {
   const js = read('src/renderer/renderer.js');
-  assert.match(js, /function renderReceipt\(\)/);
+  // Fase 3 mengganti renderReceipt() dengan renderPreview() berbasis model dokumen.
+  assert.match(js, /function renderPreview\(\)/);
   assert.match(js, /function setPaper\(width\)/);
   assert.match(js, /function setZoom\(value\)/);
-  assert.match(js, /receiptPreview\.replaceChildren\(\.\.\.lines\)/);
-  assert.match(js, /data-paper/);
+  assert.match(js, /receiptPreview\.replaceChildren\(fragment\)/);
+  assert.match(js, /dataset\.paper = String\(documentModel\.paperWidthMm\)/);
   assert.match(js, /zoom-' \+ state\.zoom/);
   assert.match(js, /toggle-guides/);
 });
