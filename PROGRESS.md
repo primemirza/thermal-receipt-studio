@@ -109,3 +109,42 @@ Tidak ada file kode aplikasi yang dibuat (dilarang pada Fase 0).
 1. **Persetujuan hasil Fase 0** (arsitektur, pemilihan pustaka, strategi tes/build) untuk memulai Fase 1.
 2. **Akses repository GitHub**: karena `/workspace` bukan git repo (§1), saat Fase 1 saya akan inisialisasi git lokal. Untuk push, saya membutuhkan URL repo (mis. `https://github.com/<user>/<repo>.git`) dan metode autentikasi yang tersedia di lingkungan ini (token/credential helper). Alternatif sederhana jika push tidak tersedia dari workspace: pengguna membuat repo kosong di GitHub, lalu saya siapkan seluruh commit dan pengguna push sendiri dengan instruksi yang saya berikan, atau gunakan GitHub Web UI untuk mengunggah file.
 3. Konfirmasi bahwa workflow Windows di GitHub Actions (menggunakan menit CI Windows pengguna) dapat diterima sebagai mekanisme build/test.
+
+
+---
+
+# CATATAN FASE 1 — FONDASI ELECTRON DAN BUILD PORTABLE (2026-10-19)
+
+## Status
+Fase 0 dinyatakan **ACCEPTED** oleh pengguna (dokumen di-merge ke repo GitHub). Fase 1 dikerjakan dan kini berstatus **TESTED** (menunggu persetujuan pengguna → belum ACCEPTED).
+
+## Perubahan yang dilakukan (file dibuat/diubah)
+- `package.json` — type module, skrip start/test/start:test/dist:win/rebuild:native, konfigurasi electron-builder target **portable win x64** (bukan NSIS/MSI), artifactName `ThermalReceiptStudio-${version}-portable-x64.exe`. DevDeps: electron 44.9.0, electron-builder 26.15.3, cross-env. Tidak ada dependency runtime React/Vite.
+- `src/main/bootstrap.cjs` — entry point; menyuntik `--no-sandbox` ke argv HANYA bila uid==0 (kasus runner/container Linux) sebelum Electron init.
+- `src/main/main.js` — BrowserWindow judul "Thermal Receipt Studio", contextIsolation true, nodeIntegration false, preload tunggal `trs:invoke` dengan whitelist channel (`app:getVersion`, `app:getUserDataDir`) + validasi payload ketat, single-instance lock, blokir will-navigate non-file: dan window baru, pemisahan data pengguna (`%APPDATA%/ThermalReceiptStudio`), mode smoke `TRS_SMOKE=1`.
+- `src/preload/preload.cjs` — contextBridge `window.trs` (hanya 2 fungsi).
+- `src/renderer/index.html|renderer.js|app.css` + `styles/app.css` — UI minimal dua panel (editor placeholder + preview contoh), statusbar, CSP ketat `default-src 'none'; script-src 'self'; style-src 'self'`, tanpa resource jarak jauh.
+- `tests/config.test.js` (8 tes) + `tests/smoke-harness.test.js` (2 tes).
+- `.github/workflows/ci-test.yml` — matriks ubuntu+windows × Node 20/22, `npm ci && npm test`.
+- `.github/workflows/build-windows.yml` — windows-latest: unit test → smoke Electron (verifikasi `TRS_SMOKE_OK`) → `npm run dist:win` → upload artifact `dist/*.exe` (`if-no-files-found: error`).
+- `.gitignore`, `README.md` diperbarui sesuai implementasi aktual.
+
+## Keputusan arsitektur fase ini
+1. **Bootstrap CJS** diperlukan karena Chromium memeriksa root/no-sandbox SEBELUM kode ESM user berjalan (dibuktikan oleh kegagalan smoke pertama di workspace: `FATAL electron_main_delegate.cc ... Running as root without --no-sandbox`). Pada Windows produksi tidak berdampak.
+2. Smoke CI memakai `--no-sandbox` eksplisit agar deterministik di runner; aplikasi final dijalankan pengguna tanpa flag itu (belum diverifikasi pada mesin pengguna — dinyatakan sebagai tes manual).
+3. CSS disalin ke `src/renderer/app.css` agar seluruh aset renderer berada dalam satu folder yang dibundel (asar) — sumber kanonik tetap `styles/app.css` sampai Fase 2 merapikan pipeline.
+
+## Hasil pengujian AKTUAL (dijalankan di workspace Linux)
+- `npm install` → sukses (electron 44.9.0 terpasang).
+- `npm test` → **10/10 pass, 0 fail** (dua kali: sebelum & sesudah perubahan bootstrap).
+- Smoke Electron NYATA dengan Xvfb: `DISPLAY=:99 TRS_SMOKE=1 npx electron . --no-sandbox` → **exit 0**, stdout: `TRS_SMOKE_OK window-title="Thermal Receipt Studio"` (jendela benar-benar dibuat, preload+CSP tidak memblokir renderer).
+- Kegagalan yang ditemukan & diperbaiki selama fase: (a) libgtk-3 hilang di container → dipasang dependensi sistem; (b) root sandbox FATAL → solusi bootstrap + flag CI (direkam di atas).
+
+## Keterbatasan lingkungan (tidak diklaim)
+- Workspace Linux TIDAK dapat menjalankan `electron-builder --win portable` (butuh runner Windows) → build `.exe` diserahkan ke workflow `build-windows.yml`.
+- `/workspace/.git` tidak memiliki remote; push tidak dapat dilakukan dari sini. Pengguna perlu menambahkan remote/credential atau menyalin file ke repo.
+- Workflow Actions BELUM diverifikasi lulus — baru dibuat. Jangan dianggap berhasil sampai run aktual hijau.
+
+## Menunggu persetujuan pengguna
+- Verifikasi hasil run workflow setelah push (langkah di laporan fase).
+- Persetujuan Fase 1 sebelum memulai Fase 2.

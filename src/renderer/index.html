@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+  <title>Thermal Receipt Studio</title>
+  <link rel="stylesheet" href="./app.css" />
+</head>
+<body>
+  <header class="titlebar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">🧾</span>
+      <h1>Thermal Receipt Studio</h1>
+    </div>
+    <div class="app-meta" id="app-meta" aria-live="polite"></div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel editor-panel" aria-label="Area kerja editor">
+      <h2>Editor</h2>
+      <p class="hint">Panel editor akan dibangun pada Fase 2–3. Fondasi aplikasi tersedia.</p>
+      <div class="placeholder-box" id="editor-placeholder">Area kerja dasar</div>
+    </section>
+
+    <section class="panel preview-panel" aria-label="Preview struk">
+      <h2>Preview</h2>
+      <p class="hint">Lebar kertas: <strong>58 mm</strong> / <strong>80 mm</strong> (dipilih pada Fase 2).</p>
+      <div class="receipt-preview" aria-label="Contoh tampilan struk">
+        <div class="receipt-line center"><b>THERMAL RECEIPT STUDIO</b></div>
+        <div class="receipt-line">--------------------------------</div>
+        <div class="receipt-line"><span>Item contoh</span><span class="right">Rp 0</span></div>
+        <div class="receipt-line">--------------------------------</div>
+        <div class="receipt-line"><span>Total</span><span class="right"><b>Rp 0</b></span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status-text">Siap</span>
+    <span id="status-version" class="right"></span>
+  </footer>
+
+  <script type="module" src="./renderer.js"></script>
+</body>
+</html>

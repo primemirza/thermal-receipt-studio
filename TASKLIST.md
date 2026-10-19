@@ -7,7 +7,7 @@
 
 ## FASE 0 — AUDIT DAN PERENCANAAN
 
-Status fase: **IMPLEMENTED** (dokumen selesai; menunggu persetujuan pengguna → belum `ACCEPTED`)
+Status fase: **ACCEPTED** (pengguna menyetujui dengan mem-merge dokumen Fase 0 ke repo GitHub, 2026-10-19)
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
@@ -32,20 +32,20 @@ Status fase: **IMPLEMENTED** (dokumen selesai; menunggu persetujuan pengguna →
 
 ## FASE 1 — FONDASI ELECTRON DAN BUILD PORTABLE
 
-Status fase: **NOT STARTED** (tidak boleh dimulai sebelum Fase 0 disetujui)
+Status fase: **TESTED** (tes lokal dijalankan & lulus; hasil workflow GitHub Actions diverifikasi dari run aktual setelah push — lihat PROGRESS.md §Fase 1)
 
 | # | Tugas | Status |
 |---|-------|--------|
-| 1.1 | Struktur proyek (`src/main`, `src/preload`, `src/renderer`, `tests`, dsb.) | NOT STARTED |
-| 1.2 | `package.json` + skrip `start`, `test`, `dist:win`, `start:test` | NOT STARTED |
-| 1.3 | Main process Electron (window, single-instance, keamanan) | NOT STARTED |
-| 1.4 | Preload dengan API terbatas (contextIsolation on, nodeIntegration off) | NOT STARTED |
-| 1.5 | Renderer HTML/CSS/JS ES modules — UI minimal "Thermal Receipt Studio" | NOT STARTED |
-| 1.6 | Konfigurasi CSP & keamanan Electron | NOT STARTED |
-| 1.7 | Konfigurasi electron-builder target `portable` win x64 | NOT STARTED |
-| 1.8 | Workflow CI: test (ubuntu, Node 20/22) | NOT STARTED |
-| 1.9 | Workflow CI: build+smoke di `windows-latest`, upload artifact `.exe` | NOT STARTED |
-| 1.10 | Tes dasar (validasi konfigurasi build + harness smoke) | NOT STARTED |
+| 1.1 | Struktur proyek (`src/main`, `src/preload`, `src/renderer`, `styles`, `tests`, `.github/workflows`) | TESTED |
+| 1.2 | `package.json` + skrip `start`, `test`, `dist:win`, `start:test` | TESTED |
+| 1.3 | Main process Electron (window, single-instance, keamanan) + bootstrap CJS (workaround root/CI sandbox) | TESTED |
+| 1.4 | Preload dengan API terbatas (contextIsolation on, nodeIntegration off) | TESTED |
+| 1.5 | Renderer HTML/CSS/JS ES modules — UI minimal "Thermal Receipt Studio" | TESTED |
+| 1.6 | Konfigurasi CSP & keamanan Electron | TESTED |
+| 1.7 | Konfigurasi electron-builder target `portable` win x64 | IMPLEMENTED (build .exe terjadi di CI Windows; tidak dapat dieksekusi di workspace Linux) |
+| 1.8 | Workflow CI: test (matriks ubuntu+windows, Node 20/22) | IMPLEMENTED (menunggu run aktual setelah push) |
+| 1.9 | Workflow CI: unit test + smoke Electron + build + upload artifact `.exe` di `windows-latest` | IMPLEMENTED (menunggu run aktual setelah push) |
+| 1.10 | Tes dasar: 10 tes unit lulus (`node --test`) + smoke Electron nyata lulus di Xvfb (`TRS_SMOKE_OK window-title="Thermal Receipt Studio"`, exit 0) | TESTED |
 
 **Kriteria penerimaan:** struktur valid ✔rencana · tanpa React/Vite · konfigurasi portable tersedia · tes dasar jalan · workflow Windows menghasilkan artifact `.exe` (diverifikasi dari run aktual, bukan asumsi).
 

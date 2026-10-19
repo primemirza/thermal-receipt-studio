@@ -1,0 +1,46 @@
+{
+  "name": "thermal-receipt-studio",
+  "version": "0.1.0",
+  "description": "Offline desktop designer for thermal receipt printing (58mm/80mm).",
+  "type": "module",
+  "main": "src/main/bootstrap.cjs",
+  "author": "Thermal Receipt Studio",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "start:test": "cross-env TRS_SMOKE=1 electron .",
+    "test": "node --test tests/",
+    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "dist:win": "electron-builder --win portable x64"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.thermalreceiptstudio.app",
+    "productName": "Thermal Receipt Studio",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "ThermalReceiptStudio-${version}-portable-x64.${ext}"
+    }
+  }
+}
