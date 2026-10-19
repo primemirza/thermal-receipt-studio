@@ -12,7 +12,7 @@ export function createSampleDocument() {
       { id: 'b-item-1', type: 'item', name: 'Teh hangat', price: 5000 },
       { id: 'b-item-2', type: 'item', name: 'Nasi goreng', price: 15000 },
       { id: 'b-rule-2', type: 'rule' },
-      { id: 'b-total', type: 'total', label: 'Total', bold: true },
+      { id: 'b-total', type: 'total', label: 'Total', amount: 20000, bold: true },
       { id: 'b-footer', type: 'text', text: 'Terima kasih!', align: 'center', bold: false }
     ]
   };
@@ -33,15 +33,13 @@ export function validateDocument(doc) {
     if (block.type === 'item' && (typeof block.name !== 'string' || !Number.isFinite(block.price) || block.price < 0)) {
       throw new TypeError('Data item tidak valid.');
     }
-    if (block.type === 'total' && typeof block.label !== 'string') throw new TypeError('Label total tidak valid.');
+    if (block.type === 'total' && (typeof block.label !== 'string' || !Number.isFinite(block.amount) || block.amount < 0)) {
+      throw new TypeError('Data total tidak valid.');
+    }
   }
   return true;
 }
 
 export function cloneDocument(doc) {
   return structuredClone(doc);
-}
-
-export function totalAmount(doc) {
-  return doc.blocks.filter(block => block.type === 'item').reduce((sum, block) => sum + block.price, 0);
 }
