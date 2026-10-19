@@ -34,7 +34,7 @@ test('tidak ada dependensi React/Vite/CDN pada fondasi', () => {
     assert.ok(!(banned in allDeps), `${banned} tidak dipakai`);
   }
   const html = read('src/renderer/index.html');
-  assert.ok(!/https?:\\/\\//.test(html.replace(/http-equiv/g, '')), 'HTML tidak memuat resource jarak jauh');
+  assert.ok(!html.includes('http://') && !html.includes('https://'), 'HTML tidak memuat resource jarak jauh');
 });
 
 test('keamanan Electron dikonfigurasi pada main process', () => {
