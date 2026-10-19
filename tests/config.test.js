@@ -19,9 +19,9 @@ test('konfigurasi electron-builder menargetkan portable win x64 (bukan NSIS/MSI)
   const pkg = JSON.parse(read('package.json'));
   const b = pkg.build;
   assert.ok(b, 'blok build ada');
-  assert.equal(b.win.target[0].target, 'portable');
-  assert.deepEqual(b.win.target[0].arch, ['x64']);
-  assert.match(b.portable.artifactName, /portable/);
+  assert.deepEqual(b.win.target, ['portable']);
+  assert.match(pkg.scripts['dist:win'], /--win portable --x64/);
+  assert.match(b.portable.artifactName, /portable-x64/);
   const targets = JSON.stringify(b).toLowerCase();
   assert.ok(!targets.includes('"nsis"'), 'tanpa target NSIS');
   assert.ok(!targets.includes('"msi"'), 'tanpa target MSI');
@@ -34,21 +34,21 @@ test('tidak ada dependensi React/Vite/CDN pada fondasi', () => {
     assert.ok(!(banned in allDeps), `${banned} tidak dipakai`);
   }
   const html = read('src/renderer/index.html');
-  assert.ok(!/https?:\/\//.test(html.replace(/http-equiv/g, '')), 'HTML tidak memuat resource jarak jauh');
+  assert.ok(!/https?:\\/\\//.test(html.replace(/http-equiv/g, '')), 'HTML tidak memuat resource jarak jauh');
 });
 
 test('keamanan Electron dikonfigurasi pada main process', () => {
   const main = read('src/main/main.js');
-  assert.match(main, /contextIsolation:\s*true/);
-  assert.match(main, /nodeIntegration:\s*false/);
+  assert.match(main, /contextIsolation:\\s*true/);
+  assert.match(main, /nodeIntegration:\\s*false/);
   assert.match(main, /setWindowOpenHandler/);
   assert.match(main, /will-navigate/);
 });
 
 test('preload hanya mengekspos API terbatas via contextBridge', () => {
   const preload = read('src/preload/preload.cjs');
-  assert.match(preload, /contextBridge\.exposeInMainWorld\('trs'/);
-  assert.ok(!/require\(['"]fs['"]\)/.test(preload), 'preload tidak mengekspos fs');
+  assert.match(preload, /contextBridge\\.exposeInMainWorld\\('trs'/);
+  assert.ok(!/require\\(['"]fs['"]\\)/.test(preload), 'preload tidak mengekspos fs');
 });
 
 test('CSP ketat ada di index.html', () => {
@@ -59,9 +59,8 @@ test('CSP ketat ada di index.html', () => {
 });
 
 test('IPC menolak channel yang tidak diizinkan', async () => {
-  // Simulasi handler validasi payload tanpa Electron: ekstrak aturan dari source.
   const main = read('src/main/main.js');
-  assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(\['app:getVersion',\s*'app:getUserDataDir'\]\)/);
+  assert.match(main, /ALLOWED_CHANNELS\\s*=\\s*new Set\\(\\['app:getVersion',\\s*'app:getUserDataDir'\\]\\)/);
 });
 
 test('aset renderer tersedia lokal (offline-safe)', () => {
