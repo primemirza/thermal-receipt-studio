@@ -61,7 +61,7 @@ test('CSP ketat ada di index.html', () => {
 test('IPC menolak channel yang tidak diizinkan', async () => {
   // Simulasi handler validasi payload tanpa Electron: ekstrak aturan dari source.
   const main = read('src/main/main.js');
-  assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(\['app:getVersion',\s*'app:getUserDataDir'\]\)/);
+  assert.match(main, /ALLOWED_CHANNELS\\s*=\\s*new Set\\(\\['app:getVersion',\\s*'app:getUserDataDir',\\s*'document:open',\\s*'document:save'\\]\\)/);
 });
 
 test('aset renderer tersedia lokal (offline-safe)', () => {
