@@ -269,3 +269,22 @@ Belum menyatakan fase TESTED sampai GitHub Actions selesai. Setelah build portab
 - `src/renderer/document-model.js` sekarang memberi contoh total eksplisit `20000` dan memvalidasi amount non-negatif yang finite; `totalAmount()` dihapus.
 - Tes regresi diperbarui untuk nilai total eksplisit dan format tanpa prefix. Belum mengklaim lulus sampai workflow Actions terbaru selesai.
 - Fase 4 tidak dimulai; tunggu CI dan uji manual pengguna atas build hasil perubahan ini.
+
+
+---
+
+## FASE 4 — PENYIMPANAN FILE .TRSTUDIO (2026-10-20)
+
+Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
+
+### Perubahan yang dibuat pada branch `feature/phase-4-trstudio-storage`
+- Menambahkan `src/main/trstudio-archive.js`: pembuat/pembaca ZIP lokal berbasis zlib, CRC32, batas ukuran arsip/entri, pemeriksaan struktur, nama entri aman, checksum, dan format `.trstudio` dengan `manifest.json` serta `document.json`.
+- Menambahkan IPC terbatas di main process untuk dialog Open dan Save, validasi model, batas ukuran dokumen, serta penulisan atomik melalui file temporer unik dan rename.
+- Preload hanya mengekspos `openDocument()` dan `saveDocument(document, mode)`; renderer tidak mendapat akses filesystem atau IPC mentah.
+- Menambahkan kontrol Baru, Buka, Simpan, Simpan sebagai, konfirmasi ketika membuang perubahan, reset riwayat saat dokumen diganti, dan status hasil operasi.
+- Menambahkan `tests/phase-4-storage.test.js` untuk round-trip, manifest, path traversal, arsip rusak, validasi dokumen, dan wiring IPC/UI.
+
+### Batasan saat ini
+- Aset gambar dan `preview.png` belum disimpan; parser secara eksplisit menolak arsip dengan aset gambar. Ini belum memenuhi bagian portabilitas aset dan perlu ditangani sebelum fase diterima.
+- Tes dan smoke/build Windows belum diverifikasi pada commit ini. Status belum TESTED/ACCEPTED.
+- Fase 5 belum dimulai.
