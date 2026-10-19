@@ -1,4 +1,4 @@
-import { createSampleDocument, cloneDocument, validateDocument, totalAmount } from './document-model.js';
+import { createSampleDocument, cloneDocument, validateDocument } from './document-model.js';
 
 const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
@@ -24,7 +24,8 @@ let documentModel = createSampleDocument();
 let selectedBlockId = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
 const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
-const money = (amount) => 'Rp ' + currency.format(amount);
+// Harga ditampilkan sebagai angka berkelompok; mata uang/prefix tidak dipaksakan oleh editor.
+const money = (amount) => currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
@@ -86,9 +87,7 @@ function renderCanvas() {
       node.append(make('span', '', block.name));
       node.append(make('span', 'block-price', money(block.price)));
     } else if (block.type === 'total') {
-      const total = make('strong', '', block.label);
-      const price = make('strong', 'block-price', money(totalAmount(documentModel)));
-      node.append(total, price);
+      node.append(make('strong', '', block.label), make('strong', 'block-price', money(block.amount)));
     } else {
       const text = make(block.bold ? 'strong' : 'span', '', block.text);
       if (block.align === 'right') node.style.justifyContent = 'flex-end';
@@ -107,7 +106,7 @@ function renderPreview() {
     } else if (block.type === 'item') {
       fragment.append(makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]));
     } else if (block.type === 'total') {
-      fragment.append(makeLine('', [make('b', '', block.label), make('b', 'right', money(totalAmount(documentModel)))]));
+      fragment.append(makeLine('', [make('b', '', block.label), make('b', 'right', money(block.amount))]));
     } else {
       const cls = block.align === 'center' ? 'center' : '';
       const content = make(block.bold ? 'b' : 'span', '', block.text);
