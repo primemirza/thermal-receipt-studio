@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
@@ -43,4 +44,9 @@ test('gaya editor dan preview mendukung ukuran kertas dan tingkat zoom', () => {
     assert.ok(css.includes(`.receipt-preview.zoom-${zoom}`), `zoom ${zoom}% tersedia`);
   }
   assert.match(css, /@media \(max-width: 900px\)/);
+});
+
+test('renderer.js lolos pemeriksaan sintaks JavaScript', () => {
+  const result = spawnSync(process.execPath, ['--check', path.join(root, 'src/renderer/renderer.js')], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout || 'renderer.js gagal diparse');
 });
