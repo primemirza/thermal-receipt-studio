@@ -1,8 +1,11 @@
 // Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { validateDocument } from '../renderer/document-model.js';
+import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +25,8 @@ function userDataDir() {
 }
 
 let mainWindow = null;
+const currentFiles = new Map();
+const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -71,9 +76,9 @@ if (!gotLock) {
   });
 
   // --- IPC tervalidasi (API sangat terbatas pada Fase 1) ---
-  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir']);
+  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save']);
 
-  ipcMain.handle('trs:invoke', async (_evt, payload) => {
+  ipcMain.handle('trs:invoke', async (event, payload) => {
     // Payload divalidasi ketat; renderer tidak pernah memanggil channel secara bebas.
     if (typeof payload !== 'object' || payload === null) {
       return { ok: false, error: 'INVALID_PAYLOAD' };
