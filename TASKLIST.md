@@ -143,3 +143,6 @@ Poles konfigurasi builder & workflow, penamaan output, versi, README final (buil
 1. Rebuild native `better-sqlite3` + `@grandchef/node-printer` untuk Electron ABI di CI Windows (Fase 8/7).
 2. Keputusan jalur cetak raw ESC/POS USB (butuh perangkat keras pengguna).
 3. Uji visual & fisik printer thermal (hanya bisa dilakukan pengguna).
+
+## Riwayat eksekusi CI aktual (diperbarui otomatis)
+- 2026-10-19 Run #1/#2 (sha 5955d25): unit Node 20 ubuntu+windows LULUS; Node 22 GAGAL (`node --test tests/` → Cannot find module, keduanya); build Windows gagal di step unit-test yang sama. Perbaikan: skrip test glob + CI dikunci Node 20 + job smoke Ubuntu wajib marker TRS_SMOKE_OK. Menunggu run pascaperbaikan.

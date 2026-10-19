@@ -180,3 +180,25 @@ Fase 0 dinyatakan **ACCEPTED** oleh pengguna (dokumen di-merge ke repo GitHub). 
   - **B. Atau buat token classic** dengan scope `repo` (+`workflow`), lalu kirim.
   - **C. Alternatif tanpa token**: unduh/masuk repo Anda dan push manual branch `master` workspace — saya sediakan perintahnya; namun A/B lebih sederhana dan mengotomatiskan langkah berikutnya.
 - Setelah token menulis aktif, rencana otomatis: push `master` → pantau workflow *Tests* & *Build portable Windows EXE* via API (read sudah terbukti berfungsi) → laporkan status run + tautan artifact `.exe` kepada pengguna.
+
+## CATATAN SINKRONISASI GitHub #2 + DIAGNOSIS CI (2026-10-19, masih FASE 1)
+Token baru (Contents: Read and write) valid — **push berhasil** (bukti nyata): `origin/main` =
+`origin/master` = commit lokal `5955d25`; default branch tetap `main`. Workflow otomatis terpicu.
+
+### Hasil run Actions AKTUAL (diverifikasi via API + unduhan log job per langkah)
+- Run *Tests* #1 (main) & #2 (master): **Node 20 LULUS di ubuntu & windows; Node 22 GAGAL di keduanya**.
+- Penyebab pasti (dari log CI): skrip `npm test` memakai `node --test tests/`; pada Node 22 argumen
+  diperlakukan sebagai modul → `Cannot find module '.../tests'`. Keterbatasan jujur: workspace lokal
+  (Node 20) tidak menangkap masalah ini sebelum push.
+- Run *Build Windows*: gagal lebih awal pada step unit-test yang sama (belum mencapai electron-builder).
+- Catatan integritas: langkah "smoke" ubuntu pada workflow build dilaporkan success tanpa bukti
+  marker jendela — akan dipertajam agar cek `TRS_SMOKE_OK` seperti job Windows.
+
+### Perbaikan yang diterapkan (masih FASE 1)
+- `package.json`: `"test": "node --test tests/*.test.js"` (glob diekspansi npm — konsisten Node 20/22,
+  Linux/Windows). Verifikasi lokal ulang: `npm test` → pass 10 / fail 0.
+- Keputusan versi terdokumentasi: runtime aplikasi = Electron (Chromium+Node tertanam; tidak bergantung
+  Node sistem); artefak `.exe` portable identik di semua mesin pengguna. CI dikunci **Node 20 LTS**
+  (matriks 22 dihapus dari ci-test.yml; build-windows.yml sudah 22→20) untuk determinisme.
+- TASKLIST §R7: kegagalan CI Node 22 + perbaikan dicatat; status 1.7–1.9 tetap IMPLEMENTED sampai
+  run pascaperbaikan hijau dan artifact terunduh.
