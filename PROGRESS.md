@@ -208,7 +208,7 @@ Token baru (Contents: Read and write) valid — **push berhasil** (bukti nyata):
 
 ## FASE 2 — UI EDITOR DAN PREVIEW AWAL (2026-10-20)
 
-Status implementasi: **IMPLEMENTED, menunggu CI dan verifikasi pengguna**.
+Status fase: **ACCEPTED** pada 2026-10-20. CI terbaru hijau dan pengguna telah menguji EXE Windows serta mengonfirmasi tombol berfungsi.
 
 ### Perubahan yang dibuat
 - Mengganti placeholder awal dengan workspace editor/preview berdampingan, toolbar, status bar, dan layout responsif.
@@ -223,5 +223,11 @@ Status implementasi: **IMPLEMENTED, menunggu CI dan verifikasi pengguna**.
 Fase ini hanya menyediakan UI dan rendering data contoh. Penyuntingan dokumen sebenarnya, seleksi/mutasi elemen, undo/redo, serta format dokumen persisten tetap di fase berikutnya. Belum ada klaim bahwa file EXE baru sudah dibangun sampai workflow CI selesai.
 
 ### Validasi
-- Belum ditandai TESTED sebelum hasil workflow GitHub Actions untuk branch Fase 2 tersedia.
-- Pemeriksaan visual Windows tetap membutuhkan uji manual pengguna setelah artifact baru diunduh.
+- GitHub Actions `Tests` run #14: success.
+- GitHub Actions `Build portable Windows EXE` run #9: success pada commit `c2c81286498ded5f8c5f27e0f18eeb32f59b5e13`.
+- Pengguna menguji build Windows terbaru dan mengonfirmasi kontrol UI berfungsi.
+- Fase 2 diterima; batasan fungsional tetap sesuai scope: belum ada pengeditan dokumen persisten, undo/redo, atau buka/simpan file.
+
+
+### Catatan penerimaan
+Fase 2 dinyatakan selesai berdasarkan CI hijau dan verifikasi manual pengguna. Fase berikutnya belum dimulai; menunggu persetujuan eksplisit pengguna.
