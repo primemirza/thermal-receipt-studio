@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSampleDocument, validateDocument, cloneDocument, totalAmount } from '../src/renderer/document-model.js';
+import { createSampleDocument, validateDocument, cloneDocument } from '../src/renderer/document-model.js';
 
 test('sample document has schema version, unique IDs, supported blocks, and 58 mm width', () => {
   const doc = createSampleDocument();
@@ -10,11 +10,12 @@ test('sample document has schema version, unique IDs, supported blocks, and 58 m
   assert.equal(new Set(doc.blocks.map(block => block.id)).size, doc.blocks.length);
 });
 
-test('total amount derives from item blocks only', () => {
+test('total amount remains an explicit document value, independent of item prices', () => {
   const doc = createSampleDocument();
-  assert.equal(totalAmount(doc), 20000);
-  doc.blocks.push({ id: 'b-item-3', type: 'item', name: 'Air mineral', price: 3000 });
-  assert.equal(totalAmount(doc), 23000);
+  const total = doc.blocks.find(block => block.type === 'total');
+  assert.equal(total.amount, 20000);
+  doc.blocks.find(block => block.type === 'item').price = 9000;
+  assert.equal(total.amount, 20000);
 });
 
 test('document clone is independent from original', () => {
@@ -34,6 +35,9 @@ test('validator rejects unsupported paper widths, duplicate IDs, and invalid pri
   const price = createSampleDocument();
   price.blocks.find(block => block.type === 'item').price = -1;
   assert.throws(() => validateDocument(price), /Data item/);
+  const invalidTotal = createSampleDocument();
+  invalidTotal.blocks.find(block => block.type === 'total').amount = -1;
+  assert.throws(() => validateDocument(invalidTotal), /Data total/);
 });
 
 test('renderer wires selection, property editing, add/delete, undo and redo', async () => {
@@ -43,7 +47,7 @@ test('renderer wires selection, property editing, add/delete, undo and redo', as
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
-  for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId']) {
+  for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId', "const money = (amount) => currency.format(amount)", 'money(block.amount)']) {
     assert.ok(js.includes(expected), 'renderer memuat ' + expected);
   }
   assert.match(html, /id="undo-button"[^>]*>Undo<\/button>/);
