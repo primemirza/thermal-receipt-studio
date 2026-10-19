@@ -42,7 +42,10 @@ test('renderer wires selection, property editing, add/delete, undo and redo', as
   const { fileURLToPath } = await import('node:url');
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
-  for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview']) {
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId']) {
     assert.ok(js.includes(expected), 'renderer memuat ' + expected);
   }
+  assert.match(html, /id="undo-button"[^>]*>Undo<\/button>/);
+  assert.match(html, /id="redo-button"[^>]*>Redo<\/button>/);
 });

@@ -252,3 +252,9 @@ Belum ada penyimpanan dokumen ke disk atau format .trstudio, dan belum ada gamba
 
 ### Validasi
 Belum menyatakan fase TESTED sampai GitHub Actions selesai. Setelah build portable sukses, perlu pengujian manual pemilihan blok, edit harga/teks, tambah/hapus, undo/redo, dan sinkronisasi preview.
+
+
+### Perbaikan lanjutan Fase 3 — Undo/Redo
+- Riwayat sekarang menyimpan snapshot dokumen sekaligus ID elemen terpilih; undo/redo memulihkan keduanya dalam satu aksi.
+- Label tombol diubah menjadi **Undo** dan **Redo** sesuai istilah yang diminta.
+- Tes regresi memeriksa snapshot riwayat dan label tombol. Status tetap menunggu hasil CI dan uji manual Windows.
