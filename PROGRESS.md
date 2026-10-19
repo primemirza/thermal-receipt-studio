@@ -104,6 +104,14 @@ Tidak ada file kode aplikasi yang dibuat (dilarang pada Fase 0).
 | R5 | Workspace tidak bisa menjalankan Electron | Umpan balik lambat | Smoke test di CI; modular code testable tanpa Electron |
 | R6 | Push/pull GitHub bergantung akses pengguna | Repo tidak tersinkron | Prosedur §8; commit lokal selalu siap di-remote-kan |
 
+## 7.1 Sinkronisasi GitHub (keputusan pengguna, sesi berjalan — opsi 3 dipilih)
+
+- Pengguna memilih agar sinkronisasi repo dibantu dari workspace.
+- Kesiapan terverifikasi: `credential.helper=store` aktif; koneksi keluar ke github.com OK; git 2.39.5.
+- Prosedur: pengguna membuat **fine-grained token** (akses: repo target, izin *Contents: Read and write*), lalu mengirim **URL repo + token** di chat workspace ini. Kredensial disimpan hanya di credential store workspace (`~/.git-credentials`), tidak pernah ditulis ke file repo/commit/dokumentasi.
+- Setelah terhubung: setiap commit fase di-push oleh agent; workflow dipicu otomatis; hasil dapat diverifikasi via API publik (`api.github.com`, endpoint status check & artifacts memerlukan token untuk privat).
+- Catatan keamanan: chat adalah jalur transmisi kredensial — setelah seluruh proyek selesai, pengguna disarankan me-revoke token dari GitHub. Alternatif lebih aman tetap tersedia: push manual per fase seperti yang sudah berhasil dilakukan pengguna.
+
 ## 8. Menunggu persetujuan pengguna
 
 1. **Persetujuan hasil Fase 0** (arsitektur, pemilihan pustaka, strategi tes/build) untuk memulai Fase 1.
