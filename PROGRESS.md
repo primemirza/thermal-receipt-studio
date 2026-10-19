@@ -202,3 +202,26 @@ Token baru (Contents: Read and write) valid — **push berhasil** (bukti nyata):
   (matriks 22 dihapus dari ci-test.yml; build-windows.yml sudah 22→20) untuk determinisme.
 - TASKLIST §R7: kegagalan CI Node 22 + perbaikan dicatat; status 1.7–1.9 tetap IMPLEMENTED sampai
   run pascaperbaikan hijau dan artifact terunduh.
+
+
+---
+
+## FASE 2 — UI EDITOR DAN PREVIEW AWAL (2026-10-20)
+
+Status implementasi: **IMPLEMENTED, menunggu CI dan verifikasi pengguna**.
+
+### Perubahan yang dibuat
+- Mengganti placeholder awal dengan workspace editor/preview berdampingan, toolbar, status bar, dan layout responsif.
+- Menambahkan pemilih lebar kertas 58 mm/80 mm; kedua pilihan mengubah lebar visual kanvas dan hasil preview.
+- Menambahkan zoom preview 60–150% dengan langkah 10% dan tombol Sesuaikan ke 100%.
+- Menambahkan toggle panduan untuk menyorot batas blok dan menampilkan label jenis elemen pada kanvas.
+- Menghubungkan data contoh lokal (nama toko, item, harga, total, footer) ke renderer; perhitungan total dihitung dari baris item.
+- Mempertahankan CSP ketat dan aset lokal, tanpa CDN atau permintaan jaringan.
+- Menambahkan tes regresi UI untuk kontrol, keterhubungan renderer, CSP/offline, kelas ukuran kertas, zoom, dan responsivitas.
+
+### Batasan fase
+Fase ini hanya menyediakan UI dan rendering data contoh. Penyuntingan dokumen sebenarnya, seleksi/mutasi elemen, undo/redo, serta format dokumen persisten tetap di fase berikutnya. Belum ada klaim bahwa file EXE baru sudah dibangun sampai workflow CI selesai.
+
+### Validasi
+- Belum ditandai TESTED sebelum hasil workflow GitHub Actions untuk branch Fase 2 tersedia.
+- Pemeriksaan visual Windows tetap membutuhkan uji manual pengguna setelah artifact baru diunduh.
