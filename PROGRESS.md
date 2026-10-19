@@ -258,3 +258,14 @@ Belum menyatakan fase TESTED sampai GitHub Actions selesai. Setelah build portab
 - Riwayat sekarang menyimpan snapshot dokumen sekaligus ID elemen terpilih; undo/redo memulihkan keduanya dalam satu aksi.
 - Label tombol diubah menjadi **Undo** dan **Redo** sesuai istilah yang diminta.
 - Tes regresi memeriksa snapshot riwayat dan label tombol. Status tetap menunggu hasil CI dan uji manual Windows.
+
+
+---
+
+## Koreksi Fase 3 — total eksplisit dan format harga (2026-10-20)
+
+- Hasil pemeriksaan PR #9 menunjukkan commit yang ter-merge berisi perbaikan Undo/Redo saja. Perubahan prefix `Rp` dan perhitungan total otomatis tidak masuk ke `main`, sehingga laporan sebelumnya bahwa perbaikan itu sudah diterapkan tidak akurat.
+- Cabang `fix/phase-3-total-amount-format` memperbarui `src/renderer/renderer.js` agar harga ditampilkan dengan pengelompokan angka tanpa prefix `Rp`, dan total membaca `block.amount` di kanvas serta preview.
+- `src/renderer/document-model.js` sekarang memberi contoh total eksplisit `20000` dan memvalidasi amount non-negatif yang finite; `totalAmount()` dihapus.
+- Tes regresi diperbarui untuk nilai total eksplisit dan format tanpa prefix. Belum mengklaim lulus sampai workflow Actions terbaru selesai.
+- Fase 4 tidak dimulai; tunggu CI dan uji manual pengguna atas build hasil perubahan ini.

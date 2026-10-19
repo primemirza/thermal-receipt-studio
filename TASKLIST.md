@@ -78,7 +78,7 @@ Status fase: **IMPLEMENTED** (menunggu CI dan verifikasi pengguna)
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
 | 3.1 | Model dokumen berversi dan struktur blok | IMPLEMENTED | Schema v1: teks, garis, item, total; ID unik dan lebar kertas |
-| 3.2 | Validasi model dan perhitungan total | IMPLEMENTED | Validasi tipe, ID, harga, jumlah blok, dan lebar kertas |
+| 3.2 | Validasi model dan nilai total eksplisit | IMPLEMENTED | Total disimpan di blok total dan tidak dihitung otomatis dari item |
 | 3.3 | Sinkronisasi model ke kanvas dan preview | IMPLEMENTED | Renderer membuat kedua tampilan dari model yang sama |
 | 3.4 | Pilih elemen di kanvas | IMPLEMENTED | Klik/keyboard menyeleksi blok dan membuka inspector |
 | 3.5 | Edit teks, nama item, harga, dan perataan | IMPLEMENTED | Perubahan diterapkan ke model dan preview |
@@ -167,3 +167,9 @@ Poles konfigurasi builder & workflow, penamaan output, versi, README final (buil
 
 ## Riwayat eksekusi CI aktual (diperbarui otomatis)
 - 2026-10-19 Run #1/#2 (sha 5955d25): unit Node 20 ubuntu+windows LULUS; Node 22 GAGAL (`node --test tests/` → Cannot find module, keduanya); build Windows gagal di step unit-test yang sama. Perbaikan: skrip test glob + CI dikunci Node 20 + job smoke Ubuntu wajib marker TRS_SMOKE_OK. Menunggu run pascaperbaikan.
+
+
+### Koreksi dari hasil uji PR #9
+- PR #9 hanya memuat perbaikan Undo/Redo; perbaikan prefix `Rp` dan total otomatis belum masuk ke `main` saat pengguna menguji.
+- Cabang `fix/phase-3-total-amount-format` mengubah nilai total menjadi eksplisit (`block.amount`) dan menghapus prefix `Rp` pada item/total di kanvas dan preview.
+- Status perbaikan tetap menunggu CI dan uji manual pengguna; Fase 4 belum dimulai.
