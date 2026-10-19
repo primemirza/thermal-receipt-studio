@@ -33,8 +33,7 @@ function setStatus(message) {
 
 function renderReceipt() {
   const columns = state.paper === 58 ? 32 : 42;
-  const paperPixels = state.paper === 58 ? 260 : 340;
-  const money = (amount) => currency.format(amount).replace('IDR', 'Rp').replace(/\u00a0/g, ' ').trim();
+    const money = (amount) => currency.format(amount).replace('IDR', 'Rp').replace(/\u00a0/g, ' ').trim();
   const lines = [];
   const line = (className, children) => {
     const element = document.createElement('div');
@@ -65,15 +64,10 @@ function renderReceipt() {
   lines.push(line('', [strong('Total'), strong(money(total), 'right')]));
   lines.push(line('center receipt-thanks', [text(sampleReceipt.footer)]));
   receiptPreview.replaceChildren(...lines);
-  receiptPreview.style.width = paperPixels + 'px';
-  receiptPreview.style.maxWidth = 'none';
-  receiptPreview.style.transform = 'scale(' + state.zoom / 100 + ')';
-  receiptPreview.style.transformOrigin = 'top center';
-  receiptPreview.style.setProperty('--receipt-columns', String(columns));
+  receiptPreview.classList.remove('zoom-60', 'zoom-70', 'zoom-80', 'zoom-90', 'zoom-100', 'zoom-110', 'zoom-120', 'zoom-130', 'zoom-140', 'zoom-150');
+  receiptPreview.classList.add('zoom-' + state.zoom);
   receiptPreview.dataset.paper = String(state.paper);
   designPaper.dataset.paper = String(state.paper);
-  designPaper.style.width = paperPixels + 'px';
-  designPaper.style.setProperty('--receipt-columns', String(columns));
   previewStage.classList.toggle('show-guides', state.guides);
   document.getElementById('editor-surface').classList.toggle('show-guides', state.guides);
   paperButtons.forEach((button) => {
