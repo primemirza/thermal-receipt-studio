@@ -34,21 +34,21 @@ test('tidak ada dependensi React/Vite/CDN pada fondasi', () => {
     assert.ok(!(banned in allDeps), `${banned} tidak dipakai`);
   }
   const html = read('src/renderer/index.html');
-  assert.ok(!/https?:\\/\\//.test(html.replace(/http-equiv/g, '')), 'HTML tidak memuat resource jarak jauh');
+  assert.ok(!/https?:\/\//.test(html.replace(/http-equiv/g, '')), 'HTML tidak memuat resource jarak jauh');
 });
 
 test('keamanan Electron dikonfigurasi pada main process', () => {
   const main = read('src/main/main.js');
-  assert.match(main, /contextIsolation:\\s*true/);
-  assert.match(main, /nodeIntegration:\\s*false/);
+  assert.match(main, /contextIsolation:\s*true/);
+  assert.match(main, /nodeIntegration:\s*false/);
   assert.match(main, /setWindowOpenHandler/);
   assert.match(main, /will-navigate/);
 });
 
 test('preload hanya mengekspos API terbatas via contextBridge', () => {
   const preload = read('src/preload/preload.cjs');
-  assert.match(preload, /contextBridge\\.exposeInMainWorld\\('trs'/);
-  assert.ok(!/require\\(['"]fs['"]\\)/.test(preload), 'preload tidak mengekspos fs');
+  assert.match(preload, /contextBridge\.exposeInMainWorld\('trs'/);
+  assert.ok(!/require\(['"]fs['"]\)/.test(preload), 'preload tidak mengekspos fs');
 });
 
 test('CSP ketat ada di index.html', () => {
@@ -59,8 +59,9 @@ test('CSP ketat ada di index.html', () => {
 });
 
 test('IPC menolak channel yang tidak diizinkan', async () => {
+  // Simulasi handler validasi payload tanpa Electron: ekstrak aturan dari source.
   const main = read('src/main/main.js');
-  assert.match(main, /ALLOWED_CHANNELS\\s*=\\s*new Set\\(\\['app:getVersion',\\s*'app:getUserDataDir'\\]\\)/);
+  assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(\['app:getVersion',\s*'app:getUserDataDir'\]\)/);
 });
 
 test('aset renderer tersedia lokal (offline-safe)', () => {
