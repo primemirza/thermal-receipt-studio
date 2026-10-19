@@ -231,3 +231,24 @@ Fase ini hanya menyediakan UI dan rendering data contoh. Penyuntingan dokumen se
 
 ### Catatan penerimaan
 Fase 2 dinyatakan selesai berdasarkan CI hijau dan verifikasi manual pengguna. Fase berikutnya belum dimulai; menunggu persetujuan eksplisit pengguna.
+
+
+---
+
+## FASE 3 — MODEL DOKUMEN DAN EDITOR HIBRIDA (2026-10-20)
+
+Status implementasi: **IMPLEMENTED, menunggu CI dan uji manual**.
+
+### Implementasi
+- Menambahkan src/renderer/document-model.js dengan schema dokumen v1, data contoh, clone, validasi, dan perhitungan total.
+- Mengubah renderer agar kanvas dan preview dihasilkan dari model dokumen yang sama.
+- Menambahkan seleksi blok dengan klik atau keyboard, inspector properti, edit teks/nama item, harga, dan perataan teks.
+- Menambahkan tombol tambah teks, tambah item, hapus elemen, urungkan, dan ulangi.
+- Menambahkan riwayat undo/redo dengan batas 80 snapshot.
+- Menambahkan tes regresi model dan editor pada tests/phase-3-document-model.test.js.
+
+### Batasan
+Belum ada penyimpanan dokumen ke disk atau format .trstudio, dan belum ada gambar, QR/barcode, tabel, reorder, atau integrasi printer. Perubahan pada dokumen saat ini berada di memori dan hilang saat aplikasi ditutup. Penyimpanan file dijadwalkan pada Fase 4.
+
+### Validasi
+Belum menyatakan fase TESTED sampai GitHub Actions selesai. Setelah build portable sukses, perlu pengujian manual pemilihan blok, edit harga/teks, tambah/hapus, undo/redo, dan sinkronisasi preview.
