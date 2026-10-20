@@ -288,6 +288,23 @@ test('Word-style alignment toolbar applies to all blocks and individual table/co
   assert.ok(model.includes("assertAlignments(block.columnAlignments"));
 });
 
+test('zoom controls update both canvas and receipt preview without rebuilding the canvas on every step', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  const zoom = js.slice(js.indexOf('function setZoom(value)'), js.indexOf('function selectBlock', js.indexOf('function setZoom(value)')));
+  assert.ok(zoom.includes('designPaper.style.zoom = String(state.zoom / 100)'));
+  assert.ok(zoom.includes('renderPreview()'));
+  assert.ok(zoom.includes('zoomValue.textContent = state.zoom + \'%\''));
+  assert.ok(zoom.includes('Zoom area kerja dan preview'));
+  assert.ok(js.includes('designPaper.style.zoom = String(state.zoom / 100)'), 'canvas zoom must also be applied on render');
+  assert.ok(html.includes('Perkecil area kerja dan preview'));
+  assert.ok(html.includes('Perbesar area kerja dan preview'));
+});
+
 test('tables and text columns preserve explicit false bold/italic/underline values', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -373,10 +390,16 @@ test('inline editing is activated only on double-click and context menu does not
   const dbl = js.slice(js.indexOf("designPaper.addEventListener('dblclick'"), js.indexOf("designPaper.addEventListener('keydown'", js.indexOf("designPaper.addEventListener('dblclick'")));
   const context = js.slice(js.indexOf("designPaper.addEventListener('contextmenu'"), js.indexOf("document.addEventListener('pointerdown'", js.indexOf("designPaper.addEventListener('contextmenu'")));
   assert.ok(factory.includes("span.contentEditable = 'false'"));
-  assert.ok(dbl.includes("editor.contentEditable = 'true'"));
-  assert.ok(dbl.includes('selectNodeContents(editor)'));
+  assert.ok(dbl.includes("beginInlineEdit(editor, blockNode.dataset.blockId)"));
+  const editHelper = js.slice(js.indexOf('function beginInlineEdit'), js.indexOf("designPaper.addEventListener('click'"));
+  assert.ok(editHelper.includes('selectNodeContents(editor)'));
   assert.ok(js.includes("const cell = event.target.closest('td, th, .column-cell, .section-header')"));
   assert.ok(js.includes('function trackInlineTarget(editor, blockId)'));
+  assert.ok(js.includes('function beginInlineEdit(editor, blockId)'));
+  assert.ok(js.includes("event.detail >= 2 && editor"), 'double-click count must activate editing from click path');
+  assert.ok(js.includes("editor.setAttribute('contenteditable', 'true')"));
+  assert.ok(js.includes("editor.focus({ preventScroll: true })"));
+
   assert.ok(context.includes('event.preventDefault()'));
   assert.ok(!context.includes("contentEditable = 'true'"));
   assert.ok(js.includes("cell.contentEditable = 'false'"));
