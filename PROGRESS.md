@@ -300,45 +300,15 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PRIORITAS: DOUBLE-CLICK EDIT DAN ZOOM KANVAS (2026-10-21)
+## FASE 5 — PERBAIKAN FINAL JALUR DOUBLE-CLICK EDIT (2026-10-21)
 
-Umpan balik setelah PR #17 di-merge: toolbar alignment dan fungsi lain berjalan baik, tetapi double-click edit masih gagal; zoom hanya memengaruhi preview. Perbaikan terkini ada pada branch `fix/phase-5-inline-edit-and-canvas-zoom` dan belum diuji pengguna.
+Pengguna telah merge PR #18 namun melaporkan double-click masih belum berfungsi. Audit mendapati penyebab struktural di jalur klik: `selectBlock()` dapat menjalankan `renderCanvas()` ketika target klik tidak terdeteksi sebagai field editable langsung, sehingga node yang harus menerima double-click dapat diganti di antara click pertama dan kedua.
 
-- Mode edit diaktifkan melalui event click dengan `detail >= 2` sekaligus handler `dblclick`, dengan satu helper yang mengaktifkan `contenteditable`, memfokuskan editor, dan memilih teks tanpa mengganti node kanvas.
-- Zoom sekarang diterapkan ke `designPaper` dan preview memakai state zoom yang sama; label/status toolbar menyebut kedua area.
-- Tes regresi baru memeriksa jalur click-count, helper editing, dan penerapan zoom ke kanvas + preview.
-- PR belum dibuka / belum di-merge; menunggu CI dan uji portable Windows.
+Perbaikan pada branch `fix/phase-5-dblclick-edit-reliable`:
+- Memilih blok sekarang hanya mengganti kelas `is-selected` dan memperbarui inspector; tidak me-render ulang kanvas.
+- Double-click ditangkap di `editor-surface` pada capture phase, sebelum handler bubble, dan mengaktifkan edit pada node yang sama.
+- Resolver field tidak hanya mencari span yang terkena click; ia juga mencari field utama blok, sel tabel/header, sel kolom, dan header section.
+- Handle drag/resize dikecualikan agar operasi tersebut tidak memasuki mode edit.
+- Tes regresi diperbarui untuk memastikan selection tidak merender ulang kanvas, resolver mendukung tabel/kolom, dan double-click ditangkap pada capture phase.
 
-
-PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru ada di `feature/phase-5-inline-edit-align-controls`; belum dinyatakan TESTED/ACCEPTED.
-
-### Perbaikan lanjutan
-- Menambahkan tiga tombol ikon rata kiri/tengah/kanan pada toolbar dengan state aktif dan shortcut Ctrl+Shift+L/E/R. Kontrol perataan di inspector dihapus.
-- Event editing sekarang mencari isi dalam sel tabel/kolom maupun target teks langsung. Normal click memilih konteks sel; double-click mengaktifkan `contenteditable` tanpa mengganti DOM yang sedang mendapat fokus; click kanan mengosongkan target inline dan hanya membuka menu.
-- Tabel menyimpan `cellAlignments` berbentuk matrix (baris pertama untuk header, berikutnya untuk tiap row). Columns menyimpan `columnAlignments`. Validator memeriksa dimensi dan nilai kiri/tengah/kanan; perubahan row/column menjaga matrix tetap cocok.
-- Perataan toolbar beroperasi pada elemen yang dipilih; jika target aktif adalah sel tabel atau kolom, hanya target itu yang berubah. Pada toolbar saat blok tabel/columns dipilih dari bagian luar sel, seluruh sel/kolom dapat diratakan bersamaan.
-- `applyTextStyle`, table renderer dan column renderer sekarang menetapkan `font-weight`, `font-style`, dan `text-decoration` eksplisit untuk nilai true/false. CSS memaksa table header mewarisi format blok sehingga gaya bold bawaan browser tak bocor.
-- Section bersarang telah didukung oleh rendering dan insertion recursive sebelumnya; ditambahkan validasi kedalaman maksimum 20 untuk mencegah dokumen bersarang berlebihan.
-- Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
-
-### Status verifikasi
-- GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus.
-- Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
-- Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
-
-
-PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru ada di `feature/phase-5-inline-edit-align-controls`; belum dinyatakan TESTED/ACCEPTED.
-
-### Perbaikan lanjutan
-- Menambahkan tiga tombol ikon rata kiri/tengah/kanan pada toolbar dengan state aktif dan shortcut Ctrl+Shift+L/E/R. Kontrol perataan di inspector dihapus.
-- Event editing sekarang mencari isi dalam sel tabel/kolom maupun target teks langsung. Normal click memilih konteks sel; double-click mengaktifkan `contenteditable` tanpa mengganti DOM yang sedang mendapat fokus; click kanan mengosongkan target inline dan hanya membuka menu.
-- Tabel menyimpan `cellAlignments` berbentuk matrix (baris pertama untuk header, berikutnya untuk tiap row). Columns menyimpan `columnAlignments`. Validator memeriksa dimensi dan nilai kiri/tengah/kanan; perubahan row/column menjaga matrix tetap cocok.
-- Perataan toolbar beroperasi pada elemen yang dipilih; jika target aktif adalah sel tabel atau kolom, hanya target itu yang berubah. Pada toolbar saat blok tabel/columns dipilih dari bagian luar sel, seluruh sel/kolom dapat diratakan bersamaan.
-- `applyTextStyle`, table renderer dan column renderer sekarang menetapkan `font-weight`, `font-style`, dan `text-decoration` eksplisit untuk nilai true/false. CSS memaksa table header mewarisi format blok sehingga gaya bold bawaan browser tak bocor.
-- Section bersarang telah didukung oleh rendering dan insertion recursive sebelumnya; ditambahkan validasi kedalaman maksimum 20 untuk mencegah dokumen bersarang berlebihan.
-- Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
-
-### Status verifikasi
-- GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus.
-- Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
-- Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
+Status: belum diverifikasi CI untuk branch ini; perlu unit test lintas platform serta pengujian artefak Windows. Belum siap dinyatakan selesai sampai tes dan uji pengguna lulus.
