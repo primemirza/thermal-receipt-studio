@@ -31,6 +31,22 @@ const totalAmountInput = $('block-total-amount');
 const ruleCharacterInput = $('block-rule-character');
 const imageAltInput = $('block-image-alt');
 const tableStructureActions = $('table-structure-actions');
+const tableLayoutFields = $('table-layout-fields');
+const columnsLayoutFields = $('columns-layout-fields');
+const sectionLayoutFields = $('section-layout-fields');
+const tableWidthInput = $('block-table-width');
+const tablePaddingInput = $('block-table-padding');
+const columnsWidthInput = $('block-columns-width');
+const columnsPaddingInput = $('block-columns-padding');
+const columnsGapInput = $('block-columns-gap');
+const columnsBorderInput = $('block-columns-border');
+const columnWidthsInput = $('block-column-widths');
+const sectionNameInput = $('block-section-name');
+const sectionMarginInput = $('block-section-margin');
+const sectionPaddingInput = $('block-section-padding');
+const sectionChildCountInput = $('block-section-child-count');
+const globalLayoutDialog = $('global-layout-dialog');
+const blockContextMenu = $('block-context-menu');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
@@ -373,7 +389,7 @@ function renderInspector() {
   textInput.disabled = !block || !['text', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
   alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
-  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
+  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : ['text','dynamic'].includes(block.type) ? (block.text || '') : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
   alignInput.value = block?.align ?? 'left';
   sizeInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
@@ -403,12 +419,36 @@ function renderInspector() {
   $('table-remove-row').disabled = !block || block.type !== 'table' || block.rows.length <= 0;
   $('table-add-column').disabled = !block || block.type !== 'table' || block.headers.length >= 6;
   $('table-remove-column').disabled = !block || block.type !== 'table' || block.headers.length <= 1;
+  tableLayoutFields.hidden = !block || block.type !== 'table';
+  tableWidthInput.disabled = !block || block.type !== 'table';
+  tableWidthInput.value = block?.type === 'table' ? String(block.width ?? 100) : '100';
+  tablePaddingInput.disabled = !block || block.type !== 'table';
+  tablePaddingInput.value = block?.type === 'table' ? String(block.padding ?? 4) : '4';
+  columnsLayoutFields.hidden = !block || block.type !== 'columns';
+  columnsWidthInput.disabled = !block || block.type !== 'columns';
+  columnsWidthInput.value = block?.type === 'columns' ? String(block.width ?? 100) : '100';
+  columnsPaddingInput.disabled = !block || block.type !== 'columns';
+  columnsPaddingInput.value = block?.type === 'columns' ? String(block.padding ?? 4) : '4';
+  columnsGapInput.disabled = !block || block.type !== 'columns';
+  columnsGapInput.value = block?.type === 'columns' ? String(block.gap ?? 0) : '0';
+  columnsBorderInput.disabled = !block || block.type !== 'columns';
+  columnsBorderInput.value = block?.type === 'columns' ? (block.border || 'vertical') : 'vertical';
+  columnWidthsInput.disabled = !block || block.type !== 'columns';
+  columnWidthsInput.value = block?.type === 'columns' ? columnWidths(block).join(', ') : '';
+  sectionLayoutFields.hidden = !block || block.type !== 'section';
+  sectionNameInput.disabled = !block || block.type !== 'section';
+  sectionNameInput.value = block?.type === 'section' ? (block.name || 'Section baru') : '';
+  sectionMarginInput.disabled = !block || block.type !== 'section';
+  sectionMarginInput.value = block?.type === 'section' ? String(block.margin?.top ?? 0) : '0';
+  sectionPaddingInput.disabled = !block || block.type !== 'section';
+  sectionPaddingInput.value = block?.type === 'section' ? String(block.padding?.top ?? 8) : '8';
+  sectionChildCountInput.value = block?.type === 'section' ? String(block.children.length) : '0';
 }
 function renderAll() {
   renderCanvas();
   renderPreview();
   renderInspector();
-  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = documentModel.blocks.length + ' elemen';
+  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = countAllBlocks() + ' elemen';
   updateHistoryButtons();
 }
 function setPaper(width) {
@@ -508,7 +548,7 @@ function commitInlineChange(block, apply, message, preserveCanvas) {
 }
 designPaper.addEventListener('focusout', event => {
   const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
-  const blockNode = cell.closest('[data-block-id]'); const block = documentModel.blocks.find(item => item.id === blockNode?.dataset.blockId); if (!block) return;
+  const blockNode = cell.closest('[data-block-id]'); const block = findBlockEntry(blockNode?.dataset.blockId)?.block; if (!block) return;
   const field = cell.dataset.field; const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200; const value = cell.textContent.slice(0, max);
   const preserveCanvas = true;
   if (field === 'tableCell' && block.type === 'table') {
