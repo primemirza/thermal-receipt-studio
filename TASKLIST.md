@@ -124,7 +124,7 @@ Status fase: **IN PROGRESS**. Prioritas kritis berikutnya: memastikan double-cli
 - Bold/italic/underline dipaksakan secara eksplisit sesuai nilai model agar default `<th>` browser tidak membuat teks tebal ketika properti tidak aktif; gaya berlaku pada kanvas dan preview.
 - Tambah/hapus baris/kolom tabel turut menjaga alignment setiap sel konsisten.
 
-**Status verifikasi:** GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
+**Status verifikasi PR #19:** GitHub Actions run #76 lulus: `npm test` 53/53 pada Ubuntu dan Windows. Electron smoke test menjalankan alur double-click, fokus, edit, blur, dan memastikan teks ter-commit ke preview; hasil: `TRS_SMOKE_INLINE_EDIT_OK`, target tetap connected dan kanvas tidak dirender ulang pada klik pertama. Portable artifact Windows dan uji manual pengguna tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** toolbar rata; double-click header/body tabel dan kolom; klik kanan saat cursor berada pada teks; perataan blok, perataan satu sel/kolom dan seluruh tabel/columns; bold on/off; section bersarang; save/open `.trstudio` dengan alignment per-sel.
 
