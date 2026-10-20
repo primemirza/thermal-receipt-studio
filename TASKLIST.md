@@ -114,22 +114,19 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS**. Implementasi awal PR #14 dan follow-up PR #15 telah di-merge dan diuji pengguna. Follow-up lanjutan dari hasil uji portable Windows dikerjakan pada branch `feature/phase-5-editor-polish-resize-title`.
+Status fase: **IN PROGRESS**. PR #14, #15, dan #16 telah di-merge dan diuji pengguna. Follow-up berikutnya dikembangkan di branch `feature/phase-5-inline-edit-align-controls` dari temuan screenshot uji terakhir.
 
-Objek separator, spacer, teks manual, gambar, QR/barcode offline, tabel/sel editable, columns dan section bertingkat, margin global/per-blok, padding per sisi, format/alignment, drag-and-drop urutan dan ukuran, title bar berbasis nama file, menu konteks, undo/redo, save/open `.trstudio`, dan preview.
+**Cakupan follow-up terbaru:**
+- Toolbar dirapikan dengan baseline label dan tombol sejajar; tiga ikon perataan (kiri/tengah/kanan) tersedia di toolbar, dengan indikator pilihan dan shortcut Ctrl+Shift+L/E/R. Aturan perataan di inspector dihapus.
+- Double-click pada isi teks maupun permukaan sel tabel/kolom membuka edit tanpa merender ulang target; klik kanan hanya membuka menu, dan drag handles tidak masuk mode edit.
+- Alignment table disimpan per sel termasuk header; alignment kolom teks disimpan per kolom. Struktur alignment tervalidasi dan tetap utuh saat save/open `.trstudio`.
+- Section dapat bersarang; penyisipan elemen mengikuti section aktif hingga level bertingkat. Validasi membatasi kedalaman bersarang hingga 20 level.
+- Bold/italic/underline dipaksakan secara eksplisit sesuai nilai model agar default `<th>` browser tidak membuat teks tebal ketika properti tidak aktif; gaya berlaku pada kanvas dan preview.
+- Tambah/hapus baris/kolom tabel turut menjaga alignment setiap sel konsisten.
 
-**Kriteria editor follow-up:**
-- Panel desktop terpisah menjadi 3 kolom dengan urutan Properti elemen → Editor/kanvas → Preview; inspector dapat discroll.
-- Separator menghasilkan satu stroke saja. Default edit adalah mode pilih/baca; klik ganda pada teks mengaktifkan edit, sementara klik kanan hanya membuka menu konteks.
-- Gambar, QR, dan barcode bisa diubah ukurannya langsung dengan pegangan drag, serta tetap dapat diatur dari inspector.
-- Margin dan padding per blok/section dapat diubah independen pada sisi atas, kanan, bawah, kiri. Margin global tetap tersedia.
-- Title bar menjadi `Thermal Receipt Studio - nama-file.trstudio` sesudah simpan/buka; kembali ke judul dasar setelah Dokumen Baru.
-- Menu klik kanan memiliki `Duplikat elemen`; duplikat diletakkan tepat di bawah sumber, dan semua ID anak baru pada duplikat section berbeda.
-- Tidak merusak drag handle, resize tabel/kolom, edit sel, undo/redo, validasi, dan round-trip `.trstudio`.
+**Status verifikasi:** tes tambahan untuk branch ini menunggu CI unit test Ubuntu/Windows dan Electron smoke test. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
-**Status verifikasi:** GitHub Actions run #52 lulus: `npm test` 47/47 pada Ubuntu dan Windows; Electron smoke test Ubuntu lulus. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
-
-**Uji manual minimum:** layout 3 kolom; satu separator solid/dashed/double; single click, double-click, right-click; resize gambar/QR/barcode; margin/padding tiap sisi; duplikasi blok/section; title setelah Save, Save As, Open, dan New; save/open `.trstudio`.
+**Uji manual minimum:** toolbar rata; double-click header/body tabel dan kolom; klik kanan saat cursor berada pada teks; perataan blok, perataan satu sel/kolom dan seluruh tabel/columns; bold on/off; section bersarang; save/open `.trstudio` dengan alignment per-sel.
 
 ---
 ## FASE 6 — LAYOUT THERMAL DAN ENCODER
