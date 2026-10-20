@@ -391,7 +391,8 @@ test('inline editing is activated only on double-click and context menu does not
   const context = js.slice(js.indexOf("designPaper.addEventListener('contextmenu'"), js.indexOf("document.addEventListener('pointerdown'", js.indexOf("designPaper.addEventListener('contextmenu'")));
   assert.ok(factory.includes("span.contentEditable = 'false'"));
   assert.ok(dbl.includes("beginInlineEdit(editor, blockNode.dataset.blockId)"));
-  assert.ok(dbl.includes('selectNodeContents(editor)'));
+  const editHelper = js.slice(js.indexOf('function beginInlineEdit'), js.indexOf("designPaper.addEventListener('click'"));
+  assert.ok(editHelper.includes('selectNodeContents(editor)'));
   assert.ok(js.includes("const cell = event.target.closest('td, th, .column-cell, .section-header')"));
   assert.ok(js.includes('function trackInlineTarget(editor, blockId)'));
   assert.ok(js.includes('function beginInlineEdit(editor, blockId)'));
