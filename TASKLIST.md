@@ -114,7 +114,7 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS**. Follow-up prioritas terbaru dikembangkan di branch `fix/phase-5-inline-edit-and-canvas-zoom`: perbaikan mode edit double-click dan sinkronisasi zoom area kerja + preview. PR #14, #15, dan #16 telah di-merge dan diuji pengguna. Follow-up berikutnya dikembangkan di branch `feature/phase-5-inline-edit-align-controls` dari temuan screenshot uji terakhir.
+Status fase: **IN PROGRESS**. Prioritas kritis berikutnya: memastikan double-click benar-benar masuk mode edit tanpa render ulang target klik. Follow-up prioritas terbaru dikembangkan di branch `fix/phase-5-inline-edit-and-canvas-zoom`: perbaikan mode edit double-click dan sinkronisasi zoom area kerja + preview. PR #14, #15, dan #16 telah di-merge dan diuji pengguna. Follow-up berikutnya dikembangkan di branch `feature/phase-5-inline-edit-align-controls` dari temuan screenshot uji terakhir.
 
 **Cakupan follow-up terbaru:**
 - Toolbar dirapikan dengan baseline label dan tombol sejajar; tiga ikon perataan (kiri/tengah/kanan) tersedia di toolbar, dengan indikator pilihan dan shortcut Ctrl+Shift+L/E/R. Aturan perataan di inspector dihapus.
