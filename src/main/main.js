@@ -178,12 +178,14 @@ if (process.env.TRS_SMOKE === '1') {
             blockId: target.closest('[data-block-id]')?.dataset.blockId,
             designPaperFound: Boolean(paper),
             clickEvents: [],
-            canvasReplacementsAfterFirstClick: 0
+            canvasReplacementsAfterFirstClick: 0,
+            canvasReplacementStack: ''
           };
           const originalReplaceChildren = paper.replaceChildren.bind(paper);
           let canvasReplacementCount = 0;
           paper.replaceChildren = (...children) => {
             canvasReplacementCount += 1;
+            diagnostics.canvasReplacementStack = new Error('design-paper replaced').stack;
             return originalReplaceChildren(...children);
           };
           const captureClick = event => {
