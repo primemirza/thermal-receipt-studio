@@ -320,5 +320,5 @@ Fase 5 implementasi awal PR #14 telah di-merge dan diuji pengguna. Perbaikan ope
 - Tes tambahan mencakup section bertingkat, layout margin/padding, offset tepi tabel, insertion relatif ke elemen aktif, toolbar/editor, dan penyimpanan ulang.
 
 ### Status verifikasi
-- Tes CI untuk branch follow-up ini **belum dijalankan**. Setelah PR dibuka, periksa `npm test` Ubuntu/Windows serta Electron smoke test.
+- GitHub Actions Tests run #41 untuk PR #15 **lulus**: `npm test` 40/40 pada Ubuntu dan Windows, Electron smoke test Ubuntu sukses.
 - Build portable Windows dan uji manual tetap dibutuhkan untuk memeriksa tampilan toolbar, edit langsung, resize dua tepi tabel/kolom, section/global margin, dan save/open. Fase tetap `IN PROGRESS` sampai hasil tersebut diterima.
