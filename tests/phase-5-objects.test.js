@@ -380,31 +380,37 @@ test('table and column per-cell alignment values are validated and round-trip', 
   assert.throws(() => validateDocument(invalidColumns), /Perataan/);
 });
 
-test('inline editing is activated only on double-click and context menu does not enable it', async () => {
+test('double-click editing preserves the target node and handles block, table and column surfaces', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const { fileURLToPath } = await import('node:url');
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   const factory = js.slice(js.indexOf('function createEditableText'), js.indexOf('function styledTable'));
-  const dbl = js.slice(js.indexOf("designPaper.addEventListener('dblclick'"), js.indexOf("designPaper.addEventListener('keydown'", js.indexOf("designPaper.addEventListener('dblclick'")));
+  const select = js.slice(js.indexOf('function selectBlock'), js.indexOf('function addBlock'));
+  const resolver = js.slice(js.indexOf('function resolveInlineEditor'), js.indexOf('function trackInlineTarget'));
+  const helper = js.slice(js.indexOf('function beginInlineEdit'), js.indexOf("designPaper.addEventListener('click'"));
+  const click = js.slice(js.indexOf("designPaper.addEventListener('click'"), js.indexOf("$('editor-surface').addEventListener('dblclick'"));
+  const dbl = js.slice(js.indexOf("$('editor-surface').addEventListener('dblclick'"), js.indexOf("designPaper.addEventListener('keydown'"));
   const context = js.slice(js.indexOf("designPaper.addEventListener('contextmenu'"), js.indexOf("document.addEventListener('pointerdown'", js.indexOf("designPaper.addEventListener('contextmenu'")));
   assert.ok(factory.includes("span.contentEditable = 'false'"));
+  assert.ok(!select.includes('renderCanvas()'), 'selecting a block must not replace the DOM target before dblclick');
+  assert.ok(select.includes("node.classList.toggle('is-selected'"));
+  assert.ok(resolver.includes("target.closest('[data-inline-edit]')"));
+  assert.ok(resolver.includes("target.closest('td, th, .column-cell, .section-header')"));
+  assert.ok(resolver.includes("blockNode.querySelector('[data-field=\'' + field + '\']')") || resolver.includes("blockNode.querySelector('[data-field=\"' + field + '\"]')"));
+  assert.ok(resolver.includes("block.type === 'table' || block.type === 'columns'"));
+  assert.ok(helper.includes("editor.setAttribute('contenteditable', 'true')"));
+  assert.ok(helper.includes('editor.focus()'));
+  assert.ok(helper.includes('selectNodeContents(editor)'));
+  assert.ok(click.includes('event.detail >= 2 && editor'));
+  assert.ok(click.includes('selectBlock(blockNode.dataset.blockId)'));
   assert.ok(dbl.includes("beginInlineEdit(editor, blockNode.dataset.blockId)"));
-  const editHelper = js.slice(js.indexOf('function beginInlineEdit'), js.indexOf("designPaper.addEventListener('click'"));
-  assert.ok(editHelper.includes('selectNodeContents(editor)'));
-  assert.ok(js.includes("const cell = event.target.closest('td, th, .column-cell, .section-header')"));
-  assert.ok(js.includes('function trackInlineTarget(editor, blockId)'));
-  assert.ok(js.includes('function beginInlineEdit(editor, blockId)'));
-  assert.ok(js.includes("event.detail >= 2 && editor"), 'double-click count must activate editing from click path');
-  assert.ok(js.includes("editor.setAttribute('contenteditable', 'true')"));
-  assert.ok(js.includes("editor.focus({ preventScroll: true })"));
-
-  assert.ok(context.includes('event.preventDefault()'));
-  assert.ok(!context.includes("contentEditable = 'true'"));
-  assert.ok(js.includes("cell.contentEditable = 'false'"));
+  assert.ok(dbl.includes("}, true);"), 'dblclick must be caught during capture before bubble handlers');
+  assert.ok(!context.includes("contentEditable = 'true'"), 'right-click must never activate edit mode');
+  assert.ok(html.includes('id="design-paper"') && html.includes('id="editor-surface"'));
 });
-
 test('image, QR and barcode objects have direct resize handles with validated bounds', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
