@@ -56,7 +56,7 @@ function updateHistoryButtons() {
 }
 function mutate(mutator, message) {
   const before = captureHistoryState();
-  const undoLength = state.undo.length;
+  const undoBefore = [...state.undo];
   const redoBefore = [...state.redo];
   saveUndoPoint();
   try {
@@ -65,7 +65,7 @@ function mutate(mutator, message) {
   } catch (error) {
     documentModel = cloneDocument(before.document);
     selectedBlockId = before.selectedBlockId;
-    state.undo.length = undoLength;
+    state.undo = undoBefore;
     state.redo = redoBefore;
     renderAll();
     setStatus('Perubahan ditolak: ' + String(error?.message || error));
@@ -357,12 +357,12 @@ textInput.addEventListener('change', () => {
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
 function commitInlineChange(block, apply, message, preserveCanvas) {
-  const before = captureHistoryState(); const undoLength = state.undo.length; const redoBefore = [...state.redo];
+  const before = captureHistoryState(); const undoBefore = [...state.undo]; const redoBefore = [...state.redo];
   saveUndoPoint();
   try { apply(); validateDocument(documentModel); }
   catch (error) {
     documentModel = cloneDocument(before.document); selectedBlockId = before.selectedBlockId;
-    state.undo.length = undoLength; state.redo = redoBefore; renderAll();
+    state.undo = undoBefore; state.redo = redoBefore; renderAll();
     setStatus('Edit tidak diterapkan: ' + String(error?.message || error)); return false;
   }
   isDirty = true;
@@ -374,7 +374,7 @@ designPaper.addEventListener('focusout', event => {
   const blockNode = cell.closest('[data-block-id]'); const block = documentModel.blocks.find(item => item.id === blockNode?.dataset.blockId); if (!block) return;
   const field = cell.dataset.field; const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200; const value = cell.textContent.slice(0, max);
   const nextCell = event.relatedTarget?.closest?.('[data-inline-edit]');
-  const preserveCanvas = Boolean(nextCell && nextCell.closest('[data-block-id]')?.dataset.blockId === block.id);
+  const preserveCanvas = Boolean(event.relatedTarget?.closest?.('[data-block-id]'));
   if (field === 'tableCell' && block.type === 'table') {
     const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col]; if (oldValue === value) return;
     commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', preserveCanvas);
