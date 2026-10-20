@@ -251,7 +251,8 @@ textInput.addEventListener('change', () => {
   mutate(() => {
     if (block.type === 'text') block.text = value;
     else if (block.type === 'item') block.name = value;
-    else if (block.type === 'total') block.label = value;\n    else block.value = value;
+    else if (block.type === 'total') block.label = value;
+    else block.value = value;
   }, 'Perubahan teks diterapkan.');
 });
 priceInput.addEventListener('change', () => {
