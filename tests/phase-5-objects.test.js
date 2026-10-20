@@ -153,7 +153,7 @@ test('nested sections, global margins and table/column layout validate and round
     padding: { top: 6, right: 8, bottom: 6, left: 8 },
     children: [
       { id: 'inside-text', type: 'text', text: 'Tanggal manual: 18/10/2026', align: 'left' },
-      { id: 'inside-table', type: 'table', headers: ['Item', 'Jumlah'], rows: [['Teh', '2']], width: 82, padding: 6, columnWidths: [55, 45], border: 'vertical' },
+      { id: 'inside-table', type: 'table', headers: ['Item', 'Jumlah'], rows: [['Teh', '2']], width: 82, offset: 18, padding: 6, columnWidths: [55, 45], border: 'vertical' },
       { id: 'inside-columns', type: 'columns', columns: ['Kiri', 'Kanan'], width: 90, padding: 5, gap: 4, border: 'all', columnWidths: [60, 40] }
     ]
   });
@@ -209,6 +209,14 @@ test('new element insertion follows active selection and respects section nestin
   assert.equal(validateDocument(doc), true);
 });
 
+test('table edge offset survives validation and invalid offset-width pairs are rejected', () => {
+  const valid = createSampleDocument();
+  valid.blocks.push({ id: 'edge-table-valid', type: 'table', headers: ['A', 'B'], rows: [], width: 72, offset: 28, columnWidths: [50, 50], padding: 5 });
+  assert.equal(validateDocument(valid), true);
+  const invalid = createSampleDocument();
+  invalid.blocks.push({ id: 'edge-table-invalid', type: 'table', headers: ['A', 'B'], rows: [], width: 80, offset: 30, columnWidths: [50, 50] });
+  assert.throws(() => validateDocument(invalid), /Posisi tabel/);
+});
 test('editor uses a dedicated drag handle and double-click editing rather than making the whole block draggable', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -226,5 +234,8 @@ test('editor uses a dedicated drag handle and double-click editing rather than m
   assert.ok(html.includes('id="global-layout-button"'));
   assert.match(css, /body \.editor-panel \.inspector[\s\S]*?overflow-y: auto/);
   assert.match(css, /body \.toolbar[\s\S]*?flex-flow: row nowrap/);
-  assert.ok(js.includes("data-table-width"));
+  assert.ok(js.includes("data-table-width"));  assert.ok(js.includes("!['image','qrcode','barcode'].includes(block.type)"));
+  assert.ok(js.includes('global-layout-form'));
+  assert.ok(js.includes('tableWidthInput.addEventListener'));
+  assert.ok(html.includes('value="vertical">Vertikal</option>'));
 });
