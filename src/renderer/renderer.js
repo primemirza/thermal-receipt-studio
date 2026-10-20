@@ -497,32 +497,91 @@ guideButton.addEventListener('click', () => {
 });
 let draggedBlockId = null;
 designPaper.addEventListener('dragstart', event => {
-  const node = event.target.closest('[data-block-id]');
-  if (!node || event.target.closest('[data-inline-edit], [data-col-resize]')) { event.preventDefault(); return; }
-  draggedBlockId = node.dataset.blockId; node.classList.add('is-dragging');
+  const handle = event.target.closest('[data-drag-handle]');
+  if (!handle) { event.preventDefault(); return; }
+  const node = handle.closest('[data-block-id]');
+  if (!node) { event.preventDefault(); return; }
+  draggedBlockId = node.dataset.blockId;
+  node.classList.add('is-dragging');
   if (event.dataTransfer) { event.dataTransfer.setData('text/plain', draggedBlockId); event.dataTransfer.effectAllowed = 'move'; }
 });
 designPaper.addEventListener('dragover', event => {
-  if (!draggedBlockId) return; const target = event.target.closest('[data-block-id]');
+  if (!draggedBlockId) return;
+  const target = event.target.closest('[data-block-id]');
   if (target && target.dataset.blockId !== draggedBlockId) { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; }
 });
 designPaper.addEventListener('drop', event => {
-  if (!draggedBlockId) return; const target = event.target.closest('[data-block-id]'); const sourceId = draggedBlockId; draggedBlockId = null;
-  if (!target || target.dataset.blockId === sourceId) return; event.preventDefault();
-  const from = documentModel.blocks.findIndex(block => block.id === sourceId); const to = documentModel.blocks.findIndex(block => block.id === target.dataset.blockId); if (from < 0 || to < 0) return;
-  const rect = target.getBoundingClientRect(); const after = event.clientY > rect.top + rect.height / 2; let destination = to + (after ? 1 : 0); if (from < destination) destination--; if (destination === from) return;
-  mutate(() => { const [block] = documentModel.blocks.splice(from, 1); documentModel.blocks.splice(destination, 0, block); selectedBlockId = sourceId; }, 'Urutan elemen diperbarui.');
+  if (!draggedBlockId) return;
+  const sourceId = draggedBlockId; const targetNode = event.target.closest('[data-block-id]');
+  draggedBlockId = null;
+  if (!targetNode || targetNode.dataset.blockId === sourceId) return;
+  event.preventDefault();
+  const initialSource = findBlockEntry(sourceId); const initialTarget = findBlockEntry(targetNode.dataset.blockId);
+  if (!initialSource || !initialTarget) return;
+  if (initialSource.block.type === 'section' && containsBlockId(initialSource.block.children, initialTarget.block.id)) return;
+  const after = event.clientY > targetNode.getBoundingClientRect().top + targetNode.getBoundingClientRect().height / 2;
+  mutate(() => {
+    const source = findBlockEntry(sourceId); const target = findBlockEntry(targetNode.dataset.blockId);
+    if (!source || !target) return;
+    const moving = source.block;
+    source.list.splice(source.index, 1);
+    const refreshedTarget = findBlockEntry(target.block.id);
+    if (!refreshedTarget) return;
+    if (refreshedTarget.block.type === 'section') refreshedTarget.block.children.push(moving);
+    else refreshedTarget.list.splice(refreshedTarget.index + (after ? 1 : 0), 0, moving);
+    selectedBlockId = sourceId;
+  }, 'Urutan elemen diperbarui.');
 });
 designPaper.addEventListener('dragend', () => { draggedBlockId = null; designPaper.querySelectorAll('.is-dragging').forEach(node => node.classList.remove('is-dragging')); });
+function containsBlockId(blocks, id) {
+  return blocks.some(block => block.id === id || (block.type === 'section' && containsBlockId(block.children, id)));
+}
 designPaper.addEventListener('click', event => {
   const block = event.target.closest('[data-block-id]');
-  if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize]')));
+  if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize], [data-table-width], [data-drag-handle]')));
+});
+designPaper.addEventListener('dblclick', event => {
+  const blockNode = event.target.closest('[data-block-id]');
+  const editor = event.target.closest('[data-inline-edit]') || blockNode?.querySelector('[data-inline-edit]');
+  if (!blockNode || !editor) return;
+  event.preventDefault();
+  selectBlock(blockNode.dataset.blockId, true);
+  editor.focus();
+  const selection = window.getSelection();
+  if (selection) { const range = document.createRange(); range.selectNodeContents(editor); selection.removeAllRanges(); selection.addRange(range); }
 });
 designPaper.addEventListener('keydown', event => {
   if (event.target.closest('[data-inline-edit]')) return;
   if (event.key !== 'Enter' && event.key !== ' ') return;
   const block = event.target.closest('[data-block-id]');
   if (block) { event.preventDefault(); selectBlock(block.dataset.blockId); }
+});
+designPaper.addEventListener('contextmenu', event => {
+  const node = event.target.closest('[data-block-id]');
+  if (!node) { blockContextMenu.hidden = true; return; }
+  event.preventDefault();
+  selectBlock(node.dataset.blockId, true);
+  blockContextMenu.hidden = false;
+  blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
+  blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 190)) + 'px';
+});
+document.addEventListener('pointerdown', event => {
+  if (!blockContextMenu.hidden && !event.target.closest('#block-context-menu')) blockContextMenu.hidden = true;
+});
+blockContextMenu.addEventListener('click', event => {
+  const action = event.target.closest('[data-context-action]')?.dataset.contextAction;
+  if (!action) return;
+  blockContextMenu.hidden = true;
+  if (action === 'insert-text') addBlock('text');
+  else if (action === 'insert-section') addBlock('section');
+  else if (action === 'delete') deleteSelectedBlock();
+  else if (action === 'move-up' || action === 'move-down') {
+    const entry = findBlockEntry(selectedBlockId);
+    if (!entry) return;
+    const next = entry.index + (action === 'move-up' ? -1 : 1);
+    if (next < 0 || next >= entry.list.length) return;
+    mutate(() => { const [item] = entry.list.splice(entry.index, 1); entry.list.splice(next, 0, item); }, 'Urutan elemen diperbarui.');
+  }
 });
 textInput.addEventListener('change', () => {
   const block = selectedBlock();
