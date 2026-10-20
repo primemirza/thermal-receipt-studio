@@ -624,17 +624,80 @@ designPaper.addEventListener('focusout', event => {
   }
 });
 designPaper.addEventListener('pointerdown', event => {
-  const grip = event.target.closest('[data-col-resize]'); if (!grip) return;
+  const widthHandle = event.target.closest('[data-table-width]');
+  if (widthHandle) {
+    event.preventDefault(); event.stopPropagation();
+    const wrapper = widthHandle.closest('.table-resize-wrapper');
+    const blockId = widthHandle.closest('[data-block-id]')?.dataset.blockId;
+    const block = findBlockEntry(blockId)?.block;
+    if (!wrapper || !block || block.type !== 'table') return;
+    const startX = event.clientX;
+    const paperWidth = Math.max(1, designPaper.getBoundingClientRect().width);
+    const original = block.width ?? 100;
+    const side = widthHandle.dataset.tableWidth;
+    const move = moveEvent => {
+      const delta = (moveEvent.clientX - startX) / paperWidth * 100 * (side === 'left' ? -1 : 1);
+      const value = Math.max(20, Math.min(100, original + delta));
+      wrapper.style.width = value + '%';
+    };
+    const finish = upEvent => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      if (Math.abs(upEvent.clientX - startX) < 1) return;
+      const delta = (upEvent.clientX - startX) / paperWidth * 100 * (side === 'left' ? -1 : 1);
+      const value = Math.round(Math.max(20, Math.min(100, original + delta)));
+      mutate(() => { const current = findBlockEntry(blockId)?.block; if (current?.type === 'table') current.width = value; }, 'Lebar tabel diperbarui.');
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', finish, { once: true });
+    return;
+  }
+  const grip = event.target.closest('[data-col-resize]');
+  if (!grip) return;
   event.preventDefault(); event.stopPropagation();
-  const table = grip.closest('table'); const parent = grip.closest('[data-block-id]');
-  const block = documentModel.blocks.find(item => item.id === parent?.dataset.blockId && item.type === 'table');
-  if (!table || !block || block.headers.length < 2) return;
-  const index = Number(grip.dataset.colResize); if (index >= block.headers.length - 1) return;
-  const original = columnWidths(block); const startX = event.clientX; const widthPx = Math.max(1, table.getBoundingClientRect().width);
-  const pair = original[index] + original[index + 1]; const cols = [...table.querySelectorAll('col')];
-  const move = e => { const delta = (e.clientX - startX) / widthPx * 100; const left = Math.max(8, Math.min(pair - 8, original[index] + delta)); cols[index].style.width = left + '%'; cols[index + 1].style.width = (pair - left) + '%'; };
-  const finish = e => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', finish); if (Math.abs(e.clientX - startX) < 1) return; const left = Number(parseFloat(cols[index].style.width).toFixed(2)); const widths = [...original]; widths[index] = left; widths[index + 1] = Number((pair-left).toFixed(2)); mutate(() => { block.columnWidths = widths; }, 'Lebar kolom tabel diubah.'); };
-  document.addEventListener('pointermove', move); document.addEventListener('pointerup', finish, { once: true });
+  const parent = grip.closest('[data-block-id]');
+  const blockId = parent?.dataset.blockId;
+  const block = findBlockEntry(blockId)?.block;
+  const kind = grip.dataset.colKind;
+  if (!block || !['table', 'columns'].includes(block.type) || block.type !== kind) return;
+  const values = kind === 'table' ? block.headers : block.columns;
+  if (values.length < 2) return;
+  const index = Number(grip.dataset.colResize);
+  if (index < 0 || index >= values.length - 1) return;
+  const original = columnWidths(block);
+  const container = kind === 'table' ? grip.closest('table') : grip.closest('[data-column-layout]');
+  if (!container) return;
+  const startX = event.clientX;
+  const widthPx = Math.max(1, container.getBoundingClientRect().width);
+  const pairWidth = original[index] + original[index + 1];
+  const sizingElements = kind === 'table'
+    ? [...container.querySelectorAll('col')]
+    : [...container.querySelectorAll(':scope > .column-cell')];
+  const setWidth = (element, width) => {
+    if (kind === 'table') element.style.width = width + '%';
+    else element.style.flex = '0 0 ' + width + '%';
+  };
+  const move = moveEvent => {
+    const delta = (moveEvent.clientX - startX) / widthPx * 100;
+    const left = Math.max(10, Math.min(pairWidth - 10, original[index] + delta));
+    setWidth(sizingElements[index], left);
+    setWidth(sizingElements[index + 1], pairWidth - left);
+  };
+  const finish = upEvent => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', finish);
+    if (Math.abs(upEvent.clientX - startX) < 1) return;
+    const styleWidth = kind === 'table'
+      ? parseFloat(sizingElements[index].style.width)
+      : parseFloat(sizingElements[index].style.flexBasis || sizingElements[index].style.flex.split(' ')[1]);
+    const left = Number((Number.isFinite(styleWidth) ? styleWidth : original[index]).toFixed(2));
+    const next = [...original];
+    next[index] = left;
+    next[index + 1] = Number((pairWidth - left).toFixed(2));
+    mutate(() => { const current = findBlockEntry(blockId)?.block; if (current?.type === kind) current.columnWidths = next; }, kind === 'table' ? 'Lebar kolom tabel diubah.' : 'Lebar kolom teks diubah.');
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', finish, { once: true });
 });
 sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type)) return; if (!['small','normal','large','double'].includes(sizeInput.value)) return; mutate(() => { block.size = sizeInput.value; }, 'Ukuran teks diperbarui.'); });
 boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
