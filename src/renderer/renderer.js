@@ -662,7 +662,8 @@ designPaper.addEventListener('pointerdown', event => {
     const block = findBlockEntry(blockId)?.block;
     if (!wrapper || !block || block.type !== 'table') return;
     const startX = event.clientX;
-    const paperWidth = Math.max(1, designPaper.getBoundingClientRect().width);
+    const paperStyle = window.getComputedStyle(designPaper);
+    const paperWidth = Math.max(1, designPaper.clientWidth - parseFloat(paperStyle.paddingLeft) - parseFloat(paperStyle.paddingRight));
     const originalWidth = block.width ?? 100;
     const align = block.align || 'left';
     const originalOffset = block.offset ?? (align === 'right' ? 100 - originalWidth : align === 'center' ? (100 - originalWidth) / 2 : 0);
