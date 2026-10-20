@@ -18,15 +18,18 @@
   </header>
 
   <nav class="toolbar" aria-label="Toolbar utama">
-    <div class="tool-section" aria-label="Kertas dan zoom">
-      <span class="tool-label">Kertas</span><div class="segmented" role="group" aria-label="Lebar kertas">
-        <button type="button" class="segment is-active" data-paper="58" aria-pressed="true">58 mm</button>
-        <button type="button" class="segment" data-paper="80" aria-pressed="false">80 mm</button>
+    <div class="tool-section toolbar-paper-zoom" aria-label="Kertas dan zoom">
+      <span class="tool-label">Kertas / Zoom</span>
+      <div class="tool-group">
+        <div class="segmented" role="group" aria-label="Lebar kertas">
+          <button type="button" class="segment is-active" data-paper="58" aria-pressed="true">58 mm</button>
+          <button type="button" class="segment" data-paper="80" aria-pressed="false">80 mm</button>
+        </div>
+        <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <output id="zoom-value" class="zoom-value" aria-live="polite">100%</output>
+        <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+        <button type="button" class="icon-button" id="zoom-fit" aria-label="Sesuaikan zoom" title="Sesuaikan zoom"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
       </div>
-      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-      <output id="zoom-value" class="zoom-value" aria-live="polite">100%</output>
-      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
-      <button type="button" class="icon-button" id="zoom-fit" aria-label="Sesuaikan zoom" title="Sesuaikan zoom"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
     </div>
     <div class="tool-section" aria-label="Dokumen"><span class="tool-label">Dokumen</span><div class="tool-group">
       <button type="button" class="icon-button" id="new-document-button" title="Dokumen baru" aria-label="Dokumen baru"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 11v6"/><path d="M9 14h6"/></svg></button>
@@ -44,7 +47,7 @@
           <button type="button" class="icon-button" id="add-text-button" title="Sisipkan teks" aria-label="Sisipkan teks"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></button><button type="button" class="icon-button" id="add-item-button" title="Sisipkan item dan harga" aria-label="Sisipkan item dan harga"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2z"/><path d="M8 8h8M8 12h5M8 16h8"/></svg></button>
         </div></div>
         <div class="tool-subsection" aria-label="Layout"><span class="tool-label">Layout</span><div class="tool-group">
-          <button type="button" class="icon-button" id="add-rule-button" title="Sisipkan garis" aria-label="Sisipkan garis"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 12h18"/></svg></button><button type="button" class="icon-button" id="add-spacer-button" title="Sisipkan jarak kosong" aria-label="Sisipkan jarak kosong"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="m7 8 5-5 5 5"/><path d="m7 16 5 5 5-5"/></svg></button><button type="button" class="icon-button" id="add-table-button" title="Sisipkan tabel" aria-label="Sisipkan tabel"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg></button><button type="button" class="icon-button" id="add-columns-button" title="Sisipkan kolom teks" aria-label="Sisipkan kolom teks"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16M15 4v16"/></svg></button>
+          <button type="button" class="icon-button" id="add-rule-button" title="Sisipkan garis" aria-label="Sisipkan garis"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 12h18"/></svg></button><button type="button" class="icon-button" id="add-spacer-button" title="Sisipkan jarak kosong" aria-label="Sisipkan jarak kosong"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="m7 8 5-5 5 5"/><path d="m7 16 5 5 5-5"/></svg></button><button type="button" class="icon-button" id="add-table-button" title="Sisipkan tabel" aria-label="Sisipkan tabel"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg></button><button type="button" class="icon-button" id="add-columns-button" title="Sisipkan kolom teks" aria-label="Sisipkan kolom teks"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16M15 4v16"/></svg></button><button type="button" class="icon-button" id="add-section-button" title="Sisipkan section" aria-label="Sisipkan section"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg></button>
         </div></div>
         <div class="tool-subsection" aria-label="Media dan kode"><span class="tool-label">Media/kode</span><div class="tool-group">
           <button type="button" class="icon-button" id="add-image-button" title="Sisipkan gambar" aria-label="Sisipkan gambar"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button><button type="button" class="icon-button" id="add-qr-button" title="Sisipkan QR code" aria-label="Sisipkan QR code"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v2M17 20h4M20 18v3"/></svg></button><button type="button" class="icon-button" id="add-barcode-button" title="Sisipkan barcode" aria-label="Sisipkan barcode"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 5v14M6 5v14M10 5v14M12 5v14M15 5v14M19 5v14M21 5v14"/></svg></button>
@@ -52,6 +55,7 @@
         </div></div>
       </div>
     </div>
+    <div class="tool-section toolbar-global-layout" aria-label="Layout global"><span class="tool-label">Halaman</span><button type="button" class="icon-button" id="global-layout-button" title="Atur margin global" aria-label="Atur margin global"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h8M8 17h8M7 10v4M17 10v4"/></svg></button></div>
     <div class="toolbar-spacer"></div>
     <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M8 3v5M13 3v3M18 3v5M3 8h5M3 13h3M3 18h5"/></svg></button>
   </nav>
@@ -91,6 +95,31 @@
           <label for="block-rule-character">Karakter garis<input id="block-rule-character" type="text" maxlength="1" disabled value="-" /></label>
         </div>
         <label for="block-image-alt">Deskripsi gambar<input id="block-image-alt" type="text" maxlength="200" disabled placeholder="Teks alternatif gambar" /></label>
+        <div class="inspector-fields" id="table-layout-fields" hidden>
+          <label for="block-table-width">Lebar tabel (%)<input id="block-table-width" type="number" min="20" max="100" step="1" disabled value="100" /></label>
+          <label for="block-table-padding">Padding sel (px)<input id="block-table-padding" type="number" min="0" max="20" step="1" disabled value="4" /></label>
+        </div>
+        <div id="columns-layout-fields" hidden>
+          <div class="inspector-fields">
+            <label for="block-columns-width">Lebar kolom (%)<input id="block-columns-width" type="number" min="20" max="100" step="1" disabled value="100" /></label>
+            <label for="block-columns-padding">Padding kolom (px)<input id="block-columns-padding" type="number" min="0" max="30" step="1" disabled value="4" /></label>
+          </div>
+          <div class="inspector-fields">
+            <label for="block-columns-gap">Jarak kolom (px)<input id="block-columns-gap" type="number" min="0" max="30" step="1" disabled value="0" /></label>
+            <label for="block-columns-border">Border kolom<select id="block-columns-border" disabled><option value="none">Tanpa border</option><option value="vertical">Pemisah vertikal</option><option value="all">Semua sisi</option></select></label>
+          </div>
+          <label for="block-column-widths">Lebar tiap kolom (%)<input id="block-column-widths" type="text" disabled placeholder="Contoh: 50, 50" /></label>
+        </div>
+        <div id="section-layout-fields" hidden>
+          <div class="inspector-fields">
+            <label for="block-section-name">Nama section<input id="block-section-name" type="text" maxlength="200" disabled placeholder="Section baru" /></label>
+            <label for="block-section-margin">Margin section (px)<input id="block-section-margin" type="number" min="0" max="60" step="1" disabled value="0" /></label>
+          </div>
+          <div class="inspector-fields">
+            <label for="block-section-padding">Padding section (px)<input id="block-section-padding" type="number" min="0" max="60" step="1" disabled value="8" /></label>
+            <label for="block-section-child-count">Jumlah elemen<input id="block-section-child-count" type="number" disabled value="0" /></label>
+          </div>
+        </div>
         <div id="table-structure-actions" class="table-structure-actions" hidden>
           <span class="tool-label">Struktur tabel</span>
           <div class="table-action-group">
@@ -156,6 +185,27 @@
       <div class="table-dialog-actions"><button type="button" id="columns-dialog-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Sisipkan kolom</button></div>
     </form>
   </dialog>
+
+  <dialog id="global-layout-dialog" class="table-dialog">
+    <form id="global-layout-form" method="dialog">
+      <h2>Margin global</h2>
+      <p>Atur jarak isi struk dari keempat sisi. Nilai ini diterapkan ke seluruh preview dan konten cetak.</p>
+      <div class="global-margin-grid">
+        <label for="global-margin-top">Atas (px)<input id="global-margin-top" type="number" min="0" max="60" value="0" /></label>
+        <label for="global-margin-right">Kanan (px)<input id="global-margin-right" type="number" min="0" max="60" value="0" /></label>
+        <label for="global-margin-bottom">Bawah (px)<input id="global-margin-bottom" type="number" min="0" max="60" value="0" /></label>
+        <label for="global-margin-left">Kiri (px)<input id="global-margin-left" type="number" min="0" max="60" value="0" /></label>
+      </div>
+      <div class="table-dialog-actions"><button type="button" id="global-layout-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Terapkan</button></div>
+    </form>
+  </dialog>
+  <div id="block-context-menu" class="block-context-menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-context-action="insert-text">Sisipkan teks setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="insert-section">Sisipkan section setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="move-up">Pindah ke atas</button>
+    <button type="button" role="menuitem" data-context-action="move-down">Pindah ke bawah</button>
+    <button type="button" role="menuitem" data-context-action="delete">Hapus elemen (Del)</button>
+  </div>
 
   <footer class="statusbar">
     <span class="status-left"><span class="status-dot"></span><span id="status-text" role="status" aria-live="polite">Siap · bekerja offline</span></span>
