@@ -473,15 +473,14 @@ function addBlock(type) {
       item: { id, type: 'item', name: 'Item baru', price: 0 },
       rule: { id, type: 'rule', style: 'solid', character: '-' },
       spacer: { id, type: 'spacer', height: 2 },
-      table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', '']], border: 'all', columnWidths: [50, 50], align: 'left', size: 'normal', bold: false },
-      columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'] },
+      table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', '']], border: 'all', columnWidths: [50, 50], width: 100, padding: 4, align: 'left', size: 'normal', bold: false },
+      columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'], columnWidths: [50, 50], width: 100, padding: 4, gap: 0, border: 'vertical', align: 'left' },
+      section: { id, type: 'section', name: 'Section baru', children: [], margin: { top: 0, right: 0, bottom: 0, left: 0 }, padding: { top: 8, right: 8, bottom: 8, left: 8 } },
       qrcode: { id, type: 'qrcode', value: 'https://example.invalid', width: 96, align: 'center' },
       barcode: { id, type: 'barcode', value: '1234567890', width: 220, align: 'center' },
       text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' }
     };
-    const block = templates[type] || templates.text;
-    documentModel.blocks.push(block);
-    selectedBlockId = id;
+    insertNewBlock(templates[type] || templates.text);
   }, 'Objek ' + type + ' ditambahkan.');
 }
 paperButtons.forEach(button => button.addEventListener('click', () => setPaper(Number(button.dataset.paper))));
@@ -621,15 +620,18 @@ $('image-file-input')?.addEventListener('change', async event => {
   }).catch(() => null);
   if (!dataUrl) { setStatus('Gagal membaca file gambar.'); return; }
   const id = 'b-' + crypto.randomUUID();
-  mutate(() => { documentModel.blocks.push({ id, type: 'image', dataUrl, alt: file.name.slice(0, 200), width: 180, align: 'center' }); selectedBlockId = id; }, 'Gambar ditambahkan ke dokumen.');
+  mutate(() => { insertNewBlock({ id, type: 'image', dataUrl, alt: file.name.slice(0, 200), width: 180, align: 'center' }); }, 'Gambar ditambahkan ke dokumen.');
 });
 for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) { const button = $(id); if (button) button.addEventListener('click', () => addBlock(type)); }
 $('add-columns-button').addEventListener('click', () => $('columns-dialog').showModal());
 $('columns-dialog-cancel').addEventListener('click', () => $('columns-dialog').close());
 $('columns-dialog-form').addEventListener('submit', event => {
   event.preventDefault(); const count = Math.max(2, Math.min(4, Number($('columns-count').value) || 2));
-  const id = 'b-' + crypto.randomUUID(); const block = { id, type: 'columns', columns: Array(count).fill('').map((_, i) => 'Kolom ' + (i + 1)), align: 'left', size: 'normal', bold: false };
-  $('columns-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, count + ' kolom teks disisipkan.');
+  const id = 'b-' + crypto.randomUUID();
+  const widths = Array(count).fill(Number((100 / count).toFixed(2)));
+  widths[count - 1] = Number((100 - widths.slice(0, -1).reduce((sum, width) => sum + width, 0)).toFixed(2));
+  const block = { id, type: 'columns', columns: Array(count).fill('').map((_, i) => 'Kolom ' + (i + 1)), columnWidths: widths, width: 100, padding: 4, gap: 0, border: 'vertical', align: 'left', size: 'normal', bold: false };
+  $('columns-dialog').close(); mutate(() => insertNewBlock(block), count + ' kolom teks disisipkan.');
 });
 $('add-table-button').addEventListener('click', () => $('table-dialog').showModal());
 $('table-dialog-cancel').addEventListener('click', () => $('table-dialog').close());
@@ -637,8 +639,8 @@ $('table-dialog-form').addEventListener('submit', event => {
   event.preventDefault(); const cols = Math.max(1, Math.min(6, Number($('table-columns-count').value) || 1)); const rows = Math.max(1, Math.min(50, Number($('table-rows-count').value) || 1));
   const border = $('table-insert-border').value; const id = 'b-' + crypto.randomUUID(); const headers = Array.from({length: cols}, (_, i) => 'Kolom ' + (i+1));
   const widths = Array(cols).fill(Number((100 / cols).toFixed(2))); widths[cols-1] = Number((100-widths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2));
-  const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, align: 'left', size: 'normal', bold: false };
-  $('table-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
+  const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, width: 100, padding: 4, align: 'left', size: 'normal', bold: false };
+  $('table-dialog').close(); mutate(() => insertNewBlock(block), 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
 function deleteSelectedBlock() {
   if (!selectedBlock()) return;
