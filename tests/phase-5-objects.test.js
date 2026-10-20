@@ -314,6 +314,14 @@ test('every block supports independent margin and padding values on all four sid
   const invalidPadding = cloneDocument(doc);
   invalidPadding.blocks.at(-1).blockPadding.bottom = 61;
   assert.throws(() => validateDocument(invalidPadding), /Padding blok/);
+  const invalidSectionPadding = createSampleDocument();
+  invalidSectionPadding.blocks.push({
+    id: 'section-padding-box-invalid', type: 'section', name: 'Section',
+    children: [], margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    padding: { top: 0, right: 0, bottom: 0, left: 0 },
+    blockPadding: { top: 61, right: 0, bottom: 0, left: 0 }
+  });
+  assert.throws(() => validateDocument(invalidSectionPadding), /Padding blok/);
 });
 
 test('saving and opening a document synchronize the real Electron title with its file name', async () => {
