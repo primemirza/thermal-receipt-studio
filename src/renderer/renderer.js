@@ -174,6 +174,9 @@ function renderCanvas() {
     } else if (block.type === 'image') {
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
+      node.classList.add('code-block');
+      node.style.flexDirection = 'column';
+      node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
       node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
     } else if (block.type === 'item') {
       node.append(createEditableText(block.name, 'name'));
@@ -246,7 +249,7 @@ function renderInspector() {
   textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
   alignInput.value = block?.align ?? 'left';
-  sizeInput.disabled = !block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type);
+  sizeInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
   sizeInput.value = block?.size || 'normal';
   boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
   boldInput.checked = Boolean(block?.bold);
@@ -261,7 +264,8 @@ function renderInspector() {
   ruleStyleInput.disabled = !block || block.type !== 'rule';
   ruleStyleInput.value = block?.type === 'rule' ? (block.style || 'solid') : 'solid';
   tableBorderInput.disabled = !block || block.type !== 'table';
-  tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';  totalAmountInput.disabled = !block || block.type !== 'total';
+  tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';
+  totalAmountInput.disabled = !block || block.type !== 'total';
   totalAmountInput.value = block?.type === 'total' ? String(block.amount) : '';
   ruleCharacterInput.disabled = !block || block.type !== 'rule';
   ruleCharacterInput.value = block?.type === 'rule' ? (block.character || '-') : '-';
