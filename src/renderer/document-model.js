@@ -1,5 +1,5 @@
 export const DOCUMENT_SCHEMA_VERSION = 1;
-const BLOCK_TYPES = ['text', 'rule', 'spacer', 'item', 'total', 'dynamic', 'table', 'columns', 'image', 'qrcode', 'barcode'];
+const BLOCK_TYPES = ['text', 'rule', 'spacer', 'item', 'total', 'table', 'columns', 'image', 'qrcode', 'barcode'];
 const ALIGNMENTS = ['left', 'center', 'right'];
 
 export function createSampleDocument() {
@@ -43,10 +43,12 @@ export function validateDocument(doc) {
     if (block.type === 'spacer' && (!Number.isInteger(block.height) || block.height < 1 || block.height > 20)) throw new TypeError('Tinggi spacer harus 1–20 baris.');
     if (block.type === 'item' && (typeof block.name !== 'string' || block.name.length > 200 || !Number.isFinite(block.price) || block.price < 0)) throw new TypeError('Data item tidak valid.');
     if (block.type === 'total' && (typeof block.label !== 'string' || !Number.isFinite(block.amount) || block.amount < 0)) throw new TypeError('Data total tidak valid.');
-    if (block.type === 'dynamic' && !['date', 'time', 'datetime', 'receiptNumber'].includes(block.field)) throw new TypeError('Placeholder dinamis tidak didukung.');
     if (block.type === 'table') {
-      if (!Array.isArray(block.headers) || block.headers.length < 1 || block.headers.length > 6 || !Array.isArray(block.rows) || block.rows.length > 100) throw new TypeError('Struktur tabel tidak valid.');
+      if (!Array.isArray(block.headers) || block.headers.length < 1 || block.headers.length > 6 || block.headers.some(cell => typeof cell !== 'string' || cell.length > 200) || !Array.isArray(block.rows) || block.rows.length > 100) throw new TypeError('Struktur tabel tidak valid.');
       for (const row of block.rows) if (!Array.isArray(row) || row.length !== block.headers.length || row.some(cell => typeof cell !== 'string' || cell.length > 200)) throw new TypeError('Sel tabel tidak valid.');
+      if (block.border !== undefined && !['all', 'horizontal', 'none'].includes(block.border)) throw new TypeError('Border tabel tidak valid.');
+      if (block.columnWidths !== undefined && (!Array.isArray(block.columnWidths) || block.columnWidths.length !== block.headers.length || block.columnWidths.some(width => !Number.isFinite(width) || width < 8 || width > 92) || Math.abs(block.columnWidths.reduce((sum, width) => sum + width, 0) - 100) > 1)) throw new TypeError('Lebar kolom tabel tidak valid.');
+      if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tabel tidak valid.');
     }
     if (block.type === 'columns' && (!Array.isArray(block.columns) || block.columns.length < 2 || block.columns.length > 4 || block.columns.some(v => typeof v !== 'string' || v.length > 200))) throw new TypeError('Kolom tidak valid.');
     if (block.type === 'image') {
