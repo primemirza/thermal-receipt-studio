@@ -127,6 +127,8 @@ Separator, spacer, teks manual, gambar (data URL internal), QR dan barcode yang 
 - QR/barcode dirender sebagai simbol nyata menggunakan pustaka lokal; gambar dan kode tetap dapat disimpan dalam dokumen offline.
 - Perubahan properti divalidasi secara atomik; input invalid tidak merusak model/undo history.
 - Tidak ada fitur tanggal/waktu otomatis; pengguna memasukkan teks tanggal/waktu manual.
+- CI, smoke test, dan build portable Windows pada commit akhir wajib diverifikasi. Status tetap `IN PROGRESS` sampai CI hijau dan uji manual pengguna diterima. PR #12 tidak akan di-merge otomatis.
+- Uji manual minimum: tabel 1 dan 6 kolom; edit dan perpindahan antar sel; resize di batas minimum; tambah/hapus baris/kolom; undo/redo setelah resize; save/open; QR/barcode dapat dipindai pada preview/cetakan.
 
 ---
 
