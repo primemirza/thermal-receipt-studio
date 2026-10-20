@@ -552,6 +552,15 @@ designPaper.addEventListener('dragend', () => { draggedBlockId = null; designPap
 function containsBlockId(blocks, id) {
   return blocks.some(block => block.id === id || (block.type === 'section' && containsBlockId(block.children, id)));
 }
+const editorSurface = $('editor-surface');
+editorSurface.addEventListener('click', event => {
+  if (event.target.closest('[data-block-id]') || event.target.closest('.canvas-ruler')) return;
+  if (event.target === editorSurface) {
+    selectedBlockId = null;
+    renderCanvas();
+    renderInspector();
+  }
+});
 designPaper.addEventListener('click', event => {
   const block = event.target.closest('[data-block-id]');
   if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize], [data-table-width], [data-drag-handle]')));
