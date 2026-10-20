@@ -226,6 +226,8 @@ test('editor uses a dedicated drag handle and double-click editing rather than m
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
   assert.ok(js.includes('data-drag-handle'));
+  assert.ok(js.includes("document.querySelectorAll('button[data-paper]')"), 'only paper size buttons may trigger setPaper');
+  assert.ok(!js.includes("document.querySelectorAll('[data-paper]')"), 'canvas and preview data-paper attributes must not be treated as controls');
   assert.ok(js.includes("$('editor-surface').addEventListener('dblclick'"));
   assert.ok(js.includes("}, true);"), 'capture-phase dblclick listener protects the event target');
   const selectedBlock = js.slice(js.indexOf('function selectBlock'), js.indexOf('function addBlock'));
