@@ -58,7 +58,7 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (e, url) => {
     if (!url.startsWith('file:')) e.preventDefault();
   });
-  mainWindow.setWindowOpenHandler(() => ({ action: 'deny' }));
+  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
