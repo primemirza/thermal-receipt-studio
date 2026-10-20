@@ -33,9 +33,10 @@ export function validateDocument(doc) {
   for (const block of doc.blocks) {
     if (!block || typeof block.id !== 'string' || !block.id || ids.has(block.id)) throw new TypeError('ID elemen tidak valid atau duplikat.');
     ids.add(block.id);
-    if (!BLOCK_TYPES.includes(block.type)) throw new TypeError('Jenis elemen tidak didukung.');
+    if (!BLOCK_TYPES.includes(block.type) && block.type !== 'dynamic') throw new TypeError('Jenis elemen tidak didukung.');
     if (block.align !== undefined && !ALIGNMENTS.includes(block.align)) throw new TypeError('Perataan elemen tidak valid.');
     if (block.type === 'text') assertString(block.text, 'Teks elemen');
+    if (block.type === 'dynamic') { if (block.field !== undefined && !['date', 'time', 'datetime', 'receiptNumber'].includes(block.field)) throw new TypeError('Placeholder lama tidak valid.'); if (block.text !== undefined) assertString(block.text, 'Teks placeholder lama'); }
     if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tidak valid.');
     for (const key of ['bold', 'italic', 'underline']) if (block[key] !== undefined && typeof block[key] !== 'boolean') throw new TypeError('Opsi format teks tidak valid.');
     if (block.type === 'rule' && block.style !== undefined && !['solid', 'dashed', 'double'].includes(block.style)) throw new TypeError('Gaya separator tidak valid.');
@@ -61,3 +62,16 @@ export function validateDocument(doc) {
   return true;
 }
 export function cloneDocument(doc) { return structuredClone(doc); }
+
+export function migrateLegacyDocument(doc) {
+  const migrated = cloneDocument(doc);
+  const manualLabels = { date: 'Tanggal: ', time: 'Waktu: ', datetime: 'Tanggal/waktu: ', receiptNumber: 'No. struk: ' };
+  for (const block of migrated.blocks) {
+    if (block.type !== 'dynamic') continue;
+    block.text = typeof block.text === 'string' ? block.text : (manualLabels[block.field] || '');
+    block.type = 'text';
+    delete block.field;
+    if (block.size === undefined) block.size = 'normal';
+  }
+  return migrated;
+}
