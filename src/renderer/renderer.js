@@ -666,10 +666,30 @@ editorSurface.addEventListener('click', event => {
     renderInspector();
   }
 });
+function resolveInlineEditor(event) {
+  const direct = event.target.closest('[data-inline-edit]');
+  if (direct) return direct;
+  const cell = event.target.closest('td, th, .column-cell, .section-header');
+  return cell?.querySelector('[data-inline-edit]') || null;
+}
+function trackInlineTarget(editor, blockId) {
+  if (!editor) { activeInlineTarget = null; return; }
+  activeInlineTarget = {
+    blockId,
+    field: editor.dataset.field,
+    rowIndex: Number(editor.dataset.rowIndex ?? -2),
+    colIndex: Number(editor.dataset.colIndex ?? -1)
+  };
+}
 designPaper.addEventListener('click', event => {
-  const block = event.target.closest('[data-block-id]');
-  if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize], [data-table-width], [data-drag-handle]')));
-  else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+  const blockNode = event.target.closest('[data-block-id]');
+  if (blockNode) {
+    const editor = resolveInlineEditor(event);
+    trackInlineTarget(editor, blockNode.dataset.blockId);
+    const preserveCanvas = Boolean(editor || event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]'));
+    selectBlock(blockNode.dataset.blockId, preserveCanvas);
+  } else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+    activeInlineTarget = null;
     selectedBlockId = null;
     renderCanvas();
     renderInspector();
@@ -677,14 +697,20 @@ designPaper.addEventListener('click', event => {
 });
 designPaper.addEventListener('dblclick', event => {
   const blockNode = event.target.closest('[data-block-id]');
-  const editor = event.target.closest('[data-inline-edit]');
+  const editor = resolveInlineEditor(event);
   if (!blockNode || !editor) return;
   event.preventDefault();
   selectBlock(blockNode.dataset.blockId, true);
+  trackInlineTarget(editor, blockNode.dataset.blockId);
   editor.contentEditable = 'true';
   editor.focus();
   const selection = window.getSelection();
-  if (selection) { const range = document.createRange(); range.selectNodeContents(editor); selection.removeAllRanges(); selection.addRange(range); }
+  if (selection) {
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 });
 designPaper.addEventListener('keydown', event => {
   if (event.target.closest('[data-inline-edit]')) return;
@@ -696,6 +722,7 @@ designPaper.addEventListener('contextmenu', event => {
   const node = event.target.closest('[data-block-id]');
   if (!node) { blockContextMenu.hidden = true; return; }
   event.preventDefault();
+  activeInlineTarget = null;
   selectBlock(node.dataset.blockId, true);
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
