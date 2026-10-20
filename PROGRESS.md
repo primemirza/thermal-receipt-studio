@@ -300,21 +300,20 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — EDITOR: POLISH, DRAG RESIZE, DAN TITLE BAR (2026-10-20)
+## FASE 5 — EDITOR: INLINE EDIT, ALIGNMENT, DAN SECTION BERTINGKAT (2026-10-20)
 
-PR #14 dan PR #15 telah di-merge serta diuji pengguna. Perbaikan lanjutan berbasis hasil uji build Windows dikerjakan pada `feature/phase-5-editor-polish-resize-title`; belum dinyatakan TESTED/ACCEPTED.
+PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru ada di `feature/phase-5-inline-edit-align-controls`; belum dinyatakan TESTED/ACCEPTED.
 
-### Implementasi pada branch
-- Workspace diubah menjadi tiga panel berurutan: properti, kanvas desain, preview. Layout menjadi 3 kolom pada desktop dan responsif pada jendela lebih sempit; properti memiliki scroll independen.
-- Garis separator digambar sebagai satu stroke: karakter `-` tidak lagi dirender sebagai teks berulang sekaligus border; border bawaan blok separator dinonaktifkan. Karakter custom tetap didukung tanpa border kedua.
-- Konten editable dimulai dalam kondisi non-edit. Klik ganda pada teks mengaktifkan `contenteditable`, memilih isinya; Enter mengakhiri edit dan Escape membatalkan. Menu klik kanan tidak mengaktifkan edit.
-- Gambar, QR, barcode dibungkus komponen resizable dengan pegangan drag; ukuran dibatasi berdasarkan tipe dan disimpan di model.
-- Semua blok mendukung `margin` dan `blockPadding` dengan nilai sisi terpisah. Section tetap menggunakan margin/padding per sisi. Validasi model menerima hanya nilai numerik 0–60 px.
-- Nama file pada title bar disinkronkan setelah simpan, simpan sebagai, buka, dan dikembalikan ke judul dasar saat Dokumen Baru melalui IPC sempit yang tervalidasi.
-- Menu konteks menambah `Duplikat elemen`: blok digandakan tepat di bawah sumber; section duplikat mendapat ID baru untuk setiap child.
-- Pengujian regresi tambahan mencakup urutan panel, single-stroke separator, edit double-click versus context menu, resize langsung, margin/padding per sisi, sinkronisasi title bar, dan duplikasi.
+### Perbaikan lanjutan
+- Menambahkan tiga tombol ikon rata kiri/tengah/kanan pada toolbar dengan state aktif dan shortcut Ctrl+Shift+L/E/R. Kontrol perataan di inspector dihapus.
+- Event editing sekarang mencari isi dalam sel tabel/kolom maupun target teks langsung. Normal click memilih konteks sel; double-click mengaktifkan `contenteditable` tanpa mengganti DOM yang sedang mendapat fokus; click kanan mengosongkan target inline dan hanya membuka menu.
+- Tabel menyimpan `cellAlignments` berbentuk matrix (baris pertama untuk header, berikutnya untuk tiap row). Columns menyimpan `columnAlignments`. Validator memeriksa dimensi dan nilai kiri/tengah/kanan; perubahan row/column menjaga matrix tetap cocok.
+- Perataan toolbar beroperasi pada elemen yang dipilih; jika target aktif adalah sel tabel atau kolom, hanya target itu yang berubah. Pada toolbar saat blok tabel/columns dipilih dari bagian luar sel, seluruh sel/kolom dapat diratakan bersamaan.
+- `applyTextStyle`, table renderer dan column renderer sekarang menetapkan `font-weight`, `font-style`, dan `text-decoration` eksplisit untuk nilai true/false. CSS memaksa table header mewarisi format blok sehingga gaya bold bawaan browser tak bocor.
+- Section bersarang telah didukung oleh rendering dan insertion recursive sebelumnya; ditambahkan validasi kedalaman maksimum 20 untuk mencegah dokumen bersarang berlebihan.
+- Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
 
 ### Status verifikasi
-- GitHub Actions run #52 **lulus**: `npm test` 47/47 pada Ubuntu dan Windows; Electron smoke test Ubuntu lulus.
-- Build portable Windows serta uji manual masih dibutuhkan, terutama drag resize, klik ganda/right-click, duplikasi section, dan title bar.
-- Status tetap `IN PROGRESS` hingga CI dan uji manual pengguna disetujui.
+- CI untuk branch follow-up ini belum selesai; PR harus melewati unit test Ubuntu/Windows dan Electron smoke test.
+- Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
+- Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
