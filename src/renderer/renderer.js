@@ -453,7 +453,14 @@ $('image-file-input')?.addEventListener('change', async event => {
   const id = 'b-' + crypto.randomUUID();
   mutate(() => { documentModel.blocks.push({ id, type: 'image', dataUrl, alt: file.name.slice(0, 200), width: 180, align: 'center' }); selectedBlockId = id; }, 'Gambar ditambahkan ke dokumen.');
 });
-for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-columns-button','columns'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) { const button = $(id); if (button) button.addEventListener('click', () => addBlock(type)); }
+for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) { const button = $(id); if (button) button.addEventListener('click', () => addBlock(type)); }
+$('add-columns-button').addEventListener('click', () => $('columns-dialog').showModal());
+$('columns-dialog-cancel').addEventListener('click', () => $('columns-dialog').close());
+$('columns-dialog-form').addEventListener('submit', event => {
+  event.preventDefault(); const count = Math.max(2, Math.min(4, Number($('columns-count').value) || 2));
+  const id = 'b-' + crypto.randomUUID(); const block = { id, type: 'columns', columns: Array(count).fill('').map((_, i) => 'Kolom ' + (i + 1)), align: 'left', size: 'normal', bold: false };
+  $('columns-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, count + ' kolom teks disisipkan.');
+});
 $('add-table-button').addEventListener('click', () => $('table-dialog').showModal());
 $('table-dialog-cancel').addEventListener('click', () => $('table-dialog').close());
 $('table-dialog-form').addEventListener('submit', event => {
