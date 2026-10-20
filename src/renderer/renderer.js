@@ -21,6 +21,8 @@ const alignInput = $('block-align-input');
 const selectedLabel = $('selected-block-label');
 const sizeInput = $('block-size-input');
 const boldInput = $('block-bold-input');
+const italicInput = $('block-italic-input');
+const underlineInput = $('block-underline-input');
 const spacerHeightInput = $('block-spacer-height');
 const imageWidthInput = $('block-image-width');
 const ruleStyleInput = $('block-rule-style');
@@ -130,7 +132,7 @@ function createPreviewTable(block) {
   columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); }); table.append(colgroup);
   const thead = document.createElement('thead'); const headRow = document.createElement('tr'); block.headers.forEach(value => headRow.append(make('th', '', value))); thead.append(headRow); table.append(thead);
   const tbody = document.createElement('tbody'); block.rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(value => tr.append(make('td', '', value))); tbody.append(tr); }); table.append(tbody);
-  table.style.textAlign = block.align || 'left'; table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700';
+  table.style.textAlign = block.align || 'left'; table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700'; if (block.italic) table.style.fontStyle = 'italic'; if (block.underline) table.style.textDecoration = 'underline';
   return table;
 }
 function createCodeGraphic(block) {
@@ -147,7 +149,7 @@ function createCodeGraphic(block) {
 function applyBlockLayout(node, block) {
   node.style.textAlign = block.align || 'left';
   if (block.align === 'right') node.style.justifyContent = 'flex-end'; else if (block.align === 'center') node.style.justifyContent = 'center';
-  node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal']; if (block.bold) node.style.fontWeight = '700';
+  node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal']; if (block.bold) node.style.fontWeight = '700'; if (block.italic) node.style.fontStyle = 'italic'; if (block.underline) node.style.textDecoration = 'underline';
 }
 function renderCanvas() {
   const fragment = document.createDocumentFragment();
@@ -217,7 +219,7 @@ function renderPreview() {
     }
   }
   receiptPreview.replaceChildren(fragment);
-  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.align === 'center') line.style.justifyContent = 'center'; else if (block.align === 'right') line.style.justifyContent = 'flex-end'; const price = line.querySelector('.right'); if (price && block.align !== 'left') price.style.marginLeft = '0'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; });
+  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.align === 'center') line.style.justifyContent = 'center'; else if (block.align === 'right') line.style.justifyContent = 'flex-end'; const price = line.querySelector('.right'); if (price && block.align !== 'left') price.style.marginLeft = '0'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; if (block.italic) line.style.fontStyle = 'italic'; if (block.underline) line.style.textDecoration = 'underline'; });
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom;
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
@@ -248,6 +250,10 @@ function renderInspector() {
   sizeInput.value = block?.size || 'normal';
   boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
   boldInput.checked = Boolean(block?.bold);
+  italicInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  italicInput.checked = Boolean(block?.italic);
+  underlineInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  underlineInput.checked = Boolean(block?.underline);
   spacerHeightInput.disabled = !block || block.type !== 'spacer';
   spacerHeightInput.value = block?.type === 'spacer' ? String(block.height) : '';
   imageWidthInput.disabled = !block || !['image','qrcode','barcode'].includes(block.type);
@@ -400,6 +406,8 @@ designPaper.addEventListener('pointerdown', event => {
 });
 sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type)) return; if (!['small','normal','large','double'].includes(sizeInput.value)) return; mutate(() => { block.size = sizeInput.value; }, 'Ukuran teks diperbarui.'); });
 boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
+italicInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.italic = italicInput.checked; }, 'Format miring diperbarui.'); });
+underlineInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.underline = underlineInput.checked; }, 'Garis bawah diperbarui.'); });
 spacerHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'spacer') return; const value = Math.max(1, Math.min(20, Math.round(Number(spacerHeightInput.value) || 1))); mutate(() => { block.height = value; }, 'Tinggi spacer diperbarui.'); });
 imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = Math.max(1, Math.min(512, Math.round(Number(imageWidthInput.value) || 1))); mutate(() => { block.width = value; }, 'Lebar gambar diperbarui.'); });
 ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
