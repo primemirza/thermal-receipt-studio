@@ -315,6 +315,6 @@ PR #14 dan PR #15 telah di-merge serta diuji pengguna. Perbaikan lanjutan berbas
 - Pengujian regresi tambahan mencakup urutan panel, single-stroke separator, edit double-click versus context menu, resize langsung, margin/padding per sisi, sinkronisasi title bar, dan duplikasi.
 
 ### Status verifikasi
-- CI lanjutan belum selesai pada saat catatan ini ditulis; PR harus melewati unit test Ubuntu/Windows dan Electron smoke test.
+- GitHub Actions run #52 **lulus**: `npm test` 47/47 pada Ubuntu dan Windows; Electron smoke test Ubuntu lulus.
 - Build portable Windows serta uji manual masih dibutuhkan, terutama drag resize, klik ganda/right-click, duplikasi section, dan title bar.
 - Status tetap `IN PROGRESS` hingga CI dan uji manual pengguna disetujui.
