@@ -42,9 +42,11 @@ const columnsGapInput = $('block-columns-gap');
 const columnsBorderInput = $('block-columns-border');
 const columnWidthsInput = $('block-column-widths');
 const sectionNameInput = $('block-section-name');
-const sectionMarginInput = $('block-section-margin');
-const sectionPaddingInput = $('block-section-padding');
 const sectionChildCountInput = $('block-section-child-count');
+const blockSpacingFields = $('block-spacing-fields');
+const spacingSides = ['top', 'right', 'bottom', 'left'];
+const marginInputs = Object.fromEntries(spacingSides.map(side => [side, $('block-margin-' + side)]));
+const paddingInputs = Object.fromEntries(spacingSides.map(side => [side, $('block-padding-' + side)]));
 const globalLayoutDialog = $('global-layout-dialog');
 const blockContextMenu = $('block-context-menu');
 
@@ -144,7 +146,7 @@ function columnWidths(block) {
 }
 function createEditableText(value, field, extra = {}) {
   const span = make('span', '', value ?? '');
-  span.contentEditable = 'true'; span.spellcheck = false; span.dataset.inlineEdit = 'true'; span.dataset.field = field;
+  span.contentEditable = 'false'; span.spellcheck = false; span.dataset.inlineEdit = 'true'; span.dataset.field = field;
   for (const [key, val] of Object.entries(extra)) span.dataset[key] = String(val);
   return span;
 }
@@ -248,23 +250,54 @@ function applyTextStyle(node, block) {
   if (block.underline) node.style.textDecoration = 'underline';
 }
 function applyBoxStyle(node, box, kind) {
-  const sides = ['top', 'right', 'bottom', 'left'];
-  for (const side of sides) node.style[kind + side[0].toUpperCase() + side.slice(1)] = (box?.[side] ?? (kind === 'padding' ? 0 : 0)) + 'px';
+  if (!box) return;
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    node.style[kind + side[0].toUpperCase() + side.slice(1)] = (box[side] ?? 0) + 'px';
+  }
+}
+function createResizableObject(block, content) {
+  const wrapper = make('div', 'resizable-object');
+  wrapper.style.width = (block.width || (block.type === 'qrcode' ? 96 : block.type === 'barcode' ? 220 : 120)) + 'px';
+  wrapper.style.maxWidth = '100%';
+  content.style.width = '100%';
+  content.style.maxWidth = '100%';
+  content.style.height = 'auto';
+  wrapper.append(content);
+  const handle = make('span', 'object-resize-handle', '↘');
+  handle.dataset.objectResize = 'true';
+  handle.title = 'Tarik untuk mengubah ukuran objek';
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-label', 'Ubah ukuran objek');
+  handle.tabIndex = 0;
+  wrapper.append(handle);
+  return wrapper;
+}
+function cloneBlockWithFreshIds(block) {
+  const clone = cloneDocument({ schemaVersion: 1, title: 'clone', paperWidthMm: 58, currency: 'IDR', blocks: [block] }).blocks[0];
+  const refresh = item => {
+    item.id = 'b-' + crypto.randomUUID();
+    if (item.type === 'section') item.children.forEach(refresh);
+  };
+  refresh(clone);
+  return clone;
 }
 function renderCanvasBlock(block) {
-  const node = make('div', 'design-block' + (block.type === 'section' ? ' section-block' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
+  const isSection = block.type === 'section';
+  const isRule = block.type === 'rule';
+  const node = make('div', 'design-block' + (isSection ? ' section-block' : '') + (isRule ? ' design-block-rule' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
   node.dataset.blockId = block.id;
   node.tabIndex = 0;
   node.setAttribute('role', 'group');
-  node.setAttribute('aria-label', 'Elemen ' + (block.type === 'section' ? (block.name || 'section') : block.type));
+  node.setAttribute('aria-label', 'Elemen ' + (isSection ? (block.name || 'section') : block.type));
   applyTextStyle(node, block);
+  if (block.margin) applyBoxStyle(node, block.margin, 'margin');
+  if (isSection && block.padding) applyBoxStyle(node, block.padding, 'padding');
+  if (!isSection && block.blockPadding) applyBoxStyle(node, block.blockPadding, 'padding');
   const drag = make('button', 'block-drag-handle', '⠿');
   drag.type = 'button'; drag.draggable = true; drag.dataset.dragHandle = 'true';
   drag.title = 'Tarik untuk memindahkan elemen'; drag.setAttribute('aria-label', 'Pindahkan elemen');
   node.append(drag);
-  if (block.type === 'section') {
-    applyBoxStyle(node, block.margin, 'margin');
-    applyBoxStyle(node, block.padding, 'padding');
+  if (isSection) {
     const header = make('div', 'section-header');
     header.append(make('span', 'block-type', 'SECTION'));
     header.append(createEditableText(block.name || 'Section baru', 'name'));
@@ -278,7 +311,11 @@ function renderCanvasBlock(block) {
   }
   node.append(make('span', 'block-type', block.type.toUpperCase()));
   if (block.type === 'rule') {
-    const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); rule.textContent = (block.character || '-').repeat(documentModel.paperWidthMm === 58 ? 32 : 42); node.append(rule);
+    const rule = make('span', 'design-rule');
+    rule.classList.add('rule-' + (block.style || 'solid'));
+    const character = block.character || '-';
+    if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42); }
+    node.append(rule);
   } else if (block.type === 'spacer') {
     node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
   } else if (block.type === 'table') {
@@ -286,17 +323,18 @@ function renderCanvasBlock(block) {
   } else if (block.type === 'columns') {
     node.append(createColumnLayout(block, true));
   } else if (block.type === 'image') {
-    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
+    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; node.append(createResizableObject(block, img));
   } else if (block.type === 'qrcode' || block.type === 'barcode') {
     node.classList.add('code-block'); node.style.flexDirection = 'column';
     node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
-    node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
+    node.append(createResizableObject(block, createCodeGraphic(block)));
+    const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
   } else if (block.type === 'item') {
     node.append(createEditableText(block.name, 'name')); node.append(make('span', 'block-price', money(block.price)));
   } else if (block.type === 'total') {
     node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
   } else {
-    const text = createEditableText(block.text, 'text'); node.append(text);
+    node.append(createEditableText(block.text, 'text'));
   }
   return node;
 }
@@ -313,7 +351,9 @@ function renderCanvas() {
 function createPreviewLeaf(block, columns) {
   let line;
   if (block.type === 'rule') {
-    line = makeLine('rule rule-' + (block.style || 'solid'), [make('span', '', (block.character || '-').repeat(columns))]);
+    const character = block.character || '-';
+    const lineClass = 'rule rule-' + (block.style || 'solid') + (character !== '-' ? ' rule-character' : '');
+    line = makeLine(lineClass, [make('span', '', character !== '-' ? character.repeat(columns) : '')]);
   } else if (block.type === 'spacer') {
     line = make('div', 'receipt-spacer'); line.style.height = (block.height * 4) + 'px';
   } else if (block.type === 'table') {
@@ -335,6 +375,8 @@ function createPreviewLeaf(block, columns) {
   } else return null;
   const wrapper = make('div', 'receipt-block-preview preview-' + block.type);
   applyTextStyle(wrapper, block);
+  if (block.margin) applyBoxStyle(wrapper, block.margin, 'margin');
+  if (block.blockPadding) applyBoxStyle(wrapper, block.blockPadding, 'padding');
   wrapper.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size || 'normal'];
   if (block.type === 'table') {
     wrapper.style.width = '100%';
