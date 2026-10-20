@@ -388,7 +388,7 @@ $('table-dialog-form').addEventListener('submit', event => {
   event.preventDefault(); const cols = Math.max(1, Math.min(6, Number($('table-columns-count').value) || 1)); const rows = Math.max(1, Math.min(50, Number($('table-rows-count').value) || 1));
   const border = $('table-insert-border').value; const id = 'b-' + crypto.randomUUID(); const headers = Array.from({length: cols}, (_, i) => 'Kolom ' + (i+1));
   const widths = Array(cols).fill(Number((100 / cols).toFixed(2))); widths[cols-1] = Number((100-widths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2));
-  const block = { id, type: 'table', headers, rows: Array.from({length: rows}, () => Array(cols).fill('')), border, columnWidths: widths, align: 'left', size: 'normal', bold: false };
+  const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, align: 'left', size: 'normal', bold: false };
   $('table-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
 function deleteSelectedBlock() {
