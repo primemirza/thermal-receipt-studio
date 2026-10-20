@@ -137,4 +137,6 @@ test('all inspector controls referenced by renderer exist in the HTML', async ()
   const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
   assert.deepEqual([...new Set(ids)].filter(id => !htmlIds.has(id)), []);
   assert.ok((html.match(/class=\"toolbar-icon\"/g) || []).length >= 15);
+  assert.ok((html.match(/class="icon-button"[^>]*title="[^"]+"/g) || []).length >= 15);
+  assert.ok(js.includes("$('columns-dialog-form').addEventListener('submit'"));
 });
