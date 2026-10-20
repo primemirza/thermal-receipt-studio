@@ -668,3 +668,83 @@ body .inspector-panel #block-spacing-fields[hidden] { display: none !important; 
   body .inspector-panel .inspector-scroll { overflow: visible; }
   .spacing-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+
+/* Phase 5 follow-up: align toolbar button baselines across all command groups. */
+body .toolbar {
+  align-items: stretch;
+  column-gap: 11px;
+}
+body .toolbar .tool-section {
+  align-self: stretch;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 1px;
+}
+body .toolbar .tool-section > .tool-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 13px;
+  min-height: 13px;
+  line-height: 13px;
+  margin: 0 0 4px;
+}
+body .toolbar .tool-section > .tool-group { min-height: 32px; }
+body .toolbar .tool-section[aria-label="Sisipkan objek"] {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding-top: 1px;
+}
+body .toolbar .tool-section[aria-label="Sisipkan objek"] > .tool-label { display: none; }
+body .toolbar .insert-subsections {
+  align-self: stretch;
+  align-items: flex-start;
+  margin: 0;
+  gap: 11px;
+}
+body .toolbar .tool-subsection {
+  align-items: center;
+  justify-content: flex-start;
+}
+body .toolbar .tool-subsection > .tool-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 13px;
+  min-height: 13px;
+  line-height: 13px;
+  margin: 0 0 4px;
+  white-space: nowrap;
+}
+body .toolbar .toolbar-align-group { margin-left: 0; }
+body .toolbar .toolbar-align-group .tool-group { gap: 3px; }
+body .toolbar .align-button { width: 32px; min-width: 32px; }
+body .toolbar .align-button.is-active:not(:disabled) {
+  color: #004f9e;
+  background: #dceeff;
+  border-color: #8dbde9;
+  box-shadow: inset 0 0 0 1px #eaf5ff;
+}
+body .toolbar .align-button:disabled { opacity: .42; cursor: not-allowed; }
+body .toolbar .toolbar-spacer { min-width: 8px; }
+
+/* Inherit explicit block formatting so browser defaults (notably bold TH) do not leak in. */
+.canvas-table th, .preview-table th {
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: inherit;
+}
+.canvas-table td, .preview-table td {
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: inherit;
+}
+.column-cell {
+  font-weight: inherit;
+  font-style: inherit;
+  text-decoration: inherit;
+}
+.column-cell [data-inline-edit] { font-weight: inherit; font-style: inherit; text-decoration: inherit; }
+.design-block [data-inline-edit][contenteditable="true"] { user-select: text; -webkit-user-select: text; }
