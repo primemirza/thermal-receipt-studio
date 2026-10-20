@@ -188,7 +188,7 @@ function renderPreview() {
     }
   }
   receiptPreview.replaceChildren(fragment);
-  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; });
+  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.align === 'center') line.style.justifyContent = 'center'; else if (block.align === 'right') line.style.justifyContent = 'flex-end'; const price = line.querySelector('.right'); if (price && block.align !== 'left') price.style.marginLeft = '0'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; });
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom;
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
@@ -232,6 +232,7 @@ function renderAll() {
   renderCanvas();
   renderPreview();
   renderInspector();
+  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = documentModel.blocks.length + (documentModel.blocks.length === 1 ? ' elemen' : ' elemen');
   updateHistoryButtons();
 }
 function setPaper(width) {
@@ -403,9 +404,10 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keydown', event => {
   if (!(event.ctrlKey || event.metaKey)) return;
   const key = event.key.toLowerCase();
-  if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }
+  if (key === 's') { event.preventDefault(); document.activeElement?.blur?.(); saveCurrent('save'); }
+  else if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+  else if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }
   else if (key === 'y') { event.preventDefault(); restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'); }
-  else if (key === 's') { event.preventDefault(); saveCurrent('save'); }
 });
 $('undo-button').addEventListener('click', () => restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'));
 $('redo-button').addEventListener('click', () => restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'));
