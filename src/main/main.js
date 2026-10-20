@@ -170,22 +170,48 @@ if (process.env.TRS_SMOKE === '1') {
         const result = await wins[0].webContents.executeJavaScript(`(() => {
           const target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
           if (!target) return { ok: false, reason: 'editable sample text not found' };
+          const paper = document.querySelector('#design-paper');
+          const diagnostics = {
+            connectedBefore: target.isConnected,
+            targetTag: target.tagName,
+            field: target.dataset.field,
+            blockId: target.closest('[data-block-id]')?.dataset.blockId,
+            designPaperFound: Boolean(paper),
+            clickEvents: [],
+            canvasReplacementsAfterFirstClick: 0
+          };
+          const originalReplaceChildren = paper.replaceChildren.bind(paper);
+          let canvasReplacementCount = 0;
+          paper.replaceChildren = (...children) => {
+            canvasReplacementCount += 1;
+            return originalReplaceChildren(...children);
+          };
+          const captureClick = event => {
+            diagnostics.clickEvents.push({
+              detail: event.detail,
+              sameTarget: event.target === target,
+              closestBlockId: event.target.closest?.('[data-block-id]')?.dataset.blockId || null
+            });
+          };
+          document.addEventListener('click', captureClick, true);
           const dispatch = (type, detail) => target.dispatchEvent(new MouseEvent(type, {
             bubbles: true, cancelable: true, detail, view: window
           }));
           dispatch('click', 1);
           const attachedAfterFirstClick = target.isConnected;
+          diagnostics.canvasReplacementsAfterFirstClick = canvasReplacementCount;
           dispatch('click', 2);
           const attachedAfterSecondClick = target.isConnected;
           dispatch('dblclick', 2);
           const editable = target.getAttribute('contenteditable') === 'true';
           const focused = document.activeElement === target;
-          target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
+          if (editable) target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
           target.blur();
           const committed = document.querySelector('#receipt-preview')?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          document.removeEventListener('click', captureClick, true);
           return {
             ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed,
-            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed
+            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed, ...diagnostics
           };
         })()`);
         if (!result?.ok) {
