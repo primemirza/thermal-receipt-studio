@@ -302,7 +302,7 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 
 ## FASE 5 — EDITOR OBJEK DAN LAYOUT (2026-10-20)
 
-Branch: `feature/phase-5-receipt-objects-layout`. PR #12 berstatus closed dan implementasi awal sudah tampak di `main`. Perbaikan lanjutan diajukan di PR #13: https://github.com/primemirza/thermal-receipt-studio/pull/13 (terbuka, belum di-merge).
+Branch: `feature/phase-5-receipt-objects-layout`. PR #12 berstatus closed dan implementasi awal sudah tampak di `main`. Perbaikan lanjutan diajukan di PR #14: https://github.com/primemirza/thermal-receipt-studio/pull/14 (terbuka, belum di-merge).
 
 ### Implementasi saat ini
 - Toolbar telah dikelompokkan menjadi Kertas/Zoom, Dokumen, Riwayat, dan Sisipkan. Aksi menggunakan tombol ikon dengan `title` tooltip dan label aksesibilitas.
@@ -320,6 +320,6 @@ Branch: `feature/phase-5-receipt-objects-layout`. PR #12 berstatus closed dan im
 - Gagal validasi di jalur perubahan model ditangani tanpa meninggalkan dokumen dalam keadaan invalid.
 
 ### Status verifikasi
-- Ini adalah status implementasi, **belum dinyatakan TESTED atau ACCEPTED**.
-- Setelah rangkaian perubahan ini, CI/tes harus diperiksa pada commit branch terbaru. Build portable Windows dan uji manual pengguna juga masih diperlukan.
+- GitHub Actions Tests run #37 dan #38: `npm test` **35/35 lulus pada Ubuntu dan Windows**; Electron smoke test Ubuntu **lulus**. Run #38 diuji pada snapshot PR #14 dan selesai hijau.
+- Fase belum `ACCEPTED`: workflow PR tidak menghasilkan build portable Windows, dan pengguna masih perlu menguji alur UI serta scan QR/barcode. Status tetap `IN PROGRESS` sampai build/manual test diterima.
 - Perhatian khusus pengujian manual: insert tabel dengan 1 dan 6 kolom; mengetik dan berpindah antar sel; resize kolom sampai batas minimum; add/remove baris/kolom; undo/redo setelah resize; save/open file; dan pastikan QR/barcode dapat dipindai dari preview/cetakan.
