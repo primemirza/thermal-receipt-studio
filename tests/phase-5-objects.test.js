@@ -226,7 +226,10 @@ test('editor uses a dedicated drag handle and double-click editing rather than m
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
   assert.ok(js.includes('data-drag-handle'));
-  assert.ok(js.includes("designPaper.addEventListener('dblclick'"));
+  assert.ok(js.includes("$('editor-surface').addEventListener('dblclick'"));
+  assert.ok(js.includes("}, true);"), 'capture-phase dblclick listener protects the event target');
+  const selectedBlock = js.slice(js.indexOf('function selectBlock'), js.indexOf('function addBlock'));
+  assert.ok(!selectedBlock.includes('renderCanvas()'), 'selecting a block must preserve the clicked DOM node');
   assert.ok(js.includes('insertBlockAtSelection(documentModel, selectedBlockId, block)'));
   assert.ok(js.includes("designPaper.addEventListener('contextmenu'"));
   assert.ok(!js.includes('node.draggable = true'));
