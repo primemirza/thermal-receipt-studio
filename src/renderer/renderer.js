@@ -206,6 +206,8 @@ function createColumnLayout(block, editable) {
   const container = make('div', editable ? 'object-columns' : 'object-columns-preview');
   container.dataset.columnLayout = block.id;
   container.style.width = (block.width ?? 100) + '%';
+  container.style.marginLeft = block.align === 'right' ? 'auto' : block.align === 'center' ? 'auto' : '0';
+  container.style.marginRight = block.align === 'left' ? 'auto' : block.align === 'center' ? 'auto' : '0';
   container.style.gap = (block.gap ?? 0) + 'px';
   const widths = columnWidths(block);
   block.columns.forEach((value, index) => {
@@ -236,6 +238,8 @@ function createCodeGraphic(block) {
 }
 function applyTextStyle(node, block) {
   node.style.textAlign = block.align || 'left';
+  if (block.align === 'right') node.style.justifyContent = 'flex-end';
+  else if (block.align === 'center') node.style.justifyContent = 'center';
   node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal'];
   if (block.bold) node.style.fontWeight = '700';
   if (block.italic) node.style.fontStyle = 'italic';
@@ -272,7 +276,7 @@ function renderCanvasBlock(block) {
   }
   node.append(make('span', 'block-type', block.type.toUpperCase()));
   if (block.type === 'rule') {
-    const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); rule.textContent = (block.character || '-').repeat(12); node.append(rule);
+    const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); rule.textContent = (block.character || '-').repeat(documentModel.paperWidthMm === 58 ? 32 : 42); node.append(rule);
   } else if (block.type === 'spacer') {
     node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
   } else if (block.type === 'table') {
@@ -336,6 +340,11 @@ function createPreviewLeaf(block, columns) {
     wrapper.style.width = '100%';
   }
   if (block.align === 'right') wrapper.style.textAlign = 'right';
+  if (block.type !== 'table' && block.type !== 'columns') {
+    line.style.justifyContent = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+    const price = line.querySelector('.right');
+    if (price && block.align !== 'left') price.style.marginLeft = '0';
+  }
   if (block.type === 'image') {
     line.style.justifyContent = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
   }
