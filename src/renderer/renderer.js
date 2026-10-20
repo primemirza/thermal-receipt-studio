@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
 const statusVersion = $('status-version');
 const appMeta = $('app-meta');
-const paperButtons = [...document.querySelectorAll('[data-paper]')];
+const paperButtons = [...document.querySelectorAll('button[data-paper]')];
 const designPaper = $('design-paper');
 const receiptPreview = $('receipt-preview');
 const previewStage = $('preview-stage');
