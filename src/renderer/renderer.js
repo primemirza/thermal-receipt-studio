@@ -297,7 +297,11 @@ function renderCanvas() {
   const fragment = document.createDocumentFragment();
   documentModel.blocks.forEach(block => fragment.append(renderCanvasBlock(block)));
   designPaper.replaceChildren(fragment);
-  designPaper.style.padding = '15px 12px 20px';
+  const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+  const paperWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
+  designPaper.style.boxSizing = 'border-box';
+  designPaper.style.width = paperWidth + 'px';
+  designPaper.style.padding = (15 + margins.top) + 'px ' + (12 + margins.right) + 'px ' + (20 + margins.bottom) + 'px ' + (12 + margins.left) + 'px';
 }
 function createPreviewLeaf(block, columns) {
   let line;
@@ -361,10 +365,13 @@ function renderPreview() {
   renderPreviewBlocks(documentModel.blocks, fragment, columns);
   receiptPreview.replaceChildren(fragment);
   const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
-  receiptPreview.style.paddingTop = 'calc(12px + ' + margins.top + 'px)';
-  receiptPreview.style.paddingRight = 'calc(10px + ' + margins.right + 'px)';
-  receiptPreview.style.paddingBottom = 'calc(12px + ' + margins.bottom + 'px)';
-  receiptPreview.style.paddingLeft = 'calc(10px + ' + margins.left + 'px)';
+  const receiptWidth = documentModel.paperWidthMm === 58 ? 288 : 368;
+  receiptPreview.style.boxSizing = 'border-box';
+  receiptPreview.style.width = receiptWidth + 'px';
+  receiptPreview.style.paddingTop = (17 + margins.top) + 'px';
+  receiptPreview.style.paddingRight = (14 + margins.right) + 'px';
+  receiptPreview.style.paddingBottom = (20 + margins.bottom) + 'px';
+  receiptPreview.style.paddingLeft = (14 + margins.left) + 'px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom;
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
