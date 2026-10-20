@@ -58,7 +58,7 @@ export function validateDocument(doc) {
       ids.add(block.id);
       if (!BLOCK_TYPES.includes(block.type) && block.type !== 'dynamic') throw new TypeError('Jenis elemen tidak didukung.');
       if (block.align !== undefined && !ALIGNMENTS.includes(block.align)) throw new TypeError('Perataan elemen tidak valid.');
-      if (block.margin !== undefined) assertBox(block.margin, 'Margin blok', 60);
+      if (block.margin !== undefined) assertBox(block.margin, block.type === 'section' ? 'Margin section' : 'Margin blok', 60);
       if (block.type === 'section') {
         assertString(block.name || 'Section', 'Nama section');
         if (block.padding !== undefined) assertBox(block.padding, 'Padding section', 60);
