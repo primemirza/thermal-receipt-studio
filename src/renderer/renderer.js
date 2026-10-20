@@ -715,6 +715,71 @@ $('table-remove-row').addEventListener('click', () => { const block = selectedBl
 $('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); const count = block.headers.length; block.columnWidths = Array(count).fill(Number((100/count).toFixed(2))); block.columnWidths[count-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
 $('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { const oldWidths = columnWidths(block); block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = oldWidths.slice(0, -1); const widthSum = widths.reduce((sum,v)=>sum+v,0); const normalized = widths.map(width => width / widthSum * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
 
+tableWidthInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'table') return;
+  const value = Math.max(20, Math.min(100, Math.round(Number(tableWidthInput.value) || 20)));
+  mutate(() => { block.width = value; }, 'Lebar tabel diperbarui.');
+});
+tablePaddingInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'table') return;
+  const value = Math.max(0, Math.min(20, Math.round(Number(tablePaddingInput.value) || 0)));
+  mutate(() => { block.padding = value; }, 'Padding sel tabel diperbarui.');
+});
+columnsWidthInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'columns') return;
+  const value = Math.max(20, Math.min(100, Math.round(Number(columnsWidthInput.value) || 20)));
+  mutate(() => { block.width = value; }, 'Lebar objek kolom diperbarui.');
+});
+columnsPaddingInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'columns') return;
+  const value = Math.max(0, Math.min(30, Math.round(Number(columnsPaddingInput.value) || 0)));
+  mutate(() => { block.padding = value; }, 'Padding kolom diperbarui.');
+});
+columnsGapInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'columns') return;
+  const value = Math.max(0, Math.min(30, Math.round(Number(columnsGapInput.value) || 0)));
+  mutate(() => { block.gap = value; }, 'Jarak antar kolom diperbarui.');
+});
+columnsBorderInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'columns' || !['all','vertical','none'].includes(columnsBorderInput.value)) return;
+  mutate(() => { block.border = columnsBorderInput.value; }, 'Border kolom diperbarui.');
+});
+columnWidthsInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'columns') return;
+  const widths = columnWidthsInput.value.split(',').map(value => Number(value.trim()));
+  if (widths.length !== block.columns.length || widths.some(value => !Number.isFinite(value))) { setStatus('Masukkan satu angka lebar untuk setiap kolom, dipisah koma.'); renderInspector(); return; }
+  mutate(() => { block.columnWidths = widths; }, 'Lebar tiap kolom diperbarui.');
+});
+sectionNameInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'section') return;
+  const value = sectionNameInput.value.trim().slice(0, 200) || 'Section baru';
+  if (block.name === value) return;
+  mutate(() => { block.name = value; }, 'Nama section diperbarui.');
+});
+sectionMarginInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'section') return;
+  const value = Math.max(0, Math.min(60, Math.round(Number(sectionMarginInput.value) || 0)));
+  mutate(() => { block.margin = { top: value, right: value, bottom: value, left: value }; }, 'Margin section diperbarui.');
+});
+sectionPaddingInput.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'section') return;
+  const value = Math.max(0, Math.min(60, Math.round(Number(sectionPaddingInput.value) || 0)));
+  mutate(() => { block.padding = { top: value, right: value, bottom: value, left: value }; }, 'Padding section diperbarui.');
+});
+$('global-layout-button').addEventListener('click', () => {
+  const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+  for (const side of ['top','right','bottom','left']) $('global-margin-' + side).value = String(margins[side] ?? 0);
+  globalLayoutDialog.showModal();
+});
+$('global-layout-cancel').addEventListener('click', () => globalLayoutDialog.close());
+$('global-layout-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const margins = {};
+  for (const side of ['top','right','bottom','left']) margins[side] = Math.max(0, Math.min(60, Math.round(Number($('global-margin-' + side).value) || 0)));
+  mutate(() => { documentModel.layout = documentModel.layout || {}; documentModel.layout.margins = margins; }, 'Margin global diperbarui.');
+  globalLayoutDialog.close();
+});
+$('add-section-button').addEventListener('click', () => addBlock('section'));
 priceInput.addEventListener('change', () => {
   const block = selectedBlock();
   if (!block || block.type !== 'item') return;
