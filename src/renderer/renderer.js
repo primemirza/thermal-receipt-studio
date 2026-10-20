@@ -42,7 +42,29 @@ const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 const money = (amount) => currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
-function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
+function findBlockEntry(id, blocks = documentModel.blocks, parentSection = null) {
+  if (!id) return null;
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+    if (block.id === id) return { block, list: blocks, index, parentSection };
+    if (block.type === 'section' && Array.isArray(block.children)) {
+      const nested = findBlockEntry(id, block.children, block);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+function selectedBlock() { return findBlockEntry(selectedBlockId)?.block ?? null; }
+function countAllBlocks(blocks = documentModel.blocks) {
+  return blocks.reduce((sum, block) => sum + 1 + (block.type === 'section' ? countAllBlocks(block.children) : 0), 0);
+}
+function insertNewBlock(block) {
+  const active = findBlockEntry(selectedBlockId);
+  if (!active) documentModel.blocks.push(block);
+  else if (active.block.type === 'section') active.block.children.push(block);
+  else active.list.splice(active.index + 1, 0, block);
+  selectedBlockId = block.id;
+}
 function captureHistoryState() {
   return { document: cloneDocument(documentModel), selectedBlockId };
 }
@@ -84,9 +106,7 @@ function restoreHistory(from, to, message) {
   const snapshot = from.pop();
   documentModel = cloneDocument(snapshot.document);
   isDirty = true;
-  selectedBlockId = documentModel.blocks.some(block => block.id === snapshot.selectedBlockId)
-    ? snapshot.selectedBlockId
-    : null;
+  selectedBlockId = findBlockEntry(snapshot.selectedBlockId) ? snapshot.selectedBlockId : null;
   validateDocument(documentModel);
   renderAll();
   setStatus(message);
@@ -103,10 +123,11 @@ function makeLine(className, children) {
   return line;
 }
 function columnWidths(block) {
-  const n = block.headers.length;
-  if (Array.isArray(block.columnWidths) && block.columnWidths.length === n) return block.columnWidths;
-  const width = Number((100 / n).toFixed(2));
-  return Array.from({ length: n }, (_, i) => i === n - 1 ? Number((100 - width * (n - 1)).toFixed(2)) : width);
+  const values = block.type === 'columns' ? block.columns : block.headers;
+  const count = values.length;
+  if (Array.isArray(block.columnWidths) && block.columnWidths.length === count) return block.columnWidths;
+  const width = Number((100 / count).toFixed(2));
+  return Array.from({ length: count }, (_, index) => index === count - 1 ? Number((100 - width * (count - 1)).toFixed(2)) : width);
 }
 function createEditableText(value, field, extra = {}) {
   const span = make('span', '', value ?? '');
@@ -114,31 +135,84 @@ function createEditableText(value, field, extra = {}) {
   for (const [key, val] of Object.entries(extra)) span.dataset[key] = String(val);
   return span;
 }
-function createEditableTable(block) {
-  const table = make('table', 'canvas-table border-' + (block.border || 'all')); table.dataset.tableId = block.id;
+function styledTable(block, editable = false) {
+  const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
+  table.style.setProperty('--cell-padding', (block.padding ?? 4) + 'px');
+  table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
+  if (block.bold) table.style.fontWeight = '700';
+  if (block.italic) table.style.fontStyle = 'italic';
+  if (block.underline) table.style.textDecoration = 'underline';
   const colgroup = document.createElement('colgroup');
-  columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); }); table.append(colgroup);
-  const thead = document.createElement('thead'); const headRow = document.createElement('tr');
-  block.headers.forEach((header, colIndex) => { const th = document.createElement('th'); th.append(createEditableText(header, 'tableCell', { rowIndex: -1, colIndex })); if (colIndex < block.headers.length - 1) { const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip); } headRow.append(th); });
-  thead.append(headRow); table.append(thead);
+  columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); });
+  table.append(colgroup);
+  const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
+  block.headers.forEach((value, colIndex) => {
+    const th = document.createElement('th');
+    if (editable) {
+      th.append(createEditableText(value, 'tableCell', { rowIndex: -1, colIndex }));
+      if (colIndex < block.headers.length - 1) {
+        const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.dataset.colKind = 'table';
+        grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip);
+      }
+    } else th.textContent = value;
+    headerRow.append(th);
+  });
+  thead.append(headerRow); table.append(thead);
   const tbody = document.createElement('tbody');
-  block.rows.forEach((row, rowIndex) => { const tr = document.createElement('tr'); row.forEach((value, colIndex) => { const td = document.createElement('td'); td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex })); tr.append(td); }); tbody.append(tr); });
+  block.rows.forEach((row, rowIndex) => {
+    const tr = document.createElement('tr');
+    row.forEach((value, colIndex) => {
+      const td = document.createElement('td');
+      if (editable) td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex }));
+      else td.textContent = value;
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
   table.append(tbody);
-  table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700';
+  table.style.textAlign = block.align || 'left';
   return table;
 }
-function createPreviewTable(block) {
-  const table = make('table', 'preview-table border-' + (block.border || 'all')); const colgroup = document.createElement('colgroup');
-  columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); }); table.append(colgroup);
-  const thead = document.createElement('thead'); const headRow = document.createElement('tr'); block.headers.forEach(value => headRow.append(make('th', '', value))); thead.append(headRow); table.append(thead);
-  const tbody = document.createElement('tbody'); block.rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(value => tr.append(make('td', '', value))); tbody.append(tr); }); table.append(tbody);
-  table.style.textAlign = block.align || 'left'; table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700'; if (block.italic) table.style.fontStyle = 'italic'; if (block.underline) table.style.textDecoration = 'underline';
-  return table;
+function createTableWrapper(block, editable) {
+  const wrapper = make('div', editable ? 'table-resize-wrapper' : 'preview-table-wrapper');
+  wrapper.style.width = (block.width ?? 100) + '%';
+  const align = block.align || 'left';
+  wrapper.style.marginLeft = align === 'right' ? 'auto' : align === 'center' ? 'auto' : '0';
+  wrapper.style.marginRight = align === 'left' ? 'auto' : align === 'center' ? 'auto' : '0';
+  if (editable) {
+    const left = make('span', 'table-width-handle table-width-handle-left'); left.dataset.tableWidth = 'left'; left.title = 'Tarik untuk mengubah lebar kiri tabel';
+    const right = make('span', 'table-width-handle table-width-handle-right'); right.dataset.tableWidth = 'right'; right.title = 'Tarik untuk mengubah lebar kanan tabel';
+    wrapper.append(left);
+    wrapper.append(styledTable(block, true));
+    wrapper.append(right);
+  } else wrapper.append(styledTable(block, false));
+  return wrapper;
+}
+function createColumnLayout(block, editable) {
+  const container = make('div', editable ? 'object-columns' : 'object-columns-preview');
+  container.dataset.columnLayout = block.id;
+  container.style.width = (block.width ?? 100) + '%';
+  container.style.gap = (block.gap ?? 0) + 'px';
+  const widths = columnWidths(block);
+  block.columns.forEach((value, index) => {
+    const cell = make('div', 'column-cell border-' + (block.border || 'vertical'));
+    cell.style.flex = '0 0 ' + widths[index] + '%';
+    cell.style.padding = (block.padding ?? 4) + 'px';
+    if (editable) {
+      cell.append(createEditableText(value, 'columnCell', { colIndex: index }));
+      if (index < block.columns.length - 1) {
+        const grip = make('span', 'column-resize-handle column-resize-handle-columns'); grip.dataset.colResize = String(index); grip.dataset.colKind = 'columns';
+        grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom teks'); cell.append(grip);
+      }
+    } else cell.textContent = value;
+    container.append(cell);
+  });
+  return container;
 }
 function createCodeGraphic(block) {
   if (block.type === 'qrcode') {
     try { const qr = window.qrcode(0, 'M'); qr.addData(block.value, 'Byte'); qr.make(); const img = document.createElement('img'); img.className = 'generated-code generated-qr'; img.alt = 'QR code untuk ' + block.value; img.src = qr.createDataURL(3, 4); img.style.width = (block.width || 96) + 'px'; img.style.height = 'auto'; img.style.maxWidth = '100%'; return img; }
-    catch (error) { const fallback = make('span', 'object-placeholder', 'QR tidak valid: ' + (error?.message || 'payload terlalu panjang')); return fallback; }
+    catch (error) { return make('span', 'object-placeholder', 'QR tidak valid: ' + (error?.message || 'payload terlalu panjang')); }
   }
   if (block.type === 'barcode') {
     try { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); window.JsBarcode(svg, block.value, { format: 'CODE128', lineColor: '#111111', width: 1.4, height: 48, displayValue: true, font: 'monospace', fontSize: 12, margin: 4 }); svg.classList.add('generated-code', 'generated-barcode'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Barcode ' + block.value); svg.style.width = (block.width || 220) + 'px'; svg.style.maxWidth = '100%'; svg.style.height = 'auto'; return svg; }
@@ -146,83 +220,138 @@ function createCodeGraphic(block) {
   }
   return make('span', 'object-placeholder', 'Objek kode tidak dikenal');
 }
-function applyBlockLayout(node, block) {
+function applyTextStyle(node, block) {
   node.style.textAlign = block.align || 'left';
-  if (block.align === 'right') node.style.justifyContent = 'flex-end'; else if (block.align === 'center') node.style.justifyContent = 'center';
-  node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal']; if (block.bold) node.style.fontWeight = '700'; if (block.italic) node.style.fontStyle = 'italic'; if (block.underline) node.style.textDecoration = 'underline';
+  node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal'];
+  if (block.bold) node.style.fontWeight = '700';
+  if (block.italic) node.style.fontStyle = 'italic';
+  if (block.underline) node.style.textDecoration = 'underline';
+}
+function applyBoxStyle(node, box, kind) {
+  const sides = ['top', 'right', 'bottom', 'left'];
+  for (const side of sides) node.style[kind + side[0].toUpperCase() + side.slice(1)] = (box?.[side] ?? (kind === 'padding' ? 0 : 0)) + 'px';
+}
+function renderCanvasBlock(block) {
+  const node = make('div', 'design-block' + (block.type === 'section' ? ' section-block' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
+  node.dataset.blockId = block.id;
+  node.tabIndex = 0;
+  node.setAttribute('role', 'group');
+  node.setAttribute('aria-label', 'Elemen ' + (block.type === 'section' ? (block.name || 'section') : block.type));
+  applyTextStyle(node, block);
+  const drag = make('button', 'block-drag-handle', '⠿');
+  drag.type = 'button'; drag.draggable = true; drag.dataset.dragHandle = 'true';
+  drag.title = 'Tarik untuk memindahkan elemen'; drag.setAttribute('aria-label', 'Pindahkan elemen');
+  node.append(drag);
+  if (block.type === 'section') {
+    applyBoxStyle(node, block.margin, 'margin');
+    applyBoxStyle(node, block.padding, 'padding');
+    const header = make('div', 'section-header');
+    header.append(make('span', 'block-type', 'SECTION'));
+    header.append(createEditableText(block.name || 'Section baru', 'name'));
+    const count = make('span', 'section-child-count', String(block.children.length));
+    header.append(count); node.append(header);
+    const children = make('div', 'section-children'); children.dataset.sectionChildren = block.id;
+    if (!block.children.length) children.append(make('div', 'section-empty', 'Section kosong — sisipkan elemen untuk memulai.'));
+    else block.children.forEach(child => children.append(renderCanvasBlock(child)));
+    node.append(children);
+    return node;
+  }
+  node.append(make('span', 'block-type', block.type.toUpperCase()));
+  if (block.type === 'rule') {
+    const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); rule.textContent = (block.character || '-').repeat(12); node.append(rule);
+  } else if (block.type === 'spacer') {
+    node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
+  } else if (block.type === 'table') {
+    node.append(createTableWrapper(block, true));
+  } else if (block.type === 'columns') {
+    node.append(createColumnLayout(block, true));
+  } else if (block.type === 'image') {
+    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
+  } else if (block.type === 'qrcode' || block.type === 'barcode') {
+    node.classList.add('code-block'); node.style.flexDirection = 'column';
+    node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+    node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
+  } else if (block.type === 'item') {
+    node.append(createEditableText(block.name, 'name')); node.append(make('span', 'block-price', money(block.price)));
+  } else if (block.type === 'total') {
+    node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
+  } else {
+    const text = createEditableText(block.text, 'text'); node.append(text);
+  }
+  return node;
 }
 function renderCanvas() {
   const fragment = document.createDocumentFragment();
-  for (const block of documentModel.blocks) {
-    const node = make('div', 'design-block' + (block.id === selectedBlockId ? ' is-selected' : ''));
-    applyBlockLayout(node, block);
-    node.dataset.blockId = block.id;
-    node.tabIndex = 0;
-    node.draggable = true;
-    node.setAttribute('role', 'button');
-    node.setAttribute('aria-label', 'Pilih elemen ' + block.type);
-    node.append(make('span', 'block-type', block.type.toUpperCase()));
-    if (block.type === 'rule') {
-      const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); node.append(rule);
-    } else if (block.type === 'spacer') {
-      node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris'));
-      node.style.minHeight = (block.height * 8) + 'px';
-    } else if (block.type === 'table') {
-      node.append(createEditableTable(block));
-    } else if (block.type === 'columns') {
-      const columns = make('div', 'object-columns'); block.columns.forEach((value, index) => columns.append(createEditableText(value, 'columnCell', { colIndex: index }))); node.append(columns);
-    } else if (block.type === 'image') {
-      const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
-    } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      node.classList.add('code-block');
-      node.style.flexDirection = 'column';
-      node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
-      node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
-    } else if (block.type === 'item') {
-      node.append(createEditableText(block.name, 'name'));
-      node.append(make('span', 'block-price', money(block.price)));
-    } else if (block.type === 'total') {
-      node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
-    } else {
-      const text = createEditableText(block.text, 'text'); if (block.bold) text.style.fontWeight = '700';
-      if (block.align === 'right') node.style.justifyContent = 'flex-end';
-      node.append(text);
-    }
-    fragment.append(node);
-  }
+  documentModel.blocks.forEach(block => fragment.append(renderCanvasBlock(block)));
   designPaper.replaceChildren(fragment);
+  designPaper.style.padding = '15px 12px 20px';
+}
+function createPreviewLeaf(block, columns) {
+  let line;
+  if (block.type === 'rule') {
+    line = makeLine('rule rule-' + (block.style || 'solid'), [make('span', '', (block.character || '-').repeat(columns))]);
+  } else if (block.type === 'spacer') {
+    line = make('div', 'receipt-spacer'); line.style.height = (block.height * 4) + 'px';
+  } else if (block.type === 'table') {
+    line = createTableWrapper(block, false);
+  } else if (block.type === 'columns') {
+    line = createColumnLayout(block, false);
+  } else if (block.type === 'image') {
+    line = makeLine(block.align === 'center' ? 'center' : '', []);
+    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img);
+  } else if (block.type === 'qrcode' || block.type === 'barcode') {
+    line = makeLine('code-preview-line', [createCodeGraphic(block)]);
+  } else if (block.type === 'item') {
+    line = makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]);
+  } else if (block.type === 'total') {
+    line = makeLine('', [make(block.bold ? 'b' : 'span', '', block.label), make(block.bold ? 'b' : 'span', 'right', money(block.amount))]);
+  } else if (block.type === 'text' || block.type === 'dynamic') {
+    const content = make(block.bold ? 'b' : 'span', '', block.type === 'dynamic' ? block.text || ({ date: 'Tanggal: ', time: 'Waktu: ', datetime: 'Tanggal/waktu: ', receiptNumber: 'No. struk: ' })[block.field] || '' : block.text);
+    line = makeLine(block.align === 'center' ? 'center' : '', [content]);
+  } else return null;
+  const wrapper = make('div', 'receipt-block-preview preview-' + block.type);
+  applyTextStyle(wrapper, block);
+  if (block.type === 'table') {
+    wrapper.style.width = '100%';
+    line.style.width = '100%';
+  } else if (block.type === 'columns') {
+    wrapper.style.width = '100%';
+  }
+  if (block.align === 'right') wrapper.style.textAlign = 'right';
+  if (block.type === 'image') {
+    line.style.justifyContent = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+  }
+  if (block.type === 'qrcode' || block.type === 'barcode') {
+    line.style.justifyContent = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+  }
+  wrapper.append(line);
+  return wrapper;
+}
+function renderPreviewBlocks(blocks, target, columns) {
+  for (const block of blocks) {
+    if (block.type === 'section') {
+      const section = make('div', 'receipt-section-preview');
+      section.dataset.sectionId = block.id;
+      applyBoxStyle(section, block.margin, 'margin');
+      applyBoxStyle(section, block.padding, 'padding');
+      renderPreviewBlocks(block.children, section, columns);
+      target.append(section);
+    } else {
+      const leaf = createPreviewLeaf(block, columns);
+      if (leaf) target.append(leaf);
+    }
+  }
 }
 function renderPreview() {
   const columns = documentModel.paperWidthMm === 58 ? 32 : 42;
   const fragment = document.createDocumentFragment();
-  for (const block of documentModel.blocks) {
-    if (block.type === 'rule') {
-      fragment.append(makeLine('rule rule-' + (block.style || 'solid'), [make('span', '', (block.character || '-').repeat(columns))]));
-    } else if (block.type === 'spacer') {
-      const spacer = make('div', 'receipt-spacer'); spacer.style.height = (block.height * 4) + 'px'; fragment.append(spacer);
-    } else if (block.type === 'table') {
-      fragment.append(makeLine('table-line', [createPreviewTable(block)]));
-    } else if (block.type === 'columns') {
-      const line = makeLine('columns-line', []); const columns = make('span', 'object-columns-preview'); block.columns.forEach(value => columns.append(make('span', '', value))); line.append(columns); fragment.append(line);
-    } else if (block.type === 'image') {
-      const line = makeLine(block.align === 'center' ? 'center' : '', []); if (block.align === 'right') line.style.justifyContent = 'flex-end';
-      const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img); fragment.append(line);
-    } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      const line = makeLine(block.align === 'center' ? 'center' : '', [createCodeGraphic(block)]); if (block.align === 'right') line.style.justifyContent = 'flex-end'; fragment.append(line);
-    } else if (block.type === 'item') {
-      fragment.append(makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]));
-    } else if (block.type === 'total') {
-      fragment.append(makeLine('', [make('b', '', block.label), make('b', 'right', money(block.amount))]));
-    } else if (block.type === 'text') {
-      const cls = block.align === 'center' ? 'center' : '';
-      const content = make(block.bold ? 'b' : 'span', '', block.text);
-      const line = makeLine(cls, [content]);
-      if (block.align === 'right') line.style.justifyContent = 'flex-end';
-      fragment.append(line);
-    }
-  }
+  renderPreviewBlocks(documentModel.blocks, fragment, columns);
   receiptPreview.replaceChildren(fragment);
-  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.align === 'center') line.style.justifyContent = 'center'; else if (block.align === 'right') line.style.justifyContent = 'flex-end'; const price = line.querySelector('.right'); if (price && block.align !== 'left') price.style.marginLeft = '0'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; if (block.italic) line.style.fontStyle = 'italic'; if (block.underline) line.style.textDecoration = 'underline'; });
+  const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+  receiptPreview.style.paddingTop = 'calc(12px + ' + margins.top + 'px)';
+  receiptPreview.style.paddingRight = 'calc(10px + ' + margins.right + 'px)';
+  receiptPreview.style.paddingBottom = 'calc(12px + ' + margins.bottom + 'px)';
+  receiptPreview.style.paddingLeft = 'calc(10px + ' + margins.left + 'px)';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom;
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
@@ -233,10 +362,8 @@ function renderPreview() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   });
-  zoomValue.textContent = state.zoom + '%';
-  zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
-  paperChip.textContent = documentModel.paperWidthMm + ' mm';
-  canvasWidthLabel.textContent = documentModel.paperWidthMm + ' mm';
+  zoomValue.textContent = state.zoom + '%'; zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
+  paperChip.textContent = documentModel.paperWidthMm + ' mm'; canvasWidthLabel.textContent = documentModel.paperWidthMm + ' mm';
   previewDimensions.textContent = documentModel.paperWidthMm + ' mm · ' + columns + ' kolom';
   previewStatus.textContent = 'Preview diperbarui';
 }
