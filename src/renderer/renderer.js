@@ -667,6 +667,7 @@ editorSurface.addEventListener('click', event => {
   }
 });
 function resolveInlineEditor(event) {
+  if (event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]')) return null;
   const direct = event.target.closest('[data-inline-edit]');
   if (direct) return direct;
   const cell = event.target.closest('td, th, .column-cell, .section-header');
