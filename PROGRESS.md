@@ -300,25 +300,21 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PERBAIKAN EDITOR DAN LAYOUT (2026-10-20)
+## FASE 5 — EDITOR: POLISH, DRAG RESIZE, DAN TITLE BAR (2026-10-20)
 
-Fase 5 implementasi awal PR #14 telah di-merge dan diuji pengguna. Perbaikan operasional lanjutan dikerjakan pada branch `feature/phase-5-editor-layout-sections` dan belum dinyatakan TESTED/ACCEPTED.
+PR #14 dan PR #15 telah di-merge serta diuji pengguna. Perbaikan lanjutan berbasis hasil uji build Windows dikerjakan pada `feature/phase-5-editor-polish-resize-title`; belum dinyatakan TESTED/ACCEPTED.
 
-### Perubahan lanjutan pada branch
-- Toolbar disusun horizontal dalam grup fungsi dengan ikon SVG, tooltip, dan scroll horizontal bila lebar jendela tidak cukup. Inspector sekarang memiliki area scroll tersendiri agar semua properti dapat dicapai.
-- Drag seluruh blok dinonaktifkan; hanya pegangan khusus yang bisa memulai drag. Double-click memfokuskan konten editable dan memilih teksnya untuk diganti.
-- `insertBlockAtSelection()` menjadi helper model untuk menyisipkan setelah blok aktif, memasukkan ke section terpilih, memasukkan setelah anak aktif dalam section, atau menambahkan di akhir bila tidak ada seleksi.
-- Menambahkan struktur `section` bertingkat berisi child blocks; margin/padding section diterapkan ke anak, sementara margin global diterapkan pada kanvas dan preview.
-- Inspector tabel: lebar, padding sel, border; handle kiri dan kanan mengatur lebar/offset tabel, selain resize divider kolom. Columns mendapat kontrol lebar objek, padding, gap, border, lebar tiap kolom, dan drag untuk divider.
-- Menambahkan menu konteks klik kanan untuk sisipkan teks/section, pindah atas/bawah, dan hapus; shortcut `Del`/Undo/Redo/Simpan tetap ada.
-- Validasi dokumen meliputi margin global/section, ukuran section, nesting/ID, lebar/offset tabel, padding, lebar/gap/border columns; semua tetap berada dalam model dokumen dan round-trip `.trstudio`.
-- Ukuran gambar, QR, dan barcode dapat diatur dari inspector. Tidak ada tanggal/waktu otomatis; dokumen lama dimigrasikan menjadi teks manual.
-
-### Audit tambahan
-- ID yang dirujuk renderer diperiksa terhadap HTML: tidak ada ID yang hilang atau duplikat pada snapshot audit terakhir.
-- Tombol tanggal otomatis dan tombol delete khusus tetap tidak ada.
-- Tes tambahan mencakup section bertingkat, layout margin/padding, offset tepi tabel, insertion relatif ke elemen aktif, toolbar/editor, dan penyimpanan ulang.
+### Implementasi pada branch
+- Workspace diubah menjadi tiga panel berurutan: properti, kanvas desain, preview. Layout menjadi 3 kolom pada desktop dan responsif pada jendela lebih sempit; properti memiliki scroll independen.
+- Garis separator digambar sebagai satu stroke: karakter `-` tidak lagi dirender sebagai teks berulang sekaligus border; border bawaan blok separator dinonaktifkan. Karakter custom tetap didukung tanpa border kedua.
+- Konten editable dimulai dalam kondisi non-edit. Klik ganda pada teks mengaktifkan `contenteditable`, memilih isinya; Enter mengakhiri edit dan Escape membatalkan. Menu klik kanan tidak mengaktifkan edit.
+- Gambar, QR, barcode dibungkus komponen resizable dengan pegangan drag; ukuran dibatasi berdasarkan tipe dan disimpan di model.
+- Semua blok mendukung `margin` dan `blockPadding` dengan nilai sisi terpisah. Section tetap menggunakan margin/padding per sisi. Validasi model menerima hanya nilai numerik 0–60 px.
+- Nama file pada title bar disinkronkan setelah simpan, simpan sebagai, buka, dan dikembalikan ke judul dasar saat Dokumen Baru melalui IPC sempit yang tervalidasi.
+- Menu konteks menambah `Duplikat elemen`: blok digandakan tepat di bawah sumber; section duplikat mendapat ID baru untuk setiap child.
+- Pengujian regresi tambahan mencakup urutan panel, single-stroke separator, edit double-click versus context menu, resize langsung, margin/padding per sisi, sinkronisasi title bar, dan duplikasi.
 
 ### Status verifikasi
-- GitHub Actions Tests run #41 untuk PR #15 **lulus**: `npm test` 40/40 pada Ubuntu dan Windows, Electron smoke test Ubuntu sukses.
-- Build portable Windows dan uji manual tetap dibutuhkan untuk memeriksa tampilan toolbar, edit langsung, resize dua tepi tabel/kolom, section/global margin, dan save/open. Fase tetap `IN PROGRESS` sampai hasil tersebut diterima.
+- CI lanjutan belum selesai pada saat catatan ini ditulis; PR harus melewati unit test Ubuntu/Windows dan Electron smoke test.
+- Build portable Windows serta uji manual masih dibutuhkan, terutama drag resize, klik ganda/right-click, duplikasi section, dan title bar.
+- Status tetap `IN PROGRESS` hingga CI dan uji manual pengguna disetujui.
