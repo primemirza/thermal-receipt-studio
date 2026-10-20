@@ -55,12 +55,26 @@ function updateHistoryButtons() {
   $('redo-button').disabled = state.redo.length === 0;
 }
 function mutate(mutator, message) {
+  const before = captureHistoryState();
+  const undoLength = state.undo.length;
+  const redoBefore = [...state.redo];
   saveUndoPoint();
-  mutator();
+  try {
+    mutator();
+    validateDocument(documentModel);
+  } catch (error) {
+    documentModel = cloneDocument(before.document);
+    selectedBlockId = before.selectedBlockId;
+    state.undo.length = undoLength;
+    state.redo = redoBefore;
+    renderAll();
+    setStatus('Perubahan ditolak: ' + String(error?.message || error));
+    return false;
+  }
   isDirty = true;
-  validateDocument(documentModel);
   renderAll();
   setStatus(message);
+  return true;
 }
 function restoreHistory(from, to, message) {
   if (!from.length) return;
@@ -388,7 +402,7 @@ ruleCharacterInput.addEventListener('change', () => { const block = selectedBloc
 imageAltInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = imageAltInput.value.slice(0, 200); if (block.alt === value) return; mutate(() => { block.alt = value; }, 'Deskripsi gambar diperbarui.'); });
 $('table-add-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length >= 100) return; mutate(() => { block.rows.push(Array(block.headers.length).fill('')); }, 'Baris tabel ditambahkan.'); });
 $('table-remove-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length <= 0) return; mutate(() => { block.rows.pop(); }, 'Baris terakhir tabel dihapus.'); });
-$('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { const widths = columnWidths(block); const next = widths.map(width => width * (100 - 100 / (widths.length + 1)) / 100); next.push(100 / (widths.length + 1)); const total = next.reduce((sum,width)=>sum+width,0); next[next.length-1] += 100-total; block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); block.columnWidths = next.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
+$('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); const count = block.headers.length; block.columnWidths = Array(count).fill(Number((100/count).toFixed(2))); block.columnWidths[count-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
 $('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = columnWidths(block); const normalized = widths.map(width => width / widths.reduce((sum,v)=>sum+v,0) * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
 
 priceInput.addEventListener('change', () => {
