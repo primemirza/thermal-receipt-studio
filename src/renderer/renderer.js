@@ -555,6 +555,11 @@ function containsBlockId(blocks, id) {
 designPaper.addEventListener('click', event => {
   const block = event.target.closest('[data-block-id]');
   if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize], [data-table-width], [data-drag-handle]')));
+  else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+    selectedBlockId = null;
+    renderCanvas();
+    renderInspector();
+  }
 });
 designPaper.addEventListener('dblclick', event => {
   const blockNode = event.target.closest('[data-block-id]');
@@ -735,7 +740,7 @@ boldInput.addEventListener('change', () => { const block = selectedBlock(); if (
 italicInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.italic = italicInput.checked; }, 'Format miring diperbarui.'); });
 underlineInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.underline = underlineInput.checked; }, 'Garis bawah diperbarui.'); });
 spacerHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'spacer') return; const value = Math.max(1, Math.min(20, Math.round(Number(spacerHeightInput.value) || 1))); mutate(() => { block.height = value; }, 'Tinggi spacer diperbarui.'); });
-imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = Math.max(1, Math.min(512, Math.round(Number(imageWidthInput.value) || 1))); mutate(() => { block.width = value; }, 'Lebar gambar diperbarui.'); });
+imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['image','qrcode','barcode'].includes(block.type)) return; const min = block.type === 'qrcode' ? 32 : block.type === 'barcode' ? 64 : 1; const value = Math.max(min, Math.min(512, Math.round(Number(imageWidthInput.value) || min))); mutate(() => { block.width = value; }, 'Lebar ' + (block.type === 'image' ? 'gambar' : block.type === 'qrcode' ? 'QR code' : 'barcode') + ' diperbarui.'); });
 ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
 tableBorderInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || !['all','horizontal','vertical','none'].includes(tableBorderInput.value)) return; mutate(() => { block.border = tableBorderInput.value; }, 'Border tabel diperbarui.'); });
 totalAmountInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'total') return; const value = Math.max(0, Math.min(1000000000, Math.round(Number(totalAmountInput.value) || 0))); if (block.amount === value) return; mutate(() => { block.amount = value; }, 'Nilai total diperbarui.'); });
