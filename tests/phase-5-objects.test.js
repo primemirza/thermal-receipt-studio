@@ -92,8 +92,8 @@ test('QR dan CODE128 dirender oleh library lokal tanpa layanan remote', async ()
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   assert.ok(fs.statSync(path.join(root, 'src/renderer/vendor/qrcode.js')).size > 10000);
   assert.ok(fs.statSync(path.join(root, 'src/renderer/vendor/JsBarcode.all.min.js')).size > 10000);
-  assert.ok(js.includes('window.qrcode(0')));
-  assert.ok(js.includes('window.JsBarcode(svg')));
+  assert.ok(js.includes('window.qrcode(0'));
+  assert.ok(js.includes('window.JsBarcode(svg'));
   assert.ok(js.includes("format: 'CODE128'"));
   assert.ok(!/https?:\\/\\/(?:cdn\\.|unpkg\\.com|cdnjs\\.cloudflare\\.com)/i.test(html));
 });
@@ -109,6 +109,6 @@ test('barcode accepts printable CODE128 data but rejects control characters', ()
   valid.blocks.push({ id: 'code128-valid', type: 'barcode', value: 'INV-2026/10: A_01' });
   assert.equal(validateDocument(valid), true);
   const invalid = createSampleDocument();
-  invalid.blocks.push({ id: 'code128-invalid', type: 'barcode', value: 'INV\\n001' });
+  invalid.blocks.push({ id: 'code128-invalid', type: 'barcode', value: 'INV\n001' });
   assert.throws(() => validateDocument(invalid), /ASCII yang dapat dicetak/);
 });
