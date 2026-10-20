@@ -240,3 +240,318 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .design-block.code-block { gap: 3px; }
 .design-block.code-block .code-value { align-self: inherit; max-width: 100%; overflow-wrap: anywhere; }
+
+
+/* Phase 5 follow-up: compact responsive toolbar and a scrollable inspector. */
+body .toolbar {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 70px;
+  max-height: 88px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+body .toolbar .tool-section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+body .toolbar .tool-section > .tool-label {
+  display: block;
+  margin: 0 0 2px;
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+}
+body .toolbar .tool-group {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+}
+body .toolbar .tool-section[aria-label="Sisipkan objek"] {
+  align-items: flex-start;
+}
+body .toolbar .tool-section[aria-label="Sisipkan objek"] > .tool-label {
+  align-self: center;
+}
+body .toolbar .insert-subsections {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: max-content;
+}
+body .toolbar .tool-subsection {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+body .toolbar .tool-subsection > .tool-label {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.1;
+  text-align: center;
+}
+body .toolbar .icon-button {
+  display: inline-grid;
+  flex: 0 0 32px;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+}
+body .toolbar .zoom-value {
+  flex: 0 0 auto;
+  min-width: 38px;
+  text-align: center;
+  font-size: 11px;
+}
+body .toolbar .toolbar-spacer {
+  flex: 1 0 8px;
+}
+body .toolbar .toolbar-global-layout { margin-left: auto; }
+body .workspace {
+  min-height: 0;
+  overflow: hidden;
+}
+body .editor-panel .editor-surface {
+  flex: 0 1 38%;
+  min-height: 130px;
+  max-height: 43%;
+}
+body .editor-panel .inspector {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+body .editor-panel .panel-footnote { flex: 0 0 auto; }
+body .inspector-fields[hidden],
+body #table-layout-fields[hidden],
+body #columns-layout-fields[hidden],
+body #section-layout-fields[hidden] { display: none !important; }
+
+/* Editing: draggable only via the handle so text selection and double-click work normally. */
+.design-block {
+  position: relative;
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.design-block[draggable="true"] { user-select: text; -webkit-user-select: text; }
+.block-drag-handle {
+  position: absolute;
+  z-index: 5;
+  top: 4px;
+  left: -15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  min-width: 13px;
+  height: 23px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: #667085;
+  opacity: .12;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.design-block:hover > .block-drag-handle,
+.design-block.is-selected > .block-drag-handle,
+.block-drag-handle:focus-visible { opacity: 1; background: #e8f2fc; }
+.block-drag-handle:active { cursor: grabbing; }
+.design-block [contenteditable="true"] {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 2px;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  outline: none;
+}
+.design-block [contenteditable="true"]:focus {
+  background: #fff7d6;
+  box-shadow: 0 0 0 1px #e1b94e;
+}
+.design-block .column-cell [contenteditable="true"] { display: block; width: 100%; }
+
+/* Nested section containers share their margin/padding rules across child blocks. */
+.section-block {
+  display: block;
+  border: 1px dashed #9ca3af;
+  border-radius: 5px;
+  background: #ffffffa8;
+  padding: 8px;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 7px;
+  border-bottom: 1px solid #d6d9de;
+  margin-bottom: 6px;
+  font-family: var(--ui);
+  font-size: 11px;
+  font-weight: 650;
+}
+.section-header [contenteditable="true"] { flex: 1; font-weight: 650; }
+.section-child-count { color: var(--muted); font-size: 10px; }
+.section-children { min-height: 27px; border-left: 2px solid #dbeafe; padding-left: 8px; }
+.section-children > .design-block { margin: 4px 0; }
+.section-empty {
+  padding: 8px;
+  color: var(--muted);
+  font: 11px var(--ui);
+  border: 1px dashed #d2d6dc;
+  border-radius: 4px;
+}
+.design-block.is-dragging { opacity: .4; }
+
+/* Table width can be adjusted at either edge; cell padding is a model property. */
+.table-resize-wrapper, .preview-table-wrapper {
+  position: relative;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 20%;
+}
+.table-resize-wrapper { overflow: visible; }
+.canvas-table, .preview-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.canvas-table th, .canvas-table td, .preview-table th, .preview-table td {
+  padding: var(--cell-padding, 4px);
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.canvas-table th [data-inline-edit], .canvas-table td [data-inline-edit] {
+  display: block;
+  min-height: 1.25em;
+}
+.table-width-handle {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.table-width-handle-left { left: -4px; }
+.table-width-handle-right { right: -4px; }
+.table-width-handle:hover, .table-width-handle:active { background: #0078d4; opacity: .55; }
+.canvas-table.border-vertical th, .canvas-table.border-vertical td,
+.preview-table.border-vertical th, .preview-table.border-vertical td { border-right: 1px solid #777; }
+.canvas-table.border-vertical th:last-child, .canvas-table.border-vertical td:last-child,
+.preview-table.border-vertical th:last-child, .preview-table.border-vertical td:last-child { border-right: 0; }
+.column-resize-handle {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.column-resize-handle:hover, .column-resize-handle:active { background: #0078d4; opacity: .65; }
+.column-cell {
+  position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.column-cell.border-all { border: 1px solid #aaa; }
+.column-cell.border-vertical { border-right: 1px solid #aaa; }
+.column-cell.border-vertical:last-child { border-right: 0; }
+.column-cell.border-none { border: 0; }
+.object-columns, .object-columns-preview {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.object-columns { overflow: visible; }
+.object-columns-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
+.object-columns-preview .column-cell { overflow-wrap: anywhere; }
+
+/* Section preview and global margin layout. */
+.receipt-section-preview {
+  display: block;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.receipt-block-preview { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.receipt-block-preview > .receipt-line { max-width: 100%; }
+.receipt-block-preview.preview-table { width: 100%; }
+.receipt-block-preview .table-resize-wrapper,
+.receipt-block-preview .preview-table-wrapper { flex: 0 1 auto; }
+.receipt-block-preview .object-columns-preview { white-space: pre-wrap; }
+
+/* Utility dialogs and right-click actions. */
+.global-margin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
+.block-context-menu {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  min-width: 210px;
+  padding: 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 8px 28px #0003;
+}
+.block-context-menu[hidden] { display: none !important; }
+.block-context-menu button {
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  font: 12px var(--ui);
+  cursor: pointer;
+}
+.block-context-menu button:hover, .block-context-menu button:focus-visible { background: var(--accent-soft); }
+@media (max-width: 900px) {
+  body .toolbar { min-height: 66px; max-height: 78px; }
+  body .toolbar .tool-section { flex-direction: column !important; align-items: center; }
+  body .toolbar .insert-subsections { flex-wrap: nowrap; }
+  body .workspace { grid-template-columns: 1fr; overflow: auto; }
+  body .editor-panel .inspector { flex: 0 0 auto; min-height: 180px; max-height: 360px; }
+}
+@media (max-width: 560px) {
+  body .toolbar { gap: 8px; }
+  body .toolbar .tool-section[aria-label="Sisipkan objek"] { align-items: flex-start; }
+  body .workspace { overflow: auto; }
+  body .editor-panel .editor-surface { flex-basis: 260px; max-height: none; }
+  body .editor-panel .inspector { max-height: 400px; }
+}
