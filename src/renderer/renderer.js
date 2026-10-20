@@ -1,4 +1,4 @@
-import { createSampleDocument, cloneDocument, validateDocument } from './document-model.js';
+import { createSampleDocument, cloneDocument, validateDocument, migrateLegacyDocument } from './document-model.js';
 
 const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
@@ -240,7 +240,7 @@ function renderPreview() {
 function renderInspector() {
   const block = selectedBlock();
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
-  textInput.disabled = !block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
+  textInput.disabled = !block || !['text', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
   alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
   textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
@@ -358,7 +358,7 @@ textInput.addEventListener('change', () => {
   const block = selectedBlock();
   if (!block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type)) return;
   const value = textInput.value.slice(0, block.type === 'qrcode' ? 2000 : 200);
-  const key = block.type === 'text' ? 'text' : block.type === 'item' ? 'name' : block.type === 'total' ? 'label' : 'value';
+  const key = ['text', 'dynamic'].includes(block.type) ? 'text' : block.type === 'item' ? 'name' : block.type === 'total' ? 'label' : 'value';
   if (block[key] === value) return;
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
@@ -502,8 +502,9 @@ $('open-document-button').addEventListener('click', async () => {
   if (!result?.ok) { setStatus('Gagal membuka file: ' + (result?.message || result?.error || 'file tidak valid')); return; }
   if (!result.value) { setStatus('Buka file dibatalkan.'); return; }
   try {
-    validateDocument(result.value.document);
-    documentModel = cloneDocument(result.value.document);
+    const openedDocument = migrateLegacyDocument(result.value.document);
+    validateDocument(openedDocument);
+    documentModel = cloneDocument(openedDocument);
     selectedBlockId = null; currentFilePath = result.value.path; isDirty = false;
     state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
   } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
