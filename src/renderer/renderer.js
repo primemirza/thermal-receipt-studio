@@ -30,6 +30,9 @@ const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 const money = (amount) => currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
+function dynamicLabel(field) {
+  return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
+}
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
 function captureHistoryState() {
   return { document: cloneDocument(documentModel), selectedBlockId };
@@ -140,10 +143,10 @@ function renderPreview() {
 function renderInspector() {
   const block = selectedBlock();
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
-  textInput.disabled = !block || block.type === 'rule';
+  textInput.disabled = !block || !['text', 'item', 'total', 'dynamic', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
   alignInput.disabled = !block || !['text'].includes(block.type);
-  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : '';
+  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['dynamic', 'qrcode', 'barcode'].includes(block.type) ? (block.field || block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
   alignInput.value = block?.align ?? 'left';
   $('delete-block-button').disabled = !block || documentModel.blocks.length <= 1;
@@ -171,12 +174,21 @@ function selectBlock(id) {
 function addBlock(type) {
   const id = 'b-' + crypto.randomUUID();
   mutate(() => {
-    const block = type === 'item'
-      ? { id, type: 'item', name: 'Item baru', price: 0 }
-      : { id, type: 'text', text: 'Teks baru', align: 'left', bold: false };
+    const templates = {
+      item: { id, type: 'item', name: 'Item baru', price: 0 },
+      rule: { id, type: 'rule', style: 'solid', character: '-' },
+      spacer: { id, type: 'spacer', height: 2 },
+      dynamic: { id, type: 'dynamic', field: 'date', align: 'left' },
+      table: { id, type: 'table', headers: ['Item', 'Qty', 'Harga'], rows: [['Contoh', '1', '5000']] },
+      columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'] },
+      qrcode: { id, type: 'qrcode', value: 'https://example.invalid' },
+      barcode: { id, type: 'barcode', value: '1234567890' },
+      text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' }
+    };
+    const block = templates[type] || templates.text;
     documentModel.blocks.push(block);
     selectedBlockId = id;
-  }, type === 'item' ? 'Item baru ditambahkan.' : 'Elemen teks ditambahkan.');
+  }, 'Objek ' + type + ' ditambahkan.');
 }
 paperButtons.forEach(button => button.addEventListener('click', () => setPaper(Number(button.dataset.paper))));
 $('zoom-out').addEventListener('click', () => setZoom(state.zoom - 10));
@@ -201,13 +213,13 @@ designPaper.addEventListener('keydown', event => {
 });
 textInput.addEventListener('change', () => {
   const block = selectedBlock();
-  if (!block || !['text', 'item', 'total'].includes(block.type)) return;
+  if (!block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type)) return;
   const value = textInput.value.slice(0, 200);
   if ((block.type === 'text' ? block.text : block.type === 'item' ? block.name : block.label) === value) return;
   mutate(() => {
     if (block.type === 'text') block.text = value;
     else if (block.type === 'item') block.name = value;
-    else block.label = value;
+    else if (block.type === 'total') block.label = value;\n    else block.value = value;
   }, 'Perubahan teks diterapkan.');
 });
 priceInput.addEventListener('change', () => {
@@ -224,6 +236,10 @@ alignInput.addEventListener('change', () => {
 });
 $('add-text-button').addEventListener('click', () => addBlock('text'));
 $('add-item-button').addEventListener('click', () => addBlock('item'));
+for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-dynamic-button','dynamic'], ['add-table-button','table'], ['add-columns-button','columns'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) {
+  const button = $(id);
+  if (button) button.addEventListener('click', () => addBlock(type));
+}
 $('delete-block-button').addEventListener('click', () => {
   if (!selectedBlock() || documentModel.blocks.length <= 1) return;
   mutate(() => {
