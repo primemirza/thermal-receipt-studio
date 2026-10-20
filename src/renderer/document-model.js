@@ -88,6 +88,7 @@ export function validateDocument(doc) {
         if (block.columnWidths !== undefined) assertWidths(block.columnWidths, block.headers.length, 'Lebar kolom tabel');
         if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tabel tidak valid.');
         if (block.width !== undefined && (!Number.isFinite(block.width) || block.width < 20 || block.width > 100)) throw new TypeError('Lebar tabel harus 20–100%.');
+        if (block.offset !== undefined && (!Number.isFinite(block.offset) || block.offset < 0 || block.offset > 80 || block.offset + (block.width ?? 100) > 100)) throw new TypeError('Posisi tabel tidak valid untuk lebar yang dipilih.');
         if (block.padding !== undefined && (!Number.isFinite(block.padding) || block.padding < 0 || block.padding > 20)) throw new TypeError('Padding sel tabel harus 0–20 px.');
       }
       if (block.type === 'columns') {
