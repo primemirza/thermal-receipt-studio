@@ -300,26 +300,25 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — EDITOR OBJEK DAN LAYOUT (2026-10-20)
+## FASE 5 — PERBAIKAN EDITOR DAN LAYOUT (2026-10-20)
 
-Branch: `feature/phase-5-receipt-objects-layout`. PR #12 berstatus closed dan implementasi awal sudah tampak di `main`. Perbaikan lanjutan diajukan di PR #14: https://github.com/primemirza/thermal-receipt-studio/pull/14 (terbuka, belum di-merge).
+Fase 5 implementasi awal PR #14 telah di-merge dan diuji pengguna. Perbaikan operasional lanjutan dikerjakan pada branch `feature/phase-5-editor-layout-sections` dan belum dinyatakan TESTED/ACCEPTED.
 
-### Implementasi saat ini
-- Toolbar telah dikelompokkan menjadi Kertas/Zoom, Dokumen, Riwayat, dan Sisipkan. Aksi menggunakan tombol ikon dengan `title` tooltip dan label aksesibilitas.
-- Menghapus tombol penghapusan khusus. Blok yang dipilih dapat dihapus dengan `Del`; Ctrl/Cmd+Z, Ctrl/Cmd+Y, dan Ctrl/Cmd+S juga disediakan.
-- Blok teks, nama item, label total, nilai QR/barcode, sel tabel, dan teks kolom dapat diedit langsung di kanvas. Properti umum mencakup alignment, ukuran teks, dan tebal; properti spesifik mencakup nilai total, karakter/gaya garis, tinggi spacer, ukuran/deskripsi gambar, lebar QR/barcode, dan border tabel.
-- Blok dapat disusun ulang dengan drag-and-drop. Operasi yang mengubah model memakai undo/redo; validasi gagal mengembalikan model dan riwayat ke keadaan sebelumnya.
-- Dialog penyisipan tabel meminta jumlah kolom dan jumlah baris (termasuk header), serta pilihan border. Isi sel bisa diedit langsung, batas kolom bisa di-drag, dan inspector menyediakan tambah/hapus baris/kolom.
-- Preview tabel menggunakan data dan lebar kolom dari model yang sama. Lebar kolom divalidasi, proporsional, dan tersimpan di `.trstudio`.
-- QR Code Generator dengan dukungan UTF-8 dan JsBarcode CODE128 dibundel secara lokal di `src/renderer/vendor/` dan lisensinya didokumentasikan. Tujuannya membuat simbol QR/barcode nyata tanpa CDN/permintaan jaringan runtime.
-- Objek tanggal/waktu otomatis dihapus dari toolbar/model. Pengguna memasukkan tanggal dan waktu historis sebagai teks biasa.
+### Perubahan lanjutan pada branch
+- Toolbar disusun horizontal dalam grup fungsi dengan ikon SVG, tooltip, dan scroll horizontal bila lebar jendela tidak cukup. Inspector sekarang memiliki area scroll tersendiri agar semua properti dapat dicapai.
+- Drag seluruh blok dinonaktifkan; hanya pegangan khusus yang bisa memulai drag. Double-click memfokuskan konten editable dan memilih teksnya untuk diganti.
+- `insertBlockAtSelection()` menjadi helper model untuk menyisipkan setelah blok aktif, memasukkan ke section terpilih, memasukkan setelah anak aktif dalam section, atau menambahkan di akhir bila tidak ada seleksi.
+- Menambahkan struktur `section` bertingkat berisi child blocks; margin/padding section diterapkan ke anak, sementara margin global diterapkan pada kanvas dan preview.
+- Inspector tabel: lebar, padding sel, border; handle kiri dan kanan mengatur lebar/offset tabel, selain resize divider kolom. Columns mendapat kontrol lebar objek, padding, gap, border, lebar tiap kolom, dan drag untuk divider.
+- Menambahkan menu konteks klik kanan untuk sisipkan teks/section, pindah atas/bawah, dan hapus; shortcut `Del`/Undo/Redo/Simpan tetap ada.
+- Validasi dokumen meliputi margin global/section, ukuran section, nesting/ID, lebar/offset tabel, padding, lebar/gap/border columns; semua tetap berada dalam model dokumen dan round-trip `.trstudio`.
+- Ukuran gambar, QR, dan barcode dapat diatur dari inspector. Tidak ada tanggal/waktu otomatis; dokumen lama dimigrasikan menjadi teks manual.
 
-### Inspeksi tambahan dan regresi yang dicakup
-- Validasi header, struktur baris/sel, opsi border, batas dan jumlah lebar kolom, tipe ukuran, dan data barcode.
-- Tes round-trip model objek melalui arsip `.trstudio`, validasi gambar internal, penolakan tabel invalid, wiring toolbar/dialog, adanya mekanisme edit langsung, pengubahan lebar kolom, shortcut `Del`, dan aset generator offline.
-- Gagal validasi di jalur perubahan model ditangani tanpa meninggalkan dokumen dalam keadaan invalid.
+### Audit tambahan
+- ID yang dirujuk renderer diperiksa terhadap HTML: tidak ada ID yang hilang atau duplikat pada snapshot audit terakhir.
+- Tombol tanggal otomatis dan tombol delete khusus tetap tidak ada.
+- Tes tambahan mencakup section bertingkat, layout margin/padding, offset tepi tabel, insertion relatif ke elemen aktif, toolbar/editor, dan penyimpanan ulang.
 
 ### Status verifikasi
-- GitHub Actions Tests run #37 dan #38: `npm test` **35/35 lulus pada Ubuntu dan Windows**; Electron smoke test Ubuntu **lulus**. Run #38 diuji pada snapshot PR #14 dan selesai hijau.
-- Fase belum `ACCEPTED`: workflow PR tidak menghasilkan build portable Windows, dan pengguna masih perlu menguji alur UI serta scan QR/barcode. Status tetap `IN PROGRESS` sampai build/manual test diterima.
-- Perhatian khusus pengujian manual: insert tabel dengan 1 dan 6 kolom; mengetik dan berpindah antar sel; resize kolom sampai batas minimum; add/remove baris/kolom; undo/redo setelah resize; save/open file; dan pastikan QR/barcode dapat dipindai dari preview/cetakan.
+- Tes CI untuk branch follow-up ini **belum dijalankan**. Setelah PR dibuka, periksa `npm test` Ubuntu/Windows serta Electron smoke test.
+- Build portable Windows dan uji manual tetap dibutuhkan untuk memeriksa tampilan toolbar, edit langsung, resize dua tepi tabel/kolom, section/global margin, dan save/open. Fase tetap `IN PROGRESS` sampai hasil tersebut diterima.
