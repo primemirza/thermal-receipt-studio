@@ -263,7 +263,7 @@ test('separator renders one style stroke instead of repeated glyphs plus a borde
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
-  assert.ok(js.includes("character !== '-' ? character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42)"));
+  assert.ok(js.includes("if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42); }"));
   assert.ok(js.includes("character !== '-' ? character.repeat(columns) : ''"));
   assert.match(css, /\.design-block\.design-block-rule \{ border-bottom: 0 !important; \}/);
   assert.match(css, /\.receipt-line\.rule-character \{ border-bottom: 0 !important; \}/);
