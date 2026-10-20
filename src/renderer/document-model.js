@@ -118,6 +118,28 @@ export function validateDocument(doc) {
   return true;
 }
 export function cloneDocument(doc) { return structuredClone(doc); }
+function findInsertionTarget(id, blocks, parentSection = null) {
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+    if (block.id === id) return { block, list: blocks, index, parentSection };
+    if (block.type === 'section' && Array.isArray(block.children)) {
+      const nested = findInsertionTarget(id, block.children, block);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+export function insertBlockAtSelection(doc, selectedBlockId, newBlock) {
+  const active = findInsertionTarget(selectedBlockId, doc.blocks);
+  if (!active) {
+    doc.blocks.push(newBlock);
+  } else if (active.block.type === 'section') {
+    active.block.children.push(newBlock);
+  } else {
+    active.list.splice(active.index + 1, 0, newBlock);
+  }
+  return newBlock.id;
+}
 
 export function migrateLegacyDocument(doc) {
   const migrated = cloneDocument(doc);
