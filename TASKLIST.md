@@ -114,9 +114,9 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS** (dimulai atas persetujuan pengguna pada 2026-10-20)
+Status fase: **IN PROGRESS** (dimulai atas persetujuan pengguna pada 2026-10-20; implementasi awal objek dan model sedang diuji)
 
-Separator, spacer, gambar (aset internal), QR & barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran & opsi objek.
+Separator, spacer, gambar (data URL internal), QR & barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran & opsi objek.
 
 **Kriteria:** semua objek dibuat/diedit/disimpan/dibuka · preview sesuai · unit test objek & layout.
 
