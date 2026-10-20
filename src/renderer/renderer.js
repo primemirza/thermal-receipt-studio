@@ -19,6 +19,12 @@ const textInput = $('block-text-input');
 const priceInput = $('block-price-input');
 const alignInput = $('block-align-input');
 const selectedLabel = $('selected-block-label');
+const sizeInput = $('block-size-input');
+const boldInput = $('block-bold-input');
+const spacerHeightInput = $('block-spacer-height');
+const imageWidthInput = $('block-image-width');
+const ruleStyleInput = $('block-rule-style');
+const tableBorderInput = $('block-table-border');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
@@ -30,9 +36,6 @@ const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 const money = (amount) => currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
-function dynamicLabel(field) {
-  return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
-}
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
 function captureHistoryState() {
   return { document: cloneDocument(documentModel), selectedBlockId };
@@ -79,40 +82,74 @@ function makeLine(className, children) {
   children.forEach(child => line.append(child));
   return line;
 }
+function columnWidths(block) {
+  const n = block.headers.length;
+  if (Array.isArray(block.columnWidths) && block.columnWidths.length === n) return block.columnWidths;
+  const width = Number((100 / n).toFixed(2));
+  return Array.from({ length: n }, (_, i) => i === n - 1 ? Number((100 - width * (n - 1)).toFixed(2)) : width);
+}
+function createEditableText(value, field, extra = {}) {
+  const span = make('span', '', value ?? '');
+  span.contentEditable = 'true'; span.spellcheck = false; span.dataset.inlineEdit = 'true'; span.dataset.field = field;
+  for (const [key, val] of Object.entries(extra)) span.dataset[key] = String(val);
+  return span;
+}
+function createEditableTable(block) {
+  const table = make('table', 'canvas-table border-' + (block.border || 'all')); table.dataset.tableId = block.id;
+  const colgroup = document.createElement('colgroup');
+  columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); }); table.append(colgroup);
+  const thead = document.createElement('thead'); const headRow = document.createElement('tr');
+  block.headers.forEach((header, colIndex) => { const th = document.createElement('th'); th.append(createEditableText(header, 'tableCell', { rowIndex: -1, colIndex })); if (colIndex < block.headers.length - 1) { const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip); } headRow.append(th); });
+  thead.append(headRow); table.append(thead);
+  const tbody = document.createElement('tbody');
+  block.rows.forEach((row, rowIndex) => { const tr = document.createElement('tr'); row.forEach((value, colIndex) => { const td = document.createElement('td'); td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex })); tr.append(td); }); tbody.append(tr); });
+  table.append(tbody);
+  table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700';
+  return table;
+}
+function createPreviewTable(block) {
+  const table = make('table', 'preview-table border-' + (block.border || 'all')); const colgroup = document.createElement('colgroup');
+  columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); }); table.append(colgroup);
+  const thead = document.createElement('thead'); const headRow = document.createElement('tr'); block.headers.forEach(value => headRow.append(make('th', '', value))); thead.append(headRow); table.append(thead);
+  const tbody = document.createElement('tbody'); block.rows.forEach(row => { const tr = document.createElement('tr'); row.forEach(value => tr.append(make('td', '', value))); tbody.append(tr); }); table.append(tbody);
+  table.style.textAlign = block.align || 'left'; table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700';
+  return table;
+}
+function applyBlockLayout(node, block) {
+  node.style.textAlign = block.align || 'left';
+  if (block.align === 'right') node.style.justifyContent = 'flex-end'; else if (block.align === 'center') node.style.justifyContent = 'center';
+  node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal']; if (block.bold) node.style.fontWeight = '700';
+}
 function renderCanvas() {
   const fragment = document.createDocumentFragment();
   for (const block of documentModel.blocks) {
-    const node = make('div', 'design-block' + (block.align === 'center' ? ' center' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
+    const node = make('div', 'design-block' + (block.id === selectedBlockId ? ' is-selected' : ''));
+    applyBlockLayout(node, block);
     node.dataset.blockId = block.id;
     node.tabIndex = 0;
     node.setAttribute('role', 'button');
     node.setAttribute('aria-label', 'Pilih elemen ' + block.type);
     node.append(make('span', 'block-type', block.type.toUpperCase()));
     if (block.type === 'rule') {
-      node.append(make('span', 'design-rule'));
+      const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); node.append(rule);
     } else if (block.type === 'spacer') {
       node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris'));
       node.style.minHeight = (block.height * 8) + 'px';
-    } else if (block.type === 'dynamic') {
-      node.append(make('span', '', dynamicLabel(block.field)));
     } else if (block.type === 'table') {
-      const table = make('div', 'object-table');
-      table.append(make('div', 'object-table-row object-table-head', block.headers.join(' │ ')));
-      block.rows.forEach(row => table.append(make('div', 'object-table-row', row.join(' │ '))));
-      node.append(table);
+      node.append(createEditableTable(block));
     } else if (block.type === 'columns') {
-      node.append(make('span', 'object-columns', block.columns.join(' │ ')));
+      const columns = make('div', 'object-columns'); block.columns.forEach((value, index) => columns.append(createEditableText(value, 'columnCell', { colIndex: index }))); node.append(columns);
     } else if (block.type === 'image') {
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
       node.append(make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value));
     } else if (block.type === 'item') {
-      node.append(make('span', '', block.name));
+      node.append(createEditableText(block.name, 'name'));
       node.append(make('span', 'block-price', money(block.price)));
     } else if (block.type === 'total') {
-      node.append(make('strong', '', block.label), make('strong', 'block-price', money(block.amount)));
+      node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
     } else {
-      const text = make(block.bold ? 'strong' : 'span', '', block.text);
+      const text = createEditableText(block.text, 'text'); if (block.bold) text.style.fontWeight = '700';
       if (block.align === 'right') node.style.justifyContent = 'flex-end';
       node.append(text);
     }
@@ -128,12 +165,10 @@ function renderPreview() {
       fragment.append(makeLine('rule', [make('span', '', (block.character || '-').repeat(columns))]));
     } else if (block.type === 'spacer') {
       const spacer = make('div', 'receipt-spacer'); spacer.style.height = (block.height * 4) + 'px'; fragment.append(spacer);
-    } else if (block.type === 'dynamic') {
-      fragment.append(makeLine(block.align === 'center' ? 'center' : '', [make('span', '', dynamicLabel(block.field))]));
     } else if (block.type === 'table') {
       fragment.append(makeLine('', [make('span', 'object-table-preview', [block.headers.join(' | '), ...block.rows.map(row => row.join(' | '))].join('\n'))]));
     } else if (block.type === 'columns') {
-      fragment.append(makeLine('', [make('span', 'object-columns-preview', block.columns.join(' | '))]));
+      const line = makeLine('columns-line', []); const columns = make('span', 'object-columns-preview'); block.columns.forEach(value => columns.append(make('span', '', value))); line.append(columns); fragment.append(line);
     } else if (block.type === 'image') {
       const line = makeLine(block.align === 'center' ? 'center' : '', []);
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img); fragment.append(line);
@@ -207,7 +242,6 @@ function addBlock(type) {
       item: { id, type: 'item', name: 'Item baru', price: 0 },
       rule: { id, type: 'rule', style: 'solid', character: '-' },
       spacer: { id, type: 'spacer', height: 2 },
-      dynamic: { id, type: 'dynamic', field: 'date', align: 'left' },
       table: { id, type: 'table', headers: ['Item', 'Qty', 'Harga'], rows: [['Contoh', '1', '5000']] },
       columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'] },
       qrcode: { id, type: 'qrcode', value: 'https://example.invalid' },
