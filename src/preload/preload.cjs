@@ -17,4 +17,5 @@ contextBridge.exposeInMainWorld('trs', {
   getUserDataDir: () => invoke('app:getUserDataDir'),
   openDocument: () => invoke('document:open'),
   saveDocument: (document, mode = 'save') => invoke('document:save', [document, mode]),
+  setWindowTitle: (title) => invoke('window:setTitle', [title]),
 });

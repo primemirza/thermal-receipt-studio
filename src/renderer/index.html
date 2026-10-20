@@ -61,24 +61,12 @@
   </nav>
 
   <main class="workspace">
-    <section class="panel editor-panel" aria-label="Editor struk">
+    <section class="panel inspector-panel" aria-label="Properti elemen">
       <div class="panel-heading">
-        <div><h2>Editor</h2><p class="hint">Susunan contoh struk</p></div>
-        <span class="panel-count" id="element-count">5 elemen</span>
+        <div><h2>Properti elemen</h2><p class="hint">Format dan tata letak elemen terpilih</p></div>
       </div>
-      <div class="editor-surface" id="editor-surface">
-        <div class="canvas-ruler"><span>0</span><span id="canvas-width-label">58 mm</span></div>
-        <div class="design-paper" id="design-paper" data-paper="58">
-          <div class="design-block center"><span class="block-type">TEKS</span><strong>WARUNG CONTOH</strong></div>
-          <div class="design-block"><span class="block-type">GARIS</span><span class="design-rule"></span></div>
-          <div class="design-block"><span class="block-type">ITEM</span><span>Teh hangat</span><span class="block-price">Rp 5.000</span></div>
-          <div class="design-block"><span class="block-type">ITEM</span><span>Nasi goreng</span><span class="block-price">Rp 15.000</span></div>
-          <div class="design-block"><span class="block-type">TOTAL</span><strong>Total</strong><strong class="block-price">Rp 20.000</strong></div>
-          <div class="design-block center muted-block"><span class="block-type">TEKS</span><span>Terima kasih!</span></div>
-        </div>
-      </div>
-      <div class="inspector" id="block-inspector">
-        <div class="inspector-heading"><strong>Properti elemen</strong><span id="selected-block-label">Pilih elemen di kanvas</span></div>
+      <div class="inspector inspector-scroll" id="block-inspector">
+        <div class="inspector-heading"><strong>Properti terpilih</strong><span id="selected-block-label">Pilih elemen di kanvas</span></div>
         <label for="block-text-input">Teks / isi</label><input id="block-text-input" type="text" disabled placeholder="Pilih elemen untuk mengedit isi" />
         <div class="inspector-fields">
           <label for="block-price-input">Harga item<input id="block-price-input" type="number" min="0" step="1" disabled placeholder="0" /></label>
@@ -111,13 +99,23 @@
           <label for="block-column-widths">Lebar tiap kolom (%)<input id="block-column-widths" type="text" disabled placeholder="Contoh: 50, 50" /></label>
         </div>
         <div id="section-layout-fields" hidden>
-          <div class="inspector-fields">
-            <label for="block-section-name">Nama section<input id="block-section-name" type="text" maxlength="200" disabled placeholder="Section baru" /></label>
-            <label for="block-section-margin">Margin semua sisi (px)<input id="block-section-margin" type="number" min="0" max="60" step="1" disabled value="0" /></label>
+          <label for="block-section-name">Nama section<input id="block-section-name" type="text" maxlength="200" disabled placeholder="Section baru" /></label>
+          <label for="block-section-child-count">Jumlah elemen<input id="block-section-child-count" type="number" disabled value="0" /></label>
+        </div>
+        <div id="block-spacing-fields" class="block-spacing-fields" hidden>
+          <div class="spacing-heading">Margin (px)</div>
+          <div class="spacing-grid">
+            <label for="block-margin-top">Atas<input id="block-margin-top" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-margin-right">Kanan<input id="block-margin-right" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-margin-bottom">Bawah<input id="block-margin-bottom" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-margin-left">Kiri<input id="block-margin-left" type="number" min="0" max="60" disabled value="0" /></label>
           </div>
-          <div class="inspector-fields">
-            <label for="block-section-padding">Padding semua sisi (px)<input id="block-section-padding" type="number" min="0" max="60" step="1" disabled value="8" /></label>
-            <label for="block-section-child-count">Jumlah elemen<input id="block-section-child-count" type="number" disabled value="0" /></label>
+          <div class="spacing-heading">Padding (px)</div>
+          <div class="spacing-grid">
+            <label for="block-padding-top">Atas<input id="block-padding-top" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-padding-right">Kanan<input id="block-padding-right" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-padding-bottom">Bawah<input id="block-padding-bottom" type="number" min="0" max="60" disabled value="0" /></label>
+            <label for="block-padding-left">Kiri<input id="block-padding-left" type="number" min="0" max="60" disabled value="0" /></label>
           </div>
         </div>
         <div id="table-structure-actions" class="table-structure-actions" hidden>
@@ -138,7 +136,26 @@
           <label for="block-table-border">Border tabel<select id="block-table-border" disabled><option value="all">Semua sisi</option><option value="horizontal">Horizontal</option><option value="vertical">Vertikal</option><option value="none">Tanpa border</option></select></label>
         </div>
         <p class="inspector-help">Edit teks langsung pada kanvas. Pilih blok untuk mengatur properti. Tarik pemisah kolom tabel untuk mengubah lebar. Tekan Del untuk menghapus blok terpilih.</p>
-      </div><div class="panel-footnote"><span class="status-dot"></span> Dokumen lokal · format .trstudio</div>
+      </div>
+      <div class="panel-footnote"><span class="status-dot"></span> Pengaturan berlaku pada elemen terpilih</div>
+    </section>
+
+    <section class="panel editor-panel" aria-label="Editor struk">
+      <div class="panel-heading">
+        <div><h2>Editor</h2><p class="hint">Susunan contoh struk</p></div>
+        <span class="panel-count" id="element-count">5 elemen</span>
+      </div>
+      <div class="editor-surface" id="editor-surface">
+        <div class="canvas-ruler"><span>0</span><span id="canvas-width-label">58 mm</span></div>
+        <div class="design-paper" id="design-paper" data-paper="58">
+          <div class="design-block center"><span class="block-type">TEKS</span><strong>WARUNG CONTOH</strong></div>
+          <div class="design-block"><span class="block-type">GARIS</span><span class="design-rule"></span></div>
+          <div class="design-block"><span class="block-type">ITEM</span><span>Teh hangat</span><span class="block-price">Rp 5.000</span></div>
+          <div class="design-block"><span class="block-type">ITEM</span><span>Nasi goreng</span><span class="block-price">Rp 15.000</span></div>
+          <div class="design-block"><span class="block-type">TOTAL</span><strong>Total</strong><strong class="block-price">Rp 20.000</strong></div>
+          <div class="design-block center muted-block"><span class="block-type">TEKS</span><span>Terima kasih!</span></div>
+        </div>
+      </div>
     </section>
 
     <section class="panel preview-panel" aria-label="Preview struk">
@@ -202,6 +219,7 @@
   <div id="block-context-menu" class="block-context-menu" role="menu" hidden>
     <button type="button" role="menuitem" data-context-action="insert-text">Sisipkan teks setelah ini</button>
     <button type="button" role="menuitem" data-context-action="insert-section">Sisipkan section setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="duplicate">Duplikat elemen</button>
     <button type="button" role="menuitem" data-context-action="move-up">Pindah ke atas</button>
     <button type="button" role="menuitem" data-context-action="move-down">Pindah ke bawah</button>
     <button type="button" role="menuitem" data-context-action="delete">Hapus elemen (Del)</button>

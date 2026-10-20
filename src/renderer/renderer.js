@@ -42,9 +42,11 @@ const columnsGapInput = $('block-columns-gap');
 const columnsBorderInput = $('block-columns-border');
 const columnWidthsInput = $('block-column-widths');
 const sectionNameInput = $('block-section-name');
-const sectionMarginInput = $('block-section-margin');
-const sectionPaddingInput = $('block-section-padding');
 const sectionChildCountInput = $('block-section-child-count');
+const blockSpacingFields = $('block-spacing-fields');
+const spacingSides = ['top', 'right', 'bottom', 'left'];
+const marginInputs = Object.fromEntries(spacingSides.map(side => [side, $('block-margin-' + side)]));
+const paddingInputs = Object.fromEntries(spacingSides.map(side => [side, $('block-padding-' + side)]));
 const globalLayoutDialog = $('global-layout-dialog');
 const blockContextMenu = $('block-context-menu');
 
@@ -144,7 +146,7 @@ function columnWidths(block) {
 }
 function createEditableText(value, field, extra = {}) {
   const span = make('span', '', value ?? '');
-  span.contentEditable = 'true'; span.spellcheck = false; span.dataset.inlineEdit = 'true'; span.dataset.field = field;
+  span.contentEditable = 'false'; span.spellcheck = false; span.dataset.inlineEdit = 'true'; span.dataset.field = field;
   for (const [key, val] of Object.entries(extra)) span.dataset[key] = String(val);
   return span;
 }
@@ -248,23 +250,54 @@ function applyTextStyle(node, block) {
   if (block.underline) node.style.textDecoration = 'underline';
 }
 function applyBoxStyle(node, box, kind) {
-  const sides = ['top', 'right', 'bottom', 'left'];
-  for (const side of sides) node.style[kind + side[0].toUpperCase() + side.slice(1)] = (box?.[side] ?? (kind === 'padding' ? 0 : 0)) + 'px';
+  if (!box) return;
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    node.style[kind + side[0].toUpperCase() + side.slice(1)] = (box[side] ?? 0) + 'px';
+  }
+}
+function createResizableObject(block, content) {
+  const wrapper = make('div', 'resizable-object');
+  wrapper.style.width = (block.width || (block.type === 'qrcode' ? 96 : block.type === 'barcode' ? 220 : 120)) + 'px';
+  wrapper.style.maxWidth = '100%';
+  content.style.width = '100%';
+  content.style.maxWidth = '100%';
+  content.style.height = 'auto';
+  wrapper.append(content);
+  const handle = make('span', 'object-resize-handle', '↘');
+  handle.dataset.objectResize = 'true';
+  handle.title = 'Tarik untuk mengubah ukuran objek';
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-label', 'Ubah ukuran objek');
+  handle.tabIndex = 0;
+  wrapper.append(handle);
+  return wrapper;
+}
+function cloneBlockWithFreshIds(block) {
+  const clone = cloneDocument({ schemaVersion: 1, title: 'clone', paperWidthMm: 58, currency: 'IDR', blocks: [block] }).blocks[0];
+  const refresh = item => {
+    item.id = 'b-' + crypto.randomUUID();
+    if (item.type === 'section') item.children.forEach(refresh);
+  };
+  refresh(clone);
+  return clone;
 }
 function renderCanvasBlock(block) {
-  const node = make('div', 'design-block' + (block.type === 'section' ? ' section-block' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
+  const isSection = block.type === 'section';
+  const isRule = block.type === 'rule';
+  const node = make('div', 'design-block' + (isSection ? ' section-block' : '') + (isRule ? ' design-block-rule' : '') + (block.id === selectedBlockId ? ' is-selected' : ''));
   node.dataset.blockId = block.id;
   node.tabIndex = 0;
   node.setAttribute('role', 'group');
-  node.setAttribute('aria-label', 'Elemen ' + (block.type === 'section' ? (block.name || 'section') : block.type));
+  node.setAttribute('aria-label', 'Elemen ' + (isSection ? (block.name || 'section') : block.type));
   applyTextStyle(node, block);
+  if (block.margin) applyBoxStyle(node, block.margin, 'margin');
+  if (isSection && block.padding) applyBoxStyle(node, block.padding, 'padding');
+  if (!isSection && block.blockPadding) applyBoxStyle(node, block.blockPadding, 'padding');
   const drag = make('button', 'block-drag-handle', '⠿');
   drag.type = 'button'; drag.draggable = true; drag.dataset.dragHandle = 'true';
   drag.title = 'Tarik untuk memindahkan elemen'; drag.setAttribute('aria-label', 'Pindahkan elemen');
   node.append(drag);
-  if (block.type === 'section') {
-    applyBoxStyle(node, block.margin, 'margin');
-    applyBoxStyle(node, block.padding, 'padding');
+  if (isSection) {
     const header = make('div', 'section-header');
     header.append(make('span', 'block-type', 'SECTION'));
     header.append(createEditableText(block.name || 'Section baru', 'name'));
@@ -278,7 +311,11 @@ function renderCanvasBlock(block) {
   }
   node.append(make('span', 'block-type', block.type.toUpperCase()));
   if (block.type === 'rule') {
-    const rule = make('span', 'design-rule'); rule.classList.add('rule-' + (block.style || 'solid')); rule.textContent = (block.character || '-').repeat(documentModel.paperWidthMm === 58 ? 32 : 42); node.append(rule);
+    const rule = make('span', 'design-rule');
+    rule.classList.add('rule-' + (block.style || 'solid'));
+    const character = block.character || '-';
+    if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42); }
+    node.append(rule);
   } else if (block.type === 'spacer') {
     node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
   } else if (block.type === 'table') {
@@ -286,17 +323,18 @@ function renderCanvasBlock(block) {
   } else if (block.type === 'columns') {
     node.append(createColumnLayout(block, true));
   } else if (block.type === 'image') {
-    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
+    const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; node.append(createResizableObject(block, img));
   } else if (block.type === 'qrcode' || block.type === 'barcode') {
     node.classList.add('code-block'); node.style.flexDirection = 'column';
     node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
-    node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
+    node.append(createResizableObject(block, createCodeGraphic(block)));
+    const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
   } else if (block.type === 'item') {
     node.append(createEditableText(block.name, 'name')); node.append(make('span', 'block-price', money(block.price)));
   } else if (block.type === 'total') {
     node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
   } else {
-    const text = createEditableText(block.text, 'text'); node.append(text);
+    node.append(createEditableText(block.text, 'text'));
   }
   return node;
 }
@@ -313,7 +351,9 @@ function renderCanvas() {
 function createPreviewLeaf(block, columns) {
   let line;
   if (block.type === 'rule') {
-    line = makeLine('rule rule-' + (block.style || 'solid'), [make('span', '', (block.character || '-').repeat(columns))]);
+    const character = block.character || '-';
+    const lineClass = 'rule rule-' + (block.style || 'solid') + (character !== '-' ? ' rule-character' : '');
+    line = makeLine(lineClass, [make('span', '', character !== '-' ? character.repeat(columns) : '')]);
   } else if (block.type === 'spacer') {
     line = make('div', 'receipt-spacer'); line.style.height = (block.height * 4) + 'px';
   } else if (block.type === 'table') {
@@ -335,6 +375,8 @@ function createPreviewLeaf(block, columns) {
   } else return null;
   const wrapper = make('div', 'receipt-block-preview preview-' + block.type);
   applyTextStyle(wrapper, block);
+  if (block.margin) applyBoxStyle(wrapper, block.margin, 'margin');
+  if (block.blockPadding) applyBoxStyle(wrapper, block.blockPadding, 'padding');
   wrapper.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size || 'normal'];
   if (block.type === 'table') {
     wrapper.style.width = '100%';
@@ -454,11 +496,15 @@ function renderInspector() {
   sectionLayoutFields.hidden = !block || block.type !== 'section';
   sectionNameInput.disabled = !block || block.type !== 'section';
   sectionNameInput.value = block?.type === 'section' ? (block.name || 'Section baru') : '';
-  sectionMarginInput.disabled = !block || block.type !== 'section';
-  sectionMarginInput.value = block?.type === 'section' ? String(block.margin?.top ?? 0) : '0';
-  sectionPaddingInput.disabled = !block || block.type !== 'section';
-  sectionPaddingInput.value = block?.type === 'section' ? String(block.padding?.top ?? 8) : '8';
   sectionChildCountInput.value = block?.type === 'section' ? String(block.children.length) : '0';
+  blockSpacingFields.hidden = !block;
+  const spacingPadding = block?.type === 'section' ? block.padding : block?.blockPadding;
+  for (const side of spacingSides) {
+    marginInputs[side].disabled = !block;
+    marginInputs[side].value = String(block?.margin?.[side] ?? 0);
+    paddingInputs[side].disabled = !block;
+    paddingInputs[side].value = String(spacingPadding?.[side] ?? (block?.type === 'section' ? 8 : 0));
+  }
 }
 function renderAll() {
   renderCanvas();
@@ -572,10 +618,11 @@ designPaper.addEventListener('click', event => {
 });
 designPaper.addEventListener('dblclick', event => {
   const blockNode = event.target.closest('[data-block-id]');
-  const editor = event.target.closest('[data-inline-edit]') || blockNode?.querySelector('[data-inline-edit]');
+  const editor = event.target.closest('[data-inline-edit]');
   if (!blockNode || !editor) return;
   event.preventDefault();
   selectBlock(blockNode.dataset.blockId, true);
+  editor.contentEditable = 'true';
   editor.focus();
   const selection = window.getSelection();
   if (selection) { const range = document.createRange(); range.selectNodeContents(editor); selection.removeAllRanges(); selection.addRange(range); }
@@ -593,7 +640,7 @@ designPaper.addEventListener('contextmenu', event => {
   selectBlock(node.dataset.blockId, true);
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
-  blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 190)) + 'px';
+  blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 245)) + 'px';
 });
 document.addEventListener('pointerdown', event => {
   if (!blockContextMenu.hidden && !event.target.closest('#block-context-menu')) blockContextMenu.hidden = true;
@@ -604,6 +651,7 @@ blockContextMenu.addEventListener('click', event => {
   blockContextMenu.hidden = true;
   if (action === 'insert-text') addBlock('text');
   else if (action === 'insert-section') addBlock('section');
+  else if (action === 'duplicate') duplicateSelectedBlock();
   else if (action === 'delete') deleteSelectedBlock();
   else if (action === 'move-up' || action === 'move-down') {
     const entry = findBlockEntry(selectedBlockId);
@@ -635,25 +683,92 @@ function commitInlineChange(block, apply, message, preserveCanvas) {
   setStatus(message); return true;
 }
 designPaper.addEventListener('focusout', event => {
-  const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
-  const blockNode = cell.closest('[data-block-id]'); const block = findBlockEntry(blockNode?.dataset.blockId)?.block; if (!block) return;
-  const field = cell.dataset.field; const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200; const value = cell.textContent.slice(0, max);
-  const preserveCanvas = true;
+  const cell = event.target.closest('[data-inline-edit]');
+  if (!cell) return;
+  const blockNode = cell.closest('[data-block-id]');
+  const block = findBlockEntry(blockNode?.dataset.blockId)?.block;
+  if (!block) { cell.contentEditable = 'false'; return; }
+  const field = cell.dataset.field;
+  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200;
+  const value = cell.textContent.slice(0, max);
   if (field === 'tableCell' && block.type === 'table') {
-    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col]; if (oldValue === value) return;
-    commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', preserveCanvas);
-  } else if (field === 'columnCell' && block.type === 'columns') {
-    const index = Number(cell.dataset.colIndex); if (block.columns[index] === value) return;
-    commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', preserveCanvas);
-  } else if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field) && block[field] !== value) {
-    const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', preserveCanvas);
-    if (updated && field === 'value' && ['qrcode','barcode'].includes(block.type)) {
-      const holder = cell.closest('[data-block-id]'); const graphic = holder?.querySelector('.generated-code');
-      if (graphic) graphic.replaceWith(createCodeGraphic(block));
+    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex);
+    const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col];
+    if (oldValue !== value) {
+      commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', true);
     }
+  } else if (field === 'columnCell' && block.type === 'columns') {
+    const index = Number(cell.dataset.colIndex);
+    if (block.columns[index] !== value) commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', true);
+  } else if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field) && block[field] !== value) {
+    const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', true);
+    if (updated && field === 'value' && ['qrcode','barcode'].includes(block.type)) {
+      const graphic = blockNode?.querySelector('.generated-code');
+      const wrapper = graphic?.closest('.resizable-object');
+      if (wrapper) wrapper.replaceWith(createResizableObject(block, createCodeGraphic(block)));
+      else if (graphic) graphic.replaceWith(createCodeGraphic(block));
+    }
+  }
+  cell.contentEditable = 'false';
+});
+designPaper.addEventListener('keydown', event => {
+  const cell = event.target.closest('[data-inline-edit][contenteditable="true"]');
+  if (!cell) return;
+  if (event.key === 'Enter') { event.preventDefault(); cell.blur(); }
+  else if (event.key === 'Escape') {
+    event.preventDefault();
+    const block = findBlockEntry(cell.closest('[data-block-id]')?.dataset.blockId)?.block;
+    if (block) {
+      const field = cell.dataset.field;
+      if (field === 'tableCell') {
+        const row = Number(cell.dataset.rowIndex), col = Number(cell.dataset.colIndex);
+        cell.textContent = row < 0 ? block.headers[col] : block.rows[row]?.[col] ?? '';
+      } else if (field === 'columnCell') cell.textContent = block.columns[Number(cell.dataset.colIndex)] ?? '';
+      else if (['text','name','label','value'].includes(field)) cell.textContent = block[field] ?? '';
+    }
+    cell.contentEditable = 'false';
+    cell.blur();
   }
 });
 designPaper.addEventListener('pointerdown', event => {
+  const objectHandle = event.target.closest('[data-object-resize]');
+  if (objectHandle) {
+    event.preventDefault(); event.stopPropagation();
+    const wrapper = objectHandle.closest('.resizable-object');
+    const blockId = objectHandle.closest('[data-block-id]')?.dataset.blockId;
+    const block = findBlockEntry(blockId)?.block;
+    if (!wrapper || !block || !['image', 'qrcode', 'barcode'].includes(block.type)) return;
+    const startWidth = Number(block.width || (block.type === 'qrcode' ? 96 : block.type === 'barcode' ? 220 : 120));
+    const startX = event.clientX, startY = event.clientY;
+    const minWidth = block.type === 'qrcode' ? 32 : block.type === 'barcode' ? 64 : 1;
+    const getWidth = moveEvent => {
+      const dx = moveEvent.clientX - startX, dy = moveEvent.clientY - startY;
+      const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+      return Math.max(minWidth, Math.min(512, Math.round(startWidth + delta)));
+    };
+    const move = moveEvent => { wrapper.style.width = getWidth(moveEvent) + 'px'; };
+    const finish = upEvent => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      if (Math.abs(upEvent.clientX - startX) < 1 && Math.abs(upEvent.clientY - startY) < 1) return;
+      const width = getWidth(upEvent);
+      mutate(() => {
+        const current = findBlockEntry(blockId)?.block;
+        if (current && ['image', 'qrcode', 'barcode'].includes(current.type)) current.width = width;
+      }, 'Ukuran objek diperbarui.');
+    };
+    const cancel = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      wrapper.style.width = startWidth + 'px';
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', finish, { once: true });
+    document.addEventListener('pointercancel', cancel, { once: true });
+    return;
+  }
   const widthHandle = event.target.closest('[data-table-width]');
   if (widthHandle) {
     event.preventDefault(); event.stopPropagation();
@@ -803,16 +918,26 @@ sectionNameInput.addEventListener('change', () => {
   if (block.name === value) return;
   mutate(() => { block.name = value; }, 'Nama section diperbarui.');
 });
-sectionMarginInput.addEventListener('change', () => {
-  const block = selectedBlock(); if (!block || block.type !== 'section') return;
-  const value = Math.max(0, Math.min(60, Math.round(Number(sectionMarginInput.value) || 0)));
-  mutate(() => { block.margin = { top: value, right: value, bottom: value, left: value }; }, 'Margin section diperbarui.');
-});
-sectionPaddingInput.addEventListener('change', () => {
-  const block = selectedBlock(); if (!block || block.type !== 'section') return;
-  const value = Math.max(0, Math.min(60, Math.round(Number(sectionPaddingInput.value) || 0)));
-  mutate(() => { block.padding = { top: value, right: value, bottom: value, left: value }; }, 'Padding section diperbarui.');
-});
+for (const side of spacingSides) {
+  marginInputs[side].addEventListener('change', () => {
+    const block = selectedBlock(); if (!block) return;
+    const value = Math.max(0, Math.min(60, Math.round(Number(marginInputs[side].value) || 0)));
+    mutate(() => {
+      block.margin = { top: 0, right: 0, bottom: 0, left: 0, ...(block.margin || {}), [side]: value };
+    }, 'Margin ' + side + ' diperbarui.');
+  });
+  paddingInputs[side].addEventListener('change', () => {
+    const block = selectedBlock(); if (!block) return;
+    const value = Math.max(0, Math.min(60, Math.round(Number(paddingInputs[side].value) || 0)));
+    const key = block.type === 'section' ? 'padding' : 'blockPadding';
+    mutate(() => {
+      const defaultBox = block.type === 'section'
+        ? { top: 8, right: 8, bottom: 8, left: 8 }
+        : { top: 0, right: 0, bottom: 0, left: 0 };
+      block[key] = { ...defaultBox, ...(block[key] || {}), [side]: value };
+    }, 'Padding ' + side + ' diperbarui.');
+  });
+}
 $('global-layout-button').addEventListener('click', () => {
   const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
   for (const side of ['top','right','bottom','left']) $('global-margin-' + side).value = String(margins[side] ?? 0);
@@ -876,6 +1001,18 @@ $('table-dialog-form').addEventListener('submit', event => {
   const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, width: 100, padding: 4, align: 'left', size: 'normal', bold: false };
   $('table-dialog').close(); mutate(() => insertNewBlock(block), 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
+function duplicateSelectedBlock() {
+  const sourceId = selectedBlockId;
+  const entry = findBlockEntry(sourceId);
+  if (!entry) return;
+  const duplicate = cloneBlockWithFreshIds(entry.block);
+  mutate(() => {
+    const current = findBlockEntry(sourceId);
+    if (!current) return;
+    current.list.splice(current.index + 1, 0, duplicate);
+    selectedBlockId = duplicate.id;
+  }, 'Elemen diduplikasi.');
+}
 function deleteSelectedBlock() {
   if (!selectedBlock()) return;
   mutate(() => {
@@ -909,14 +1046,20 @@ async function saveCurrent(mode = 'save') {
   if (!result?.ok) { setStatus('Gagal menyimpan: ' + (result?.message || result?.error || 'kesalahan tidak diketahui')); return false; }
   if (!result.value) { setStatus('Penyimpanan dibatalkan.'); return false; }
   currentFilePath = result.value.path;
+  updateWindowTitle();
   isDirty = false;
   setStatus('Dokumen tersimpan: ' + currentFilePath);
   return true;
 }
+function updateWindowTitle() {
+  const fileName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
+  document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
+  window.trs.setWindowTitle(document.title).catch(() => {});
+}
 function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
 $('new-document-button').addEventListener('click', () => {
   if (!confirmDiscard()) return;
-  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; isDirty = false;
+  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; updateWindowTitle(); isDirty = false;
   state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen baru dibuat.');
 });
 $('open-document-button').addEventListener('click', async () => {
@@ -928,7 +1071,7 @@ $('open-document-button').addEventListener('click', async () => {
     const openedDocument = migrateLegacyDocument(result.value.document);
     validateDocument(openedDocument);
     documentModel = cloneDocument(openedDocument);
-    selectedBlockId = null; currentFilePath = result.value.path; isDirty = false;
+    selectedBlockId = null; currentFilePath = result.value.path; updateWindowTitle(); isDirty = false;
     state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
   } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
 });
@@ -936,6 +1079,7 @@ $('save-document-button').addEventListener('click', () => saveCurrent('save'));
 $('save-as-document-button').addEventListener('click', () => saveCurrent('saveAs'));
 
 async function boot() {
+  updateWindowTitle();
   renderAll();
   try {
     const ver = await window.trs.getVersion();
