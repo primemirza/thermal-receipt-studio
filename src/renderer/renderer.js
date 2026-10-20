@@ -127,6 +127,7 @@ function renderCanvas() {
     applyBlockLayout(node, block);
     node.dataset.blockId = block.id;
     node.tabIndex = 0;
+    node.draggable = true;
     node.setAttribute('role', 'button');
     node.setAttribute('aria-label', 'Pilih elemen ' + block.type);
     node.append(make('span', 'block-type', block.type.toUpperCase()));
@@ -187,6 +188,7 @@ function renderPreview() {
     }
   }
   receiptPreview.replaceChildren(fragment);
+  [...receiptPreview.children].forEach((line, index) => { const block = documentModel.blocks[index]; if (!block) return; line.style.textAlign = block.align || 'left'; if (block.size) line.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size] || ''; if (block.bold) line.style.fontWeight = '700'; });
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom;
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
@@ -272,11 +274,30 @@ $('zoom-fit').addEventListener('click', () => setZoom(100));
 guideButton.addEventListener('click', () => {
   state.guides = !state.guides;
   guideButton.setAttribute('aria-pressed', String(state.guides));
-  guideButton.textContent = 'Panduan: ' + (state.guides ? 'aktif' : 'mati');
+  guideButton.title = state.guides ? 'Sembunyikan panduan' : 'Tampilkan panduan';
   renderPreview();
   renderCanvas();
   setStatus(state.guides ? 'Panduan ukuran ditampilkan.' : 'Panduan ukuran disembunyikan.');
 });
+let draggedBlockId = null;
+designPaper.addEventListener('dragstart', event => {
+  const node = event.target.closest('[data-block-id]');
+  if (!node || event.target.closest('[data-inline-edit], [data-col-resize]')) { event.preventDefault(); return; }
+  draggedBlockId = node.dataset.blockId; node.classList.add('is-dragging');
+  if (event.dataTransfer) { event.dataTransfer.setData('text/plain', draggedBlockId); event.dataTransfer.effectAllowed = 'move'; }
+});
+designPaper.addEventListener('dragover', event => {
+  if (!draggedBlockId) return; const target = event.target.closest('[data-block-id]');
+  if (target && target.dataset.blockId !== draggedBlockId) { event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; }
+});
+designPaper.addEventListener('drop', event => {
+  if (!draggedBlockId) return; const target = event.target.closest('[data-block-id]'); const sourceId = draggedBlockId; draggedBlockId = null;
+  if (!target || target.dataset.blockId === sourceId) return; event.preventDefault();
+  const from = documentModel.blocks.findIndex(block => block.id === sourceId); const to = documentModel.blocks.findIndex(block => block.id === target.dataset.blockId); if (from < 0 || to < 0) return;
+  const rect = target.getBoundingClientRect(); const after = event.clientY > rect.top + rect.height / 2; let destination = to + (after ? 1 : 0); if (from < destination) destination--; if (destination === from) return;
+  mutate(() => { const [block] = documentModel.blocks.splice(from, 1); documentModel.blocks.splice(destination, 0, block); selectedBlockId = sourceId; }, 'Urutan elemen diperbarui.');
+});
+designPaper.addEventListener('dragend', () => { draggedBlockId = null; designPaper.querySelectorAll('.is-dragging').forEach(node => node.classList.remove('is-dragging')); });
 designPaper.addEventListener('click', event => {
   const block = event.target.closest('[data-block-id]');
   if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize]')));
@@ -370,7 +391,7 @@ $('table-dialog-form').addEventListener('submit', event => {
   $('table-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
 function deleteSelectedBlock() {
-  if (!selectedBlock() || documentModel.blocks.length <= 1) return;
+  if (!selectedBlock()) return;
   mutate(() => { documentModel.blocks = documentModel.blocks.filter(block => block.id !== selectedBlockId); selectedBlockId = null; }, 'Elemen dihapus.');
 }
 document.addEventListener('keydown', event => {
