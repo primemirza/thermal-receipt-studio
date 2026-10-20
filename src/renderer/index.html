@@ -117,6 +117,19 @@
     </section>
   </main>
 
+  <dialog id="table-dialog" class="table-dialog">
+    <form id="table-dialog-form" method="dialog">
+      <h2>Sisipkan tabel</h2>
+      <p>Tentukan struktur tabel sebelum disisipkan ke kanvas.</p>
+      <div class="table-dialog-fields">
+        <label for="table-columns-count">Jumlah kolom<input id="table-columns-count" type="number" min="1" max="6" value="3" required /></label>
+        <label for="table-rows-count">Jumlah baris isi<input id="table-rows-count" type="number" min="1" max="50" value="2" required /></label>
+      </div>
+      <label for="table-insert-border">Border awal<select id="table-insert-border"><option value="all">Semua sisi</option><option value="horizontal">Horizontal</option><option value="none">Tanpa border</option></select></label>
+      <div class="table-dialog-actions"><button type="button" id="table-dialog-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Sisipkan tabel</button></div>
+    </form>
+  </dialog>
+
   <footer class="statusbar">
     <span class="status-left"><span class="status-dot"></span><span id="status-text" role="status" aria-live="polite">Siap · bekerja offline</span></span>
     <span id="status-version" class="status-version">v0.1.0</span>
