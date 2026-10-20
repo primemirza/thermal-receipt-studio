@@ -1,4 +1,4 @@
-import { createSampleDocument, cloneDocument, validateDocument, migrateLegacyDocument } from './document-model.js';
+import { createSampleDocument, cloneDocument, validateDocument, migrateLegacyDocument, insertBlockAtSelection } from './document-model.js';
 
 const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
@@ -75,10 +75,7 @@ function countAllBlocks(blocks = documentModel.blocks) {
   return blocks.reduce((sum, block) => sum + 1 + (block.type === 'section' ? countAllBlocks(block.children) : 0), 0);
 }
 function insertNewBlock(block) {
-  const active = findBlockEntry(selectedBlockId);
-  if (!active) documentModel.blocks.push(block);
-  else if (active.block.type === 'section') active.block.children.push(block);
-  else active.list.splice(active.index + 1, 0, block);
+  insertBlockAtSelection(documentModel, selectedBlockId, block);
   selectedBlockId = block.id;
 }
 function captureHistoryState() {
