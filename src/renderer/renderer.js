@@ -190,8 +190,9 @@ function createTableWrapper(block, editable) {
   const wrapper = make('div', editable ? 'table-resize-wrapper' : 'preview-table-wrapper');
   wrapper.style.width = (block.width ?? 100) + '%';
   const align = block.align || 'left';
-  wrapper.style.marginLeft = align === 'right' ? 'auto' : align === 'center' ? 'auto' : '0';
-  wrapper.style.marginRight = align === 'left' ? 'auto' : align === 'center' ? 'auto' : '0';
+  const offset = block.offset ?? (align === 'right' ? 100 - (block.width ?? 100) : align === 'center' ? (100 - (block.width ?? 100)) / 2 : 0);
+  wrapper.style.marginLeft = offset + '%';
+  wrapper.style.marginRight = 'auto';
   if (editable) {
     const left = make('span', 'table-width-handle table-width-handle-left'); left.dataset.tableWidth = 'left'; left.title = 'Tarik untuk mengubah lebar kiri tabel';
     const right = make('span', 'table-width-handle table-width-handle-right'); right.dataset.tableWidth = 'right'; right.title = 'Tarik untuk mengubah lebar kanan tabel';
@@ -637,20 +638,37 @@ designPaper.addEventListener('pointerdown', event => {
     if (!wrapper || !block || block.type !== 'table') return;
     const startX = event.clientX;
     const paperWidth = Math.max(1, designPaper.getBoundingClientRect().width);
-    const original = block.width ?? 100;
+    const originalWidth = block.width ?? 100;
+    const align = block.align || 'left';
+    const originalOffset = block.offset ?? (align === 'right' ? 100 - originalWidth : align === 'center' ? (100 - originalWidth) / 2 : 0);
     const side = widthHandle.dataset.tableWidth;
+    const nextSize = clientX => {
+      const delta = (clientX - startX) / paperWidth * 100;
+      if (side === 'left') {
+        const offset = Math.max(0, Math.min(originalOffset + originalWidth - 20, originalOffset + delta));
+        return { width: originalWidth + originalOffset - offset, offset };
+      }
+      const width = Math.max(20, Math.min(100 - originalOffset, originalWidth + delta));
+      return { width, offset: originalOffset };
+    };
     const move = moveEvent => {
-      const delta = (moveEvent.clientX - startX) / paperWidth * 100 * (side === 'left' ? -1 : 1);
-      const value = Math.max(20, Math.min(100, original + delta));
-      wrapper.style.width = value + '%';
+      const next = nextSize(moveEvent.clientX);
+      wrapper.style.width = next.width + '%';
+      wrapper.style.marginLeft = next.offset + '%';
+      wrapper.style.marginRight = 'auto';
     };
     const finish = upEvent => {
       document.removeEventListener('pointermove', move);
       document.removeEventListener('pointerup', finish);
       if (Math.abs(upEvent.clientX - startX) < 1) return;
-      const delta = (upEvent.clientX - startX) / paperWidth * 100 * (side === 'left' ? -1 : 1);
-      const value = Math.round(Math.max(20, Math.min(100, original + delta)));
-      mutate(() => { const current = findBlockEntry(blockId)?.block; if (current?.type === 'table') current.width = value; }, 'Lebar tabel diperbarui.');
+      const next = nextSize(upEvent.clientX);
+      mutate(() => {
+        const current = findBlockEntry(blockId)?.block;
+        if (current?.type !== 'table') return;
+        current.width = Number(next.width.toFixed(2));
+        current.offset = Number(next.offset.toFixed(2));
+        current.align = 'left';
+      }, 'Lebar dan posisi tepi tabel diperbarui.');
     };
     document.addEventListener('pointermove', move);
     document.addEventListener('pointerup', finish, { once: true });
@@ -721,7 +739,8 @@ $('table-remove-column').addEventListener('click', () => { const block = selecte
 
 tableWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'table') return;
-  const value = Math.max(20, Math.min(100, Math.round(Number(tableWidthInput.value) || 20)));
+  const currentOffset = block.offset ?? ((block.align || 'left') === 'right' ? 100 - (block.width ?? 100) : (block.align || 'left') === 'center' ? (100 - (block.width ?? 100)) / 2 : 0);
+  const value = Math.max(20, Math.min(100 - currentOffset, Math.round(Number(tableWidthInput.value) || 20)));
   mutate(() => { block.width = value; }, 'Lebar tabel diperbarui.');
 });
 tablePaddingInput.addEventListener('change', () => {
