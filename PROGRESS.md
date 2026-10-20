@@ -302,7 +302,7 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 
 ## FASE 5 — EDITOR OBJEK DAN LAYOUT (2026-10-20)
 
-Branch: `feature/phase-5-receipt-objects-layout`. PR #12 sekarang berstatus closed; implementasi awal sudah tampak di `main`. Perbaikan lanjutan di branch ini akan diajukan sebagai PR terpisah, tetap menunggu CI dan uji pengguna.
+Branch: `feature/phase-5-receipt-objects-layout`. PR #12 berstatus closed dan implementasi awal sudah tampak di `main`. Perbaikan lanjutan diajukan di PR #13: https://github.com/primemirza/thermal-receipt-studio/pull/13 (terbuka, belum di-merge).
 
 ### Implementasi saat ini
 - Toolbar telah dikelompokkan menjadi Kertas/Zoom, Dokumen, Riwayat, dan Sisipkan. Aksi menggunakan tombol ikon dengan `title` tooltip dan label aksesibilitas.
