@@ -239,3 +239,110 @@ test('editor uses a dedicated drag handle and double-click editing rather than m
   assert.ok(js.includes('tableWidthInput.addEventListener'));
   assert.ok(html.includes('value="vertical">Vertikal</option>'));
 });
+
+
+test('workspace panel order is properties, design canvas, then preview', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
+  const props = html.indexOf('<section class="panel inspector-panel"');
+  const canvas = html.indexOf('<section class="panel editor-panel"');
+  const preview = html.indexOf('<section class="panel preview-panel"');
+  assert.ok(props >= 0 && props < canvas && canvas < preview);
+  assert.match(css, /grid-template-columns:\s*minmax\(255px, \.68fr\) minmax\(340px, 1\.15fr\) minmax\(320px, 1fr\)/);
+  assert.match(css, /\.inspector-scroll[\s\S]*?overflow-y: auto/);
+});
+
+test('separator renders one style stroke instead of repeated glyphs plus a border', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
+  assert.ok(js.includes("character !== '-' ? character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42)"));
+  assert.ok(js.includes("character !== '-' ? character.repeat(columns) : ''"));
+  assert.match(css, /\.design-block\.design-block-rule \{ border-bottom: 0 !important; \}/);
+  assert.match(css, /\.receipt-line\.rule-character \{ border-bottom: 0 !important; \}/);
+});
+
+test('inline editing is activated only on double-click and context menu does not enable it', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const factory = js.slice(js.indexOf('function createEditableText'), js.indexOf('function styledTable'));
+  const dbl = js.slice(js.indexOf("designPaper.addEventListener('dblclick'"), js.indexOf("designPaper.addEventListener('keydown'", js.indexOf("designPaper.addEventListener('dblclick'")));
+  const context = js.slice(js.indexOf("designPaper.addEventListener('contextmenu'"), js.indexOf("document.addEventListener('pointerdown'", js.indexOf("designPaper.addEventListener('contextmenu'")));
+  assert.ok(factory.includes("span.contentEditable = 'false'"));
+  assert.ok(dbl.includes("editor.contentEditable = 'true'"));
+  assert.ok(dbl.includes('selectNodeContents(editor)'));
+  assert.ok(context.includes('event.preventDefault()'));
+  assert.ok(!context.includes("contentEditable = 'true'"));
+  assert.ok(js.includes("cell.contentEditable = 'false'"));
+});
+
+test('image, QR and barcode objects have direct resize handles with validated bounds', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
+  assert.ok(js.includes('function createResizableObject(block, content)'));
+  assert.ok(js.includes("event.target.closest('[data-object-resize]')"));
+  assert.ok(js.includes("!['image', 'qrcode', 'barcode'].includes(block.type)"));
+  assert.ok(js.includes('Math.min(512, Math.round(startWidth + delta))'));
+  assert.match(css, /\.object-resize-handle[\s\S]*?cursor: nwse-resize/);
+});
+
+test('every block supports independent margin and padding values on all four sides', () => {
+  const doc = createSampleDocument();
+  doc.blocks.push({
+    id: 'custom-box-model', type: 'text', text: 'Box model',
+    margin: { top: 1, right: 2, bottom: 3, left: 4 },
+    blockPadding: { top: 5, right: 6, bottom: 7, left: 8 }
+  });
+  assert.equal(validateDocument(doc), true);
+  const invalidMargin = cloneDocument(doc);
+  invalidMargin.blocks.at(-1).margin.left = 61;
+  assert.throws(() => validateDocument(invalidMargin), /Margin blok/);
+  const invalidPadding = cloneDocument(doc);
+  invalidPadding.blocks.at(-1).blockPadding.bottom = 61;
+  assert.throws(() => validateDocument(invalidPadding), /Padding blok/);
+});
+
+test('saving and opening a document synchronize the real Electron title with its file name', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const preload = fs.readFileSync(path.join(root, 'src/preload/preload.cjs'), 'utf8');
+  const main = fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf8');
+  assert.ok(js.includes("document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio'"));
+  assert.ok(js.includes('window.trs.setWindowTitle(document.title)'));
+  assert.ok(preload.includes("setWindowTitle: (title) => invoke('window:setTitle', [title])"));
+  assert.ok(main.includes("'window:setTitle'"));
+  assert.ok(main.includes('mainWindow?.setTitle(title)'));
+  assert.ok(js.includes('currentFilePath = null; updateWindowTitle()'));
+});
+
+test('context menu duplicate inserts a full independent copy immediately below selected block', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  const duplicate = js.slice(js.indexOf('function duplicateSelectedBlock'), js.indexOf('function deleteSelectedBlock'));
+  assert.ok(html.includes('data-context-action="duplicate">Duplikat elemen</button>'));
+  assert.ok(js.includes("else if (action === 'duplicate') duplicateSelectedBlock()"));
+  assert.ok(duplicate.includes('cloneBlockWithFreshIds(entry.block)'));
+  assert.ok(duplicate.includes('current.list.splice(current.index + 1, 0, duplicate)'));
+  assert.ok(js.includes('function cloneBlockWithFreshIds(block)'));
+});
