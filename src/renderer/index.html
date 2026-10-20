@@ -18,24 +18,40 @@
   </header>
 
   <nav class="toolbar" aria-label="Toolbar utama">
-    <div class="tool-group">
-      <span class="tool-label">Kertas</span>
-      <div class="segmented" role="group" aria-label="Lebar kertas">
+    <div class="tool-section" aria-label="Kertas dan zoom">
+      <span class="tool-label">Kertas</span><div class="segmented" role="group" aria-label="Lebar kertas">
         <button type="button" class="segment is-active" data-paper="58" aria-pressed="true">58 mm</button>
         <button type="button" class="segment" data-paper="80" aria-pressed="false">80 mm</button>
       </div>
-    </div>
-    <div class="toolbar-divider" aria-hidden="true"></div>
-    <div class="tool-group">
-      <span class="tool-label">Zoom preview</span>
-      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil">−</button>
+      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil preview">−</button>
       <output id="zoom-value" class="zoom-value" aria-live="polite">100%</output>
-      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar">+</button>
-      <button type="button" class="text-button" id="zoom-fit">Sesuaikan</button>
+      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar preview">+</button>
+      <button type="button" class="icon-button" id="zoom-fit" aria-label="Sesuaikan zoom" title="Sesuaikan zoom">⤢</button>
     </div>
-    <div class="tool-group document-tools"><button type="button" class="text-button" id="new-document-button">Baru</button><button type="button" class="text-button" id="open-document-button">Buka</button><button type="button" class="text-button" id="save-document-button">Simpan</button><button type="button" class="text-button" id="save-as-document-button">Simpan sebagai</button><button type="button" class="text-button" id="undo-button" disabled>Undo</button><button type="button" class="text-button" id="redo-button" disabled>Redo</button><button type="button" class="text-button" id="add-text-button">+ Teks</button><button type="button" class="text-button" id="add-item-button">+ Item</button><button type="button" class="text-button" id="add-rule-button">+ Garis</button><button type="button" class="text-button" id="add-spacer-button">+ Spacer</button><button type="button" class="text-button" id="add-dynamic-button">+ Tanggal/waktu</button><button type="button" class="text-button" id="add-table-button">+ Tabel</button><button type="button" class="text-button" id="add-columns-button">+ Kolom</button><button type="button" class="text-button" id="add-qr-button">+ QR</button><button type="button" class="text-button" id="add-barcode-button">+ Barcode</button><button type="button" class="text-button" id="add-image-button">+ Gambar</button><input type="file" id="image-file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden><button type="button" class="text-button" id="delete-block-button" disabled>Hapus elemen</button></div><div class="toolbar-spacer"></div>
-    <button type="button" class="text-button" id="toggle-guides" aria-pressed="false">Panduan: mati</button>
-    <span class="toolbar-badge">CONTOH</span>
+    <div class="tool-section" aria-label="Dokumen"><span class="tool-label">Dokumen</span><div class="tool-group">
+      <button type="button" class="icon-button" id="new-document-button" title="Dokumen baru" aria-label="Dokumen baru">▤</button>
+      <button type="button" class="icon-button" id="open-document-button" title="Buka dokumen" aria-label="Buka dokumen">↗</button>
+      <button type="button" class="icon-button" id="save-document-button" title="Simpan (Ctrl+S)" aria-label="Simpan dokumen">▣</button>
+      <button type="button" class="icon-button" id="save-as-document-button" title="Simpan sebagai" aria-label="Simpan sebagai">▧</button>
+    </div></div>
+    <div class="tool-section" aria-label="Riwayat"><span class="tool-label">Riwayat</span><div class="tool-group">
+      <button type="button" class="icon-button" id="undo-button" disabled title="Urungkan (Ctrl+Z)" aria-label="Urungkan">↶</button>
+      <button type="button" class="icon-button" id="redo-button" disabled title="Ulangi (Ctrl+Y)" aria-label="Ulangi">↷</button>
+    </div></div>
+    <div class="tool-section" aria-label="Sisipkan objek"><span class="tool-label">Sisipkan</span><div class="tool-group">
+      <button type="button" class="icon-button" id="add-text-button" title="Sisipkan teks" aria-label="Sisipkan teks">T</button>
+      <button type="button" class="icon-button" id="add-item-button" title="Sisipkan item dan harga" aria-label="Sisipkan item dan harga">☷</button>
+      <button type="button" class="icon-button" id="add-rule-button" title="Sisipkan garis" aria-label="Sisipkan garis">―</button>
+      <button type="button" class="icon-button" id="add-spacer-button" title="Sisipkan jarak kosong" aria-label="Sisipkan jarak kosong">↕</button>
+      <button type="button" class="icon-button" id="add-table-button" title="Sisipkan tabel" aria-label="Sisipkan tabel">▦</button>
+      <button type="button" class="icon-button" id="add-columns-button" title="Sisipkan kolom teks" aria-label="Sisipkan kolom teks">▥</button>
+      <button type="button" class="icon-button" id="add-image-button" title="Sisipkan gambar" aria-label="Sisipkan gambar">▧</button>
+      <button type="button" class="icon-button" id="add-qr-button" title="Sisipkan QR code" aria-label="Sisipkan QR code">◈</button>
+      <button type="button" class="icon-button" id="add-barcode-button" title="Sisipkan barcode" aria-label="Sisipkan barcode">▥</button>
+      <input type="file" id="image-file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    </div></div>
+    <div class="toolbar-spacer"></div>
+    <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan">⌗</button>
   </nav>
 
   <main class="workspace">
@@ -55,7 +71,27 @@
           <div class="design-block center muted-block"><span class="block-type">TEKS</span><span>Terima kasih!</span></div>
         </div>
       </div>
-      <div class="inspector" id="block-inspector"><div class="inspector-heading"><strong>Properti elemen</strong><span id="selected-block-label">Pilih elemen di kanvas</span></div><label for="block-text-input">Teks / nama item</label><input id="block-text-input" type="text" disabled placeholder="Pilih elemen teks atau item" /><div class="inspector-fields"><label for="block-price-input">Harga item (Rp)<input id="block-price-input" type="number" min="0" step="500" disabled placeholder="0" /></label><label for="block-align-input">Perataan<select id="block-align-input" disabled><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label></div><p class="inspector-help">Pilih elemen pada kanvas, lalu ubah propertinya di sini. Perubahan langsung muncul di preview.</p></div><div class="panel-footnote"><span class="status-dot"></span> Dokumen lokal · format .trstudio</div>
+      <div class="inspector" id="block-inspector">
+        <div class="inspector-heading"><strong>Properti elemen</strong><span id="selected-block-label">Pilih elemen di kanvas</span></div>
+        <label for="block-text-input">Teks / isi</label><input id="block-text-input" type="text" disabled placeholder="Pilih elemen untuk mengedit isi" />
+        <div class="inspector-fields">
+          <label for="block-price-input">Harga item<input id="block-price-input" type="number" min="0" step="1" disabled placeholder="0" /></label>
+          <label for="block-align-input">Perataan<select id="block-align-input" disabled><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
+        </div>
+        <div class="inspector-fields">
+          <label for="block-size-input">Ukuran teks<select id="block-size-input" disabled><option value="small">Kecil</option><option value="normal">Normal</option><option value="large">Besar</option><option value="double">Dobel</option></select></label>
+          <label class="inspector-check" for="block-bold-input"><input id="block-bold-input" type="checkbox" disabled /> Tebal</label>
+        </div>
+        <div class="inspector-fields">
+          <label for="block-spacer-height">Tinggi spacer (baris)<input id="block-spacer-height" type="number" min="1" max="20" step="1" disabled /></label>
+          <label for="block-image-width">Lebar gambar (px)<input id="block-image-width" type="number" min="1" max="512" step="1" disabled /></label>
+        </div>
+        <div class="inspector-fields">
+          <label for="block-rule-style">Gaya garis<select id="block-rule-style" disabled><option value="solid">Solid</option><option value="dashed">Putus-putus</option><option value="double">Ganda</option></select></label>
+          <label for="block-table-border">Border tabel<select id="block-table-border" disabled><option value="all">Semua sisi</option><option value="horizontal">Horizontal</option><option value="none">Tanpa border</option></select></label>
+        </div>
+        <p class="inspector-help">Edit teks langsung pada kanvas. Pilih blok untuk mengatur properti. Tarik pemisah kolom tabel untuk mengubah lebar. Tekan Del untuk menghapus blok terpilih.</p>
+      </div><div class="panel-footnote"><span class="status-dot"></span> Dokumen lokal · format .trstudio</div>
     </section>
 
     <section class="panel preview-panel" aria-label="Preview struk">
