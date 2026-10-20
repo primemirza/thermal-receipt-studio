@@ -17,7 +17,7 @@ const previewStatus = $('preview-status');
 const guideButton = $('toggle-guides');
 const textInput = $('block-text-input');
 const priceInput = $('block-price-input');
-const alignInput = $('block-align-input');
+const alignmentButtons = [...document.querySelectorAll('[data-text-align]')];
 const selectedLabel = $('selected-block-label');
 const sizeInput = $('block-size-input');
 const boldInput = $('block-bold-input');
@@ -52,6 +52,7 @@ const blockContextMenu = $('block-context-menu');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
+let activeInlineTarget = null;
 let isDirty = false;
 let currentFilePath = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
@@ -154,15 +155,16 @@ function styledTable(block, editable = false) {
   const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
   table.style.setProperty('--cell-padding', (block.padding ?? 4) + 'px');
   table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
-  if (block.bold) table.style.fontWeight = '700';
-  if (block.italic) table.style.fontStyle = 'italic';
-  if (block.underline) table.style.textDecoration = 'underline';
+  table.style.fontWeight = block.bold === true ? '700' : '400';
+  table.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+  table.style.textDecoration = block.underline === true ? 'underline' : 'none';
   const colgroup = document.createElement('colgroup');
   columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); });
   table.append(colgroup);
   const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
   block.headers.forEach((value, colIndex) => {
     const th = document.createElement('th');
+    th.style.textAlign = tableCellAlignment(block, -1, colIndex);
     if (editable) {
       th.append(createEditableText(value, 'tableCell', { rowIndex: -1, colIndex }));
       if (colIndex < block.headers.length - 1) {
@@ -178,6 +180,7 @@ function styledTable(block, editable = false) {
     const tr = document.createElement('tr');
     row.forEach((value, colIndex) => {
       const td = document.createElement('td');
+      td.style.textAlign = tableCellAlignment(block, rowIndex, colIndex);
       if (editable) td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex }));
       else td.textContent = value;
       tr.append(td);
@@ -218,6 +221,10 @@ function createColumnLayout(block, editable) {
     const cell = make('div', 'column-cell border-' + (block.border || 'vertical'));
     cell.style.flex = '0 0 calc(' + widths[index] + '% - ' + gapShare + 'px)';
     cell.style.padding = (block.padding ?? 4) + 'px';
+    cell.style.textAlign = columnCellAlignment(block, index);
+    cell.style.fontWeight = block.bold === true ? '700' : '400';
+    cell.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+    cell.style.textDecoration = block.underline === true ? 'underline' : 'none';
     if (editable) {
       cell.append(createEditableText(value, 'columnCell', { colIndex: index }));
       if (index < block.columns.length - 1) {
@@ -241,13 +248,66 @@ function createCodeGraphic(block) {
   return make('span', 'object-placeholder', 'Objek kode tidak dikenal');
 }
 function applyTextStyle(node, block) {
-  node.style.textAlign = block.align || 'left';
-  if (block.align === 'right') node.style.justifyContent = 'flex-end';
-  else if (block.align === 'center') node.style.justifyContent = 'center';
+  const alignment = block.align || 'left';
+  node.style.textAlign = alignment;
+  node.style.justifyContent = alignment === 'right' ? 'flex-end' : alignment === 'center' ? 'center' : 'flex-start';
   node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal'];
-  if (block.bold) node.style.fontWeight = '700';
-  if (block.italic) node.style.fontStyle = 'italic';
-  if (block.underline) node.style.textDecoration = 'underline';
+  node.style.fontWeight = block.bold === true ? '700' : '400';
+  node.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+  node.style.textDecoration = block.underline === true ? 'underline' : 'none';
+}
+function tableCellAlignment(block, rowIndex, colIndex) {
+  return block.cellAlignments?.[rowIndex + 1]?.[colIndex] || block.align || 'left';
+}
+function columnCellAlignment(block, colIndex) {
+  return block.columnAlignments?.[colIndex] || block.align || 'left';
+}
+function alignmentForTarget(block) {
+  if (!block) return 'left';
+  if (activeInlineTarget?.blockId === block.id && activeInlineTarget.field === 'tableCell' && block.type === 'table') {
+    return tableCellAlignment(block, activeInlineTarget.rowIndex, activeInlineTarget.colIndex);
+  }
+  if (activeInlineTarget?.blockId === block.id && activeInlineTarget.field === 'columnCell' && block.type === 'columns') {
+    return columnCellAlignment(block, activeInlineTarget.colIndex);
+  }
+  return block.align || 'left';
+}
+function updateAlignmentButtons() {
+  const block = selectedBlock();
+  const selectedAlignment = alignmentForTarget(block);
+  for (const button of alignmentButtons) {
+    const active = Boolean(block) && button.dataset.textAlign === selectedAlignment;
+    button.setAttribute('aria-pressed', String(active));
+    button.classList.toggle('is-active', active);
+    button.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
+  }
+}
+function applyAlignment(alignment) {
+  const block = selectedBlock();
+  if (!block || !['left','center','right'].includes(alignment)) return;
+  const target = activeInlineTarget?.blockId === block.id ? activeInlineTarget : null;
+  mutate(() => {
+    if (block.type === 'table' && target?.field === 'tableCell') {
+      const rowIndex = target.rowIndex + 1;
+      if (!Array.isArray(block.cellAlignments)) {
+        block.cellAlignments = Array.from({ length: block.rows.length + 1 }, () => Array(block.headers.length).fill(block.align || 'left'));
+      }
+      while (block.cellAlignments.length < block.rows.length + 1) {
+        block.cellAlignments.push(Array(block.headers.length).fill(block.align || 'left'));
+      }
+      block.cellAlignments[rowIndex][target.colIndex] = alignment;
+    } else if (block.type === 'columns' && target?.field === 'columnCell') {
+      if (!Array.isArray(block.columnAlignments)) block.columnAlignments = Array(block.columns.length).fill(block.align || 'left');
+      block.columnAlignments[target.colIndex] = alignment;
+    } else {
+      block.align = alignment;
+      if (block.type === 'table') {
+        block.cellAlignments = Array.from({ length: block.rows.length + 1 }, () => Array(block.headers.length).fill(alignment));
+      } else if (block.type === 'columns') {
+        block.columnAlignments = Array(block.columns.length).fill(alignment);
+      }
+    }
+  }, 'Perataan teks diperbarui.');
 }
 function applyBoxStyle(node, box, kind) {
   if (!box) return;
@@ -446,10 +506,8 @@ function renderInspector() {
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
   textInput.disabled = !block || !['text', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
-  alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
   textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : ['text','dynamic'].includes(block.type) ? (block.text || '') : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
-  alignInput.value = block?.align ?? 'left';
   sizeInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
   sizeInput.value = block?.size || 'normal';
   boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
@@ -505,6 +563,7 @@ function renderInspector() {
     paddingInputs[side].disabled = !block;
     paddingInputs[side].value = String(spacingPadding?.[side] ?? (block?.type === 'section' ? 8 : 0));
   }
+  updateAlignmentButtons();
 }
 function renderAll() {
   renderCanvas();
@@ -959,11 +1018,7 @@ priceInput.addEventListener('change', () => {
   if (block.price === value) return;
   mutate(() => { block.price = value; }, 'Harga item diperbarui.');
 });
-alignInput.addEventListener('change', () => {
-  const block = selectedBlock();
-  if (!block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type) || !['left', 'center', 'right'].includes(alignInput.value)) return;
-  mutate(() => { block.align = alignInput.value; }, 'Perataan teks diperbarui.');
-});
+alignmentButtons.forEach(button => button.addEventListener('click', () => applyAlignment(button.dataset.textAlign)));
 $('add-text-button').addEventListener('click', () => addBlock('text'));
 $('add-item-button').addEventListener('click', () => addBlock('item'));
 $('add-image-button')?.addEventListener('click', () => $('image-file-input').click());
