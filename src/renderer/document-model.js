@@ -33,7 +33,7 @@ function assertBox(box, label, max = 50) {
 }
 function assertWidths(widths, count, label) {
   if (!Array.isArray(widths) || widths.length !== count ||
-      widths.some(width => !Number.isFinite(width) || width < 10 || width > 90) ||
+      widths.some(width => !Number.isFinite(width) || width < (count === 1 ? 100 : 10) || width > (count === 1 ? 100 : 90)) ||
       Math.abs(widths.reduce((sum, width) => sum + width, 0) - 100) > 1) {
     throw new TypeError(label + ' harus berjumlah 100% dan tiap kolom minimal 10%.');
   }
