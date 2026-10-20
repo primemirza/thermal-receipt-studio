@@ -237,3 +237,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .icon-button .toolbar-icon { flex: none; }
 .canvas-table [contenteditable="true"], .object-columns [contenteditable="true"] { outline-offset: 1px; }
 @media (max-width: 760px) { .insert-subsections { align-items: flex-start; } .tool-subsection { min-width: 0; } }
+
+.design-block.code-block { gap: 3px; }
+.design-block.code-block .code-value { align-self: inherit; max-width: 100%; overflow-wrap: anywhere; }
