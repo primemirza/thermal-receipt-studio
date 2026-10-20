@@ -831,7 +831,13 @@ $('table-dialog-form').addEventListener('submit', event => {
 });
 function deleteSelectedBlock() {
   if (!selectedBlock()) return;
-  mutate(() => { documentModel.blocks = documentModel.blocks.filter(block => block.id !== selectedBlockId); selectedBlockId = null; }, 'Elemen dihapus.');
+  mutate(() => {
+    const entry = findBlockEntry(selectedBlockId);
+    if (!entry) return;
+    const parentId = entry.parentSection?.id || null;
+    entry.list.splice(entry.index, 1);
+    selectedBlockId = parentId;
+  }, 'Elemen dihapus.');
 }
 document.addEventListener('keydown', event => {
   if (event.key !== 'Delete' && event.key !== 'Del') return;
