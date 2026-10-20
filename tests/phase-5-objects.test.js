@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSampleDocument, validateDocument, cloneDocument } from '../src/renderer/document-model.js';
+import { createSampleDocument, validateDocument, cloneDocument, migrateLegacyDocument } from '../src/renderer/document-model.js';
 import { serializeTrstudio, parseTrstudio } from '../src/main/trstudio-archive.js';
 
 test('Phase 5 block types validate and survive .trstudio round-trip', () => {
@@ -47,7 +47,7 @@ test('renderer and toolbar expose object creation and preview branches', async (
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   for (const type of ['spacer', 'table', 'columns', 'qrcode', 'barcode', 'image']) assert.ok(js.includes("type: '" + type + "'") || js.includes("block.type === '" + type + "'"), type);
-  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border']) assert.ok(html.includes(id), id);
+  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border', 'block-italic-input', 'block-underline-input', 'block-total-amount', 'block-rule-character', 'block-image-alt', 'table-add-row', 'table-remove-row', 'table-add-column', 'table-remove-column']) assert.ok(html.includes(id), id);
 });
 
 
@@ -111,4 +111,30 @@ test('barcode accepts printable CODE128 data but rejects control characters', ()
   const invalid = createSampleDocument();
   invalid.blocks.push({ id: 'code128-invalid', type: 'barcode', value: 'INV\n001' });
   assert.throws(() => validateDocument(invalid), /ASCII yang dapat dicetak/);
+});
+
+test('legacy date/time blocks migrate to ordinary manual text, not dynamic values', () => {
+  const legacy = createSampleDocument();
+  legacy.blocks.push({ id: 'legacy-date', type: 'dynamic', field: 'date', align: 'left' });
+  assert.equal(validateDocument(legacy), true);
+  const migrated = migrateLegacyDocument(legacy);
+  const migratedBlock = migrated.blocks.at(-1);
+  assert.equal(migratedBlock.type, 'text');
+  assert.equal(migratedBlock.text, 'Tanggal: ');
+  assert.equal(Object.hasOwn(migratedBlock, 'field'), false);
+  assert.equal(validateDocument(migrated), true);
+  assert.equal(legacy.blocks.at(-1).type, 'dynamic', 'migrasi tidak mengubah sumber');
+});
+
+test('all inspector controls referenced by renderer exist in the HTML', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  const ids = [...js.matchAll(/\\$\\(['\"]([^'\"]+)['\"]\\)/g)].map(match => match[1]);
+  const htmlIds = new Set([...html.matchAll(/\\bid=\"([^\"]+)\"/g)].map(match => match[1]));
+  assert.deepEqual([...new Set(ids)].filter(id => !htmlIds.has(id)), []);
+  assert.ok((html.match(/class=\"toolbar-icon\"/g) || []).length >= 15);
 });
