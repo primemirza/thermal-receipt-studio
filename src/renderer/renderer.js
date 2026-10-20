@@ -271,7 +271,7 @@ function renderAll() {
   renderCanvas();
   renderPreview();
   renderInspector();
-  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = documentModel.blocks.length + (documentModel.blocks.length === 1 ? ' elemen' : ' elemen');
+  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = documentModel.blocks.length + ' elemen';
   updateHistoryButtons();
 }
 function setPaper(width) {
@@ -357,10 +357,17 @@ textInput.addEventListener('change', () => {
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
 function commitInlineChange(block, apply, message, preserveCanvas) {
-  saveUndoPoint(); apply(); isDirty = true; validateDocument(documentModel);
-  if (preserveCanvas) { renderPreview(); renderInspector(); updateHistoryButtons(); }
-  else renderAll();
-  setStatus(message);
+  const before = captureHistoryState(); const undoLength = state.undo.length; const redoBefore = [...state.redo];
+  saveUndoPoint();
+  try { apply(); validateDocument(documentModel); }
+  catch (error) {
+    documentModel = cloneDocument(before.document); selectedBlockId = before.selectedBlockId;
+    state.undo.length = undoLength; state.redo = redoBefore; renderAll();
+    setStatus('Edit tidak diterapkan: ' + String(error?.message || error)); return false;
+  }
+  isDirty = true;
+  if (preserveCanvas) { renderPreview(); renderInspector(); updateHistoryButtons(); } else renderAll();
+  setStatus(message); return true;
 }
 designPaper.addEventListener('focusout', event => {
   const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
@@ -403,7 +410,7 @@ imageAltInput.addEventListener('change', () => { const block = selectedBlock(); 
 $('table-add-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length >= 100) return; mutate(() => { block.rows.push(Array(block.headers.length).fill('')); }, 'Baris tabel ditambahkan.'); });
 $('table-remove-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length <= 0) return; mutate(() => { block.rows.pop(); }, 'Baris terakhir tabel dihapus.'); });
 $('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); const count = block.headers.length; block.columnWidths = Array(count).fill(Number((100/count).toFixed(2))); block.columnWidths[count-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
-$('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = columnWidths(block); const normalized = widths.map(width => width / widths.reduce((sum,v)=>sum+v,0) * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
+$('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { const oldWidths = columnWidths(block); block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = oldWidths.slice(0, -1); const widthSum = widths.reduce((sum,v)=>sum+v,0); const normalized = widths.map(width => width / widthSum * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
 
 priceInput.addEventListener('change', () => {
   const block = selectedBlock();
