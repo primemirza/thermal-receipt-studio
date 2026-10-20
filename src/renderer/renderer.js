@@ -496,11 +496,15 @@ function renderInspector() {
   sectionLayoutFields.hidden = !block || block.type !== 'section';
   sectionNameInput.disabled = !block || block.type !== 'section';
   sectionNameInput.value = block?.type === 'section' ? (block.name || 'Section baru') : '';
-  sectionMarginInput.disabled = !block || block.type !== 'section';
-  sectionMarginInput.value = block?.type === 'section' ? String(block.margin?.top ?? 0) : '0';
-  sectionPaddingInput.disabled = !block || block.type !== 'section';
-  sectionPaddingInput.value = block?.type === 'section' ? String(block.padding?.top ?? 8) : '8';
   sectionChildCountInput.value = block?.type === 'section' ? String(block.children.length) : '0';
+  blockSpacingFields.hidden = !block;
+  const spacingPadding = block?.type === 'section' ? block.padding : block?.blockPadding;
+  for (const side of spacingSides) {
+    marginInputs[side].disabled = !block;
+    marginInputs[side].value = String(block?.margin?.[side] ?? 0);
+    paddingInputs[side].disabled = !block;
+    paddingInputs[side].value = String(spacingPadding?.[side] ?? (block?.type === 'section' ? 8 : 0));
+  }
 }
 function renderAll() {
   renderCanvas();
@@ -614,10 +618,11 @@ designPaper.addEventListener('click', event => {
 });
 designPaper.addEventListener('dblclick', event => {
   const blockNode = event.target.closest('[data-block-id]');
-  const editor = event.target.closest('[data-inline-edit]') || blockNode?.querySelector('[data-inline-edit]');
+  const editor = event.target.closest('[data-inline-edit]');
   if (!blockNode || !editor) return;
   event.preventDefault();
   selectBlock(blockNode.dataset.blockId, true);
+  editor.contentEditable = 'true';
   editor.focus();
   const selection = window.getSelection();
   if (selection) { const range = document.createRange(); range.selectNodeContents(editor); selection.removeAllRanges(); selection.addRange(range); }
@@ -635,7 +640,7 @@ designPaper.addEventListener('contextmenu', event => {
   selectBlock(node.dataset.blockId, true);
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
-  blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 190)) + 'px';
+  blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 245)) + 'px';
 });
 document.addEventListener('pointerdown', event => {
   if (!blockContextMenu.hidden && !event.target.closest('#block-context-menu')) blockContextMenu.hidden = true;
@@ -677,22 +682,49 @@ function commitInlineChange(block, apply, message, preserveCanvas) {
   setStatus(message); return true;
 }
 designPaper.addEventListener('focusout', event => {
-  const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
-  const blockNode = cell.closest('[data-block-id]'); const block = findBlockEntry(blockNode?.dataset.blockId)?.block; if (!block) return;
-  const field = cell.dataset.field; const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200; const value = cell.textContent.slice(0, max);
-  const preserveCanvas = true;
+  const cell = event.target.closest('[data-inline-edit]');
+  if (!cell) return;
+  const blockNode = cell.closest('[data-block-id]');
+  const block = findBlockEntry(blockNode?.dataset.blockId)?.block;
+  if (!block) { cell.contentEditable = 'false'; return; }
+  const field = cell.dataset.field;
+  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200;
+  const value = cell.textContent.slice(0, max);
   if (field === 'tableCell' && block.type === 'table') {
-    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col]; if (oldValue === value) return;
-    commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', preserveCanvas);
+    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex);
+    const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col];
+    if (oldValue !== value) {
+      commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', true);
+    }
   } else if (field === 'columnCell' && block.type === 'columns') {
-    const index = Number(cell.dataset.colIndex); if (block.columns[index] === value) return;
-    commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', preserveCanvas);
+    const index = Number(cell.dataset.colIndex);
+    if (block.columns[index] !== value) commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', true);
   } else if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field) && block[field] !== value) {
-    const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', preserveCanvas);
+    const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', true);
     if (updated && field === 'value' && ['qrcode','barcode'].includes(block.type)) {
-      const holder = cell.closest('[data-block-id]'); const graphic = holder?.querySelector('.generated-code');
+      const graphic = blockNode?.querySelector('.generated-code');
       if (graphic) graphic.replaceWith(createCodeGraphic(block));
     }
+  }
+  cell.contentEditable = 'false';
+});
+designPaper.addEventListener('keydown', event => {
+  const cell = event.target.closest('[data-inline-edit][contenteditable="true"]');
+  if (!cell) return;
+  if (event.key === 'Enter') { event.preventDefault(); cell.blur(); }
+  else if (event.key === 'Escape') {
+    event.preventDefault();
+    const block = findBlockEntry(cell.closest('[data-block-id]')?.dataset.blockId)?.block;
+    if (block) {
+      const field = cell.dataset.field;
+      if (field === 'tableCell') {
+        const row = Number(cell.dataset.rowIndex), col = Number(cell.dataset.colIndex);
+        cell.textContent = row < 0 ? block.headers[col] : block.rows[row]?.[col] ?? '';
+      } else if (field === 'columnCell') cell.textContent = block.columns[Number(cell.dataset.colIndex)] ?? '';
+      else if (['text','name','label','value'].includes(field)) cell.textContent = block[field] ?? '';
+    }
+    cell.contentEditable = 'false';
+    cell.blur();
   }
 });
 designPaper.addEventListener('pointerdown', event => {
@@ -845,16 +877,26 @@ sectionNameInput.addEventListener('change', () => {
   if (block.name === value) return;
   mutate(() => { block.name = value; }, 'Nama section diperbarui.');
 });
-sectionMarginInput.addEventListener('change', () => {
-  const block = selectedBlock(); if (!block || block.type !== 'section') return;
-  const value = Math.max(0, Math.min(60, Math.round(Number(sectionMarginInput.value) || 0)));
-  mutate(() => { block.margin = { top: value, right: value, bottom: value, left: value }; }, 'Margin section diperbarui.');
-});
-sectionPaddingInput.addEventListener('change', () => {
-  const block = selectedBlock(); if (!block || block.type !== 'section') return;
-  const value = Math.max(0, Math.min(60, Math.round(Number(sectionPaddingInput.value) || 0)));
-  mutate(() => { block.padding = { top: value, right: value, bottom: value, left: value }; }, 'Padding section diperbarui.');
-});
+for (const side of spacingSides) {
+  marginInputs[side].addEventListener('change', () => {
+    const block = selectedBlock(); if (!block) return;
+    const value = Math.max(0, Math.min(60, Math.round(Number(marginInputs[side].value) || 0)));
+    mutate(() => {
+      block.margin = { top: 0, right: 0, bottom: 0, left: 0, ...(block.margin || {}), [side]: value };
+    }, 'Margin ' + side + ' diperbarui.');
+  });
+  paddingInputs[side].addEventListener('change', () => {
+    const block = selectedBlock(); if (!block) return;
+    const value = Math.max(0, Math.min(60, Math.round(Number(paddingInputs[side].value) || 0)));
+    const key = block.type === 'section' ? 'padding' : 'blockPadding';
+    mutate(() => {
+      const defaultBox = block.type === 'section'
+        ? { top: 8, right: 8, bottom: 8, left: 8 }
+        : { top: 0, right: 0, bottom: 0, left: 0 };
+      block[key] = { ...defaultBox, ...(block[key] || {}), [side]: value };
+    }, 'Padding ' + side + ' diperbarui.');
+  });
+}
 $('global-layout-button').addEventListener('click', () => {
   const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
   for (const side of ['top','right','bottom','left']) $('global-margin-' + side).value = String(margins[side] ?? 0);
