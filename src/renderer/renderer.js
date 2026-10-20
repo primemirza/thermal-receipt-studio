@@ -1054,6 +1054,7 @@ async function saveCurrent(mode = 'save') {
 function updateWindowTitle() {
   const fileName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
   document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
+  window.trs.setWindowTitle(document.title).catch(() => {});
 }
 function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
 $('new-document-button').addEventListener('click', () => {
