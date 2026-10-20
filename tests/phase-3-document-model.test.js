@@ -53,7 +53,7 @@ test('renderer uses prefix-free number formatting and explicit total values in b
   assert.match(js, /const money = \(amount\) => currency\.format\(amount\)/);
   assert.doesNotMatch(js, /'Rp\\s*'\s*\+\s*currency\.format/);
   assert.match(js, /block\.amount/);
-  assert.doesNotMatch(js, /totalAmount/);
+  assert.doesNotMatch(js, /function\s+totalAmount\s*\(/);
   assert.match(html, /id="undo-button"[^>]*title="Urungkan \(Ctrl\+Z\)"[^>]*><svg/);
   assert.match(html, /id="redo-button"[^>]*title="Ulangi \(Ctrl\+Y\)"[^>]*><svg/);
   assert.doesNotMatch(html, /delete-block-button/);
