@@ -76,7 +76,7 @@ if (!gotLock) {
   });
 
   // --- IPC tervalidasi (API sangat terbatas pada Fase 1) ---
-  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save']);
+  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle']);
 
   ipcMain.handle('trs:invoke', async (event, payload) => {
     // Payload divalidasi ketat; renderer tidak pernah memanggil channel secara bebas.
@@ -87,7 +87,8 @@ if (!gotLock) {
     if (typeof channel !== 'string' || !ALLOWED_CHANNELS.has(channel)) {
       return { ok: false, error: 'CHANNEL_NOT_ALLOWED' };
     }
-    if (!Array.isArray(args) || (channel === 'document:save' ? args.length !== 2 : args.length !== 0)) {
+    const expectedArgs = channel === 'document:save' ? 2 : channel === 'window:setTitle' ? 1 : 0;
+    if (!Array.isArray(args) || args.length !== expectedArgs) {
       return { ok: false, error: 'INVALID_ARGS' };
     }
     switch (channel) {
@@ -97,6 +98,15 @@ if (!gotLock) {
         const dir = userDataDir();
         try { fs.mkdirSync(dir, { recursive: true }); } catch { /* dilaporkan */ }
         return { ok: true, value: dir };
+      }
+
+      case 'window:setTitle': {
+        const [title] = args;
+        if (typeof title !== 'string' || title.length > 260 || !/^Thermal Receipt Studio(?: - .+)?$/.test(title)) {
+          return { ok: false, error: 'INVALID_TITLE' };
+        }
+        mainWindow?.setTitle(title);
+        return { ok: true, value: true };
       }
 
       case 'document:open': {
