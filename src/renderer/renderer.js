@@ -142,7 +142,7 @@ function renderCanvas() {
     } else if (block.type === 'image') {
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      node.append(make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value));
+      const code = make('span', 'object-placeholder', block.type.toUpperCase() + ' · '); code.append(createEditableText(block.value, 'value')); node.append(code);
     } else if (block.type === 'item') {
       node.append(createEditableText(block.name, 'name'));
       node.append(make('span', 'block-price', money(block.price)));
@@ -162,7 +162,7 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   for (const block of documentModel.blocks) {
     if (block.type === 'rule') {
-      fragment.append(makeLine('rule', [make('span', '', (block.character || '-').repeat(columns))]));
+      fragment.append(makeLine('rule rule-' + (block.style || 'solid'), [make('span', '', (block.character || '-').repeat(columns))]));
     } else if (block.type === 'spacer') {
       const spacer = make('div', 'receipt-spacer'); spacer.style.height = (block.height * 4) + 'px'; fragment.append(spacer);
     } else if (block.type === 'table') {
@@ -170,10 +170,10 @@ function renderPreview() {
     } else if (block.type === 'columns') {
       const line = makeLine('columns-line', []); const columns = make('span', 'object-columns-preview'); block.columns.forEach(value => columns.append(make('span', '', value))); line.append(columns); fragment.append(line);
     } else if (block.type === 'image') {
-      const line = makeLine(block.align === 'center' ? 'center' : '', []);
+      const line = makeLine(block.align === 'center' ? 'center' : '', []); if (block.align === 'right') line.style.justifyContent = 'flex-end';
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img); fragment.append(line);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      fragment.append(makeLine('center', [make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value)]));
+      const code = make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value); const line = makeLine(block.align === 'center' ? 'center' : '', [code]); if (block.align === 'right') line.style.justifyContent = 'flex-end'; fragment.append(line);
     } else if (block.type === 'item') {
       fragment.append(makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]));
     } else if (block.type === 'total') {
@@ -210,7 +210,7 @@ function renderInspector() {
   textInput.disabled = !block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
   alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
-  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['dynamic', 'qrcode', 'barcode'].includes(block.type) ? (block.field || block.value || '') : '';
+  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
   alignInput.value = block?.align ?? 'left';
   sizeInput.disabled = !block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type);
@@ -225,7 +225,6 @@ function renderInspector() {
   ruleStyleInput.value = block?.type === 'rule' ? (block.style || 'solid') : 'solid';
   tableBorderInput.disabled = !block || block.type !== 'table';
   tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';
-  $('delete-block-button').disabled = !block || documentModel.blocks.length <= 1;
 }
 function renderAll() {
   renderCanvas();
@@ -283,6 +282,7 @@ designPaper.addEventListener('click', event => {
   if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize]')));
 });
 designPaper.addEventListener('keydown', event => {
+  if (event.target.closest('[data-inline-edit]')) return;
   if (event.key !== 'Enter' && event.key !== ' ') return;
   const block = event.target.closest('[data-block-id]');
   if (block) { event.preventDefault(); selectBlock(block.dataset.blockId); }
@@ -295,6 +295,41 @@ textInput.addEventListener('change', () => {
   if (block[key] === value) return;
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
+designPaper.addEventListener('focusout', event => {
+  const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
+  const blockNode = cell.closest('[data-block-id]'); const block = documentModel.blocks.find(item => item.id === blockNode?.dataset.blockId); if (!block) return;
+  const field = cell.dataset.field; const value = cell.textContent.slice(0, 200);
+  if (field === 'tableCell') {
+    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers?.[col] : block.rows?.[row]?.[col];
+    if (oldValue === value || block.type !== 'table') return;
+    mutate(() => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.');
+  } else if (field === 'columnCell' && block.type === 'columns') {
+    const index = Number(cell.dataset.colIndex); if (block.columns[index] === value) return;
+    mutate(() => { block.columns[index] = value; }, 'Isi kolom diperbarui.');
+  } else if (['text','name','label','value'].includes(field) && block[field] !== value) {
+    mutate(() => { block[field] = value; }, 'Isi elemen diperbarui.');
+  }
+});
+designPaper.addEventListener('pointerdown', event => {
+  const grip = event.target.closest('[data-col-resize]'); if (!grip) return;
+  event.preventDefault(); event.stopPropagation();
+  const table = grip.closest('table'); const parent = grip.closest('[data-block-id]');
+  const block = documentModel.blocks.find(item => item.id === parent?.dataset.blockId && item.type === 'table');
+  if (!table || !block || block.headers.length < 2) return;
+  const index = Number(grip.dataset.colResize); if (index >= block.headers.length - 1) return;
+  const original = columnWidths(block); const startX = event.clientX; const widthPx = Math.max(1, table.getBoundingClientRect().width);
+  const pair = original[index] + original[index + 1]; const cols = [...table.querySelectorAll('col')];
+  const move = e => { const delta = (e.clientX - startX) / widthPx * 100; const left = Math.max(8, Math.min(pair - 8, original[index] + delta)); cols[index].style.width = left + '%'; cols[index + 1].style.width = (pair - left) + '%'; };
+  const finish = e => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', finish); if (Math.abs(e.clientX - startX) < 1) return; const left = Number(parseFloat(cols[index].style.width).toFixed(2)); const widths = [...original]; widths[index] = left; widths[index + 1] = Number((pair-left).toFixed(2)); mutate(() => { block.columnWidths = widths; }, 'Lebar kolom tabel diubah.'); };
+  document.addEventListener('pointermove', move); document.addEventListener('pointerup', finish, { once: true });
+});
+sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type)) return; if (!['small','normal','large','double'].includes(sizeInput.value)) return; mutate(() => { block.size = sizeInput.value; }, 'Ukuran teks diperbarui.'); });
+boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
+spacerHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'spacer') return; const value = Math.max(1, Math.min(20, Math.round(Number(spacerHeightInput.value) || 1))); mutate(() => { block.height = value; }, 'Tinggi spacer diperbarui.'); });
+imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = Math.max(1, Math.min(512, Math.round(Number(imageWidthInput.value) || 1))); mutate(() => { block.width = value; }, 'Lebar gambar diperbarui.'); });
+ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
+tableBorderInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || !['all','horizontal','none'].includes(tableBorderInput.value)) return; mutate(() => { block.border = tableBorderInput.value; }, 'Border tabel diperbarui.'); });
+
 priceInput.addEventListener('change', () => {
   const block = selectedBlock();
   if (!block || block.type !== 'item') return;
@@ -324,10 +359,16 @@ $('image-file-input')?.addEventListener('change', async event => {
   const id = 'b-' + crypto.randomUUID();
   mutate(() => { documentModel.blocks.push({ id, type: 'image', dataUrl, alt: file.name.slice(0, 200), width: 180, align: 'center' }); selectedBlockId = id; }, 'Gambar ditambahkan ke dokumen.');
 });
-for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-dynamic-button','dynamic'], ['add-table-button','table'], ['add-columns-button','columns'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) {
-  const button = $(id);
-  if (button) button.addEventListener('click', () => addBlock(type));
-}
+for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-columns-button','columns'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) { const button = $(id); if (button) button.addEventListener('click', () => addBlock(type)); }
+$('add-table-button').addEventListener('click', () => $('table-dialog').showModal());
+$('table-dialog-cancel').addEventListener('click', () => $('table-dialog').close());
+$('table-dialog-form').addEventListener('submit', event => {
+  event.preventDefault(); const cols = Math.max(1, Math.min(6, Number($('table-columns-count').value) || 1)); const rows = Math.max(1, Math.min(50, Number($('table-rows-count').value) || 1));
+  const border = $('table-insert-border').value; const id = 'b-' + crypto.randomUUID(); const headers = Array.from({length: cols}, (_, i) => 'Kolom ' + (i+1));
+  const widths = Array(cols).fill(Number((100 / cols).toFixed(2))); widths[cols-1] = Number((100-widths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2));
+  const block = { id, type: 'table', headers, rows: Array.from({length: rows}, () => Array(cols).fill('')), border, columnWidths: widths, align: 'left', size: 'normal', bold: false };
+  $('table-dialog').close(); mutate(() => { documentModel.blocks.push(block); selectedBlockId = id; }, 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
+});
 $('delete-block-button').addEventListener('click', () => {
   if (!selectedBlock() || documentModel.blocks.length <= 1) return;
   mutate(() => {
