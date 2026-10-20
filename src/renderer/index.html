@@ -23,35 +23,37 @@
         <button type="button" class="segment is-active" data-paper="58" aria-pressed="true">58 mm</button>
         <button type="button" class="segment" data-paper="80" aria-pressed="false">80 mm</button>
       </div>
-      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil preview">−</button>
+      <button type="button" class="icon-button" id="zoom-out" aria-label="Perkecil preview" title="Perkecil preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
       <output id="zoom-value" class="zoom-value" aria-live="polite">100%</output>
-      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar preview">+</button>
-      <button type="button" class="icon-button" id="zoom-fit" aria-label="Sesuaikan zoom" title="Sesuaikan zoom">⤢</button>
+      <button type="button" class="icon-button" id="zoom-in" aria-label="Perbesar preview" title="Perbesar preview"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+      <button type="button" class="icon-button" id="zoom-fit" aria-label="Sesuaikan zoom" title="Sesuaikan zoom"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M21 16v3a2 2 0 0 1-2 2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
     </div>
     <div class="tool-section" aria-label="Dokumen"><span class="tool-label">Dokumen</span><div class="tool-group">
-      <button type="button" class="icon-button" id="new-document-button" title="Dokumen baru" aria-label="Dokumen baru">▤</button>
-      <button type="button" class="icon-button" id="open-document-button" title="Buka dokumen" aria-label="Buka dokumen">↗</button>
-      <button type="button" class="icon-button" id="save-document-button" title="Simpan (Ctrl+S)" aria-label="Simpan dokumen">▣</button>
-      <button type="button" class="icon-button" id="save-as-document-button" title="Simpan sebagai" aria-label="Simpan sebagai">▧</button>
+      <button type="button" class="icon-button" id="new-document-button" title="Dokumen baru" aria-label="Dokumen baru"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 11v6"/><path d="M9 14h6"/></svg></button>
+      <button type="button" class="icon-button" id="open-document-button" title="Buka dokumen" aria-label="Buka dokumen"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v2"/><path d="M3 9h18l-2 10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></button>
+      <button type="button" class="icon-button" id="save-document-button" title="Simpan (Ctrl+S)" aria-label="Simpan dokumen"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></button>
+      <button type="button" class="icon-button" id="save-as-document-button" title="Simpan sebagai" aria-label="Simpan sebagai"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M12 20H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h10l4 4v4"/><path d="M14 3v5h5"/><path d="m15 18 5-5 2 2-5 5-3 1z"/></svg></button>
     </div></div>
     <div class="tool-section" aria-label="Riwayat"><span class="tool-label">Riwayat</span><div class="tool-group">
-      <button type="button" class="icon-button" id="undo-button" disabled title="Urungkan (Ctrl+Z)" aria-label="Urungkan">↶</button>
-      <button type="button" class="icon-button" id="redo-button" disabled title="Ulangi (Ctrl+Y)" aria-label="Ulangi">↷</button>
+      <button type="button" class="icon-button" id="undo-button" disabled title="Urungkan (Ctrl+Z)" aria-label="Urungkan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6l-3 2"/></svg></button>
+      <button type="button" class="icon-button" id="redo-button" disabled title="Ulangi (Ctrl+Y)" aria-label="Ulangi"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6l3 2"/></svg></button>
     </div></div>
-    <div class="tool-section" aria-label="Sisipkan objek"><span class="tool-label">Sisipkan</span><div class="tool-group">
-      <button type="button" class="icon-button" id="add-text-button" title="Sisipkan teks" aria-label="Sisipkan teks">T</button>
-      <button type="button" class="icon-button" id="add-item-button" title="Sisipkan item dan harga" aria-label="Sisipkan item dan harga">☷</button>
-      <button type="button" class="icon-button" id="add-rule-button" title="Sisipkan garis" aria-label="Sisipkan garis">―</button>
-      <button type="button" class="icon-button" id="add-spacer-button" title="Sisipkan jarak kosong" aria-label="Sisipkan jarak kosong">↕</button>
-      <button type="button" class="icon-button" id="add-table-button" title="Sisipkan tabel" aria-label="Sisipkan tabel">▦</button>
-      <button type="button" class="icon-button" id="add-columns-button" title="Sisipkan kolom teks" aria-label="Sisipkan kolom teks">▥</button>
-      <button type="button" class="icon-button" id="add-image-button" title="Sisipkan gambar" aria-label="Sisipkan gambar">▧</button>
-      <button type="button" class="icon-button" id="add-qr-button" title="Sisipkan QR code" aria-label="Sisipkan QR code">◈</button>
-      <button type="button" class="icon-button" id="add-barcode-button" title="Sisipkan barcode" aria-label="Sisipkan barcode">▥</button>
-      <input type="file" id="image-file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-    </div></div>
+    <div class="tool-section" aria-label="Sisipkan objek"><span class="tool-label">Sisipkan</span>
+      <div class="insert-subsections">
+        <div class="tool-subsection" aria-label="Teks"><span class="tool-label">Teks</span><div class="tool-group">
+          <button type="button" class="icon-button" id="add-text-button" title="Sisipkan teks" aria-label="Sisipkan teks"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></button><button type="button" class="icon-button" id="add-item-button" title="Sisipkan item dan harga" aria-label="Sisipkan item dan harga"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2z"/><path d="M8 8h8M8 12h5M8 16h8"/></svg></button>
+        </div></div>
+        <div class="tool-subsection" aria-label="Layout"><span class="tool-label">Layout</span><div class="tool-group">
+          <button type="button" class="icon-button" id="add-rule-button" title="Sisipkan garis" aria-label="Sisipkan garis"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 12h18"/></svg></button><button type="button" class="icon-button" id="add-spacer-button" title="Sisipkan jarak kosong" aria-label="Sisipkan jarak kosong"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="m7 8 5-5 5 5"/><path d="m7 16 5 5 5-5"/></svg></button><button type="button" class="icon-button" id="add-table-button" title="Sisipkan tabel" aria-label="Sisipkan tabel"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16M15 4v16"/></svg></button><button type="button" class="icon-button" id="add-columns-button" title="Sisipkan kolom teks" aria-label="Sisipkan kolom teks"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16M15 4v16"/></svg></button>
+        </div></div>
+        <div class="tool-subsection" aria-label="Media dan kode"><span class="tool-label">Media/kode</span><div class="tool-group">
+          <button type="button" class="icon-button" id="add-image-button" title="Sisipkan gambar" aria-label="Sisipkan gambar"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button><button type="button" class="icon-button" id="add-qr-button" title="Sisipkan QR code" aria-label="Sisipkan QR code"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v2M17 20h4M20 18v3"/></svg></button><button type="button" class="icon-button" id="add-barcode-button" title="Sisipkan barcode" aria-label="Sisipkan barcode"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 5v14M6 5v14M10 5v14M12 5v14M15 5v14M19 5v14M21 5v14"/></svg></button>
+          <input type="file" id="image-file-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        </div></div>
+      </div>
+    </div>
     <div class="toolbar-spacer"></div>
-    <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan">⌗</button>
+    <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M8 3v5M13 3v3M18 3v5M3 8h5M3 13h3M3 18h5"/></svg></button>
   </nav>
 
   <main class="workspace">
