@@ -406,6 +406,9 @@ function renderCanvas() {
   const paperWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
   designPaper.style.boxSizing = 'border-box';
   designPaper.style.width = paperWidth + 'px';
+  designPaper.style.zoom = String(state.zoom / 100);
+  designPaper.style.transform = 'none';
+  designPaper.style.transformOrigin = '';
   designPaper.style.padding = (15 + margins.top) + 'px ' + (12 + margins.right) + 'px ' + (20 + margins.bottom) + 'px ' + (12 + margins.left) + 'px';
 }
 function createPreviewLeaf(block, columns) {
@@ -578,8 +581,11 @@ function setPaper(width) {
 }
 function setZoom(value) {
   state.zoom = Math.min(150, Math.max(60, value));
+  designPaper.style.zoom = String(state.zoom / 100);
   renderPreview();
-  setStatus('Zoom preview ' + state.zoom + '%.');
+  zoomValue.textContent = state.zoom + '%';
+  zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
+  setStatus('Zoom area kerja dan preview ' + state.zoom + '%.');
 }
 function selectBlock(id, preserveCanvas = false) {
   selectedBlockId = id;
@@ -682,6 +688,24 @@ function trackInlineTarget(editor, blockId) {
     colIndex: Number(editor.dataset.colIndex ?? -1)
   };
 }
+function beginInlineEdit(editor, blockId) {
+  if (!editor || !blockId || !editor.isConnected) return false;
+  trackInlineTarget(editor, blockId);
+  selectedBlockId = blockId;
+  designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === blockId));
+  editor.setAttribute('contenteditable', 'true');
+  editor.setAttribute('role', 'textbox');
+  editor.setAttribute('aria-label', 'Edit teks langsung');
+  editor.focus({ preventScroll: true });
+  const selection = window.getSelection();
+  if (selection) {
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+  return document.activeElement === editor;
+}
 designPaper.addEventListener('click', event => {
   const blockNode = event.target.closest('[data-block-id]');
   if (blockNode) {
@@ -689,6 +713,10 @@ designPaper.addEventListener('click', event => {
     trackInlineTarget(editor, blockNode.dataset.blockId);
     const preserveCanvas = Boolean(editor || event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]'));
     selectBlock(blockNode.dataset.blockId, preserveCanvas);
+    if (event.detail >= 2 && editor) {
+      event.preventDefault();
+      beginInlineEdit(editor, blockNode.dataset.blockId);
+    }
   } else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
     activeInlineTarget = null;
     selectedBlockId = null;
@@ -701,17 +729,8 @@ designPaper.addEventListener('dblclick', event => {
   const editor = resolveInlineEditor(event);
   if (!blockNode || !editor) return;
   event.preventDefault();
-  selectBlock(blockNode.dataset.blockId, true);
-  trackInlineTarget(editor, blockNode.dataset.blockId);
-  editor.contentEditable = 'true';
-  editor.focus();
-  const selection = window.getSelection();
-  if (selection) {
-    const range = document.createRange();
-    range.selectNodeContents(editor);
-    selection.removeAllRanges();
-    selection.addRange(range);
-  }
+  event.stopPropagation();
+  beginInlineEdit(editor, blockNode.dataset.blockId);
 });
 designPaper.addEventListener('keydown', event => {
   if (event.target.closest('[data-inline-edit]')) return;
