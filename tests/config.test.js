@@ -41,7 +41,7 @@ test('keamanan Electron dikonfigurasi pada main process', () => {
   const main = read('src/main/main.js');
   assert.match(main, /contextIsolation:\s*true/);
   assert.match(main, /nodeIntegration:\s*false/);
-  assert.match(main, /setWindowOpenHandler/);
+  assert.match(main, /mainWindow\.webContents\.setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
   assert.match(main, /will-navigate/);
 });
 
