@@ -17,7 +17,7 @@ const previewStatus = $('preview-status');
 const guideButton = $('toggle-guides');
 const textInput = $('block-text-input');
 const priceInput = $('block-price-input');
-const alignInput = $('block-align-input');
+const alignmentButtons = [...document.querySelectorAll('[data-text-align]')];
 const selectedLabel = $('selected-block-label');
 const sizeInput = $('block-size-input');
 const boldInput = $('block-bold-input');
@@ -52,6 +52,7 @@ const blockContextMenu = $('block-context-menu');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
+let activeInlineTarget = null;
 let isDirty = false;
 let currentFilePath = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
@@ -154,15 +155,16 @@ function styledTable(block, editable = false) {
   const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
   table.style.setProperty('--cell-padding', (block.padding ?? 4) + 'px');
   table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
-  if (block.bold) table.style.fontWeight = '700';
-  if (block.italic) table.style.fontStyle = 'italic';
-  if (block.underline) table.style.textDecoration = 'underline';
+  table.style.fontWeight = block.bold === true ? '700' : '400';
+  table.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+  table.style.textDecoration = block.underline === true ? 'underline' : 'none';
   const colgroup = document.createElement('colgroup');
   columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); });
   table.append(colgroup);
   const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
   block.headers.forEach((value, colIndex) => {
     const th = document.createElement('th');
+    th.style.textAlign = tableCellAlignment(block, -1, colIndex);
     if (editable) {
       th.append(createEditableText(value, 'tableCell', { rowIndex: -1, colIndex }));
       if (colIndex < block.headers.length - 1) {
@@ -178,6 +180,7 @@ function styledTable(block, editable = false) {
     const tr = document.createElement('tr');
     row.forEach((value, colIndex) => {
       const td = document.createElement('td');
+      td.style.textAlign = tableCellAlignment(block, rowIndex, colIndex);
       if (editable) td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex }));
       else td.textContent = value;
       tr.append(td);
@@ -218,6 +221,10 @@ function createColumnLayout(block, editable) {
     const cell = make('div', 'column-cell border-' + (block.border || 'vertical'));
     cell.style.flex = '0 0 calc(' + widths[index] + '% - ' + gapShare + 'px)';
     cell.style.padding = (block.padding ?? 4) + 'px';
+    cell.style.textAlign = columnCellAlignment(block, index);
+    cell.style.fontWeight = block.bold === true ? '700' : '400';
+    cell.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+    cell.style.textDecoration = block.underline === true ? 'underline' : 'none';
     if (editable) {
       cell.append(createEditableText(value, 'columnCell', { colIndex: index }));
       if (index < block.columns.length - 1) {
@@ -241,13 +248,66 @@ function createCodeGraphic(block) {
   return make('span', 'object-placeholder', 'Objek kode tidak dikenal');
 }
 function applyTextStyle(node, block) {
-  node.style.textAlign = block.align || 'left';
-  if (block.align === 'right') node.style.justifyContent = 'flex-end';
-  else if (block.align === 'center') node.style.justifyContent = 'center';
+  const alignment = block.align || 'left';
+  node.style.textAlign = alignment;
+  node.style.justifyContent = alignment === 'right' ? 'flex-end' : alignment === 'center' ? 'center' : 'flex-start';
   node.style.fontSize = ({ small: '9px', normal: '11px', large: '14px', double: '17px' })[block.size || 'normal'];
-  if (block.bold) node.style.fontWeight = '700';
-  if (block.italic) node.style.fontStyle = 'italic';
-  if (block.underline) node.style.textDecoration = 'underline';
+  node.style.fontWeight = block.bold === true ? '700' : '400';
+  node.style.fontStyle = block.italic === true ? 'italic' : 'normal';
+  node.style.textDecoration = block.underline === true ? 'underline' : 'none';
+}
+function tableCellAlignment(block, rowIndex, colIndex) {
+  return block.cellAlignments?.[rowIndex + 1]?.[colIndex] || block.align || 'left';
+}
+function columnCellAlignment(block, colIndex) {
+  return block.columnAlignments?.[colIndex] || block.align || 'left';
+}
+function alignmentForTarget(block) {
+  if (!block) return 'left';
+  if (activeInlineTarget?.blockId === block.id && activeInlineTarget.field === 'tableCell' && block.type === 'table') {
+    return tableCellAlignment(block, activeInlineTarget.rowIndex, activeInlineTarget.colIndex);
+  }
+  if (activeInlineTarget?.blockId === block.id && activeInlineTarget.field === 'columnCell' && block.type === 'columns') {
+    return columnCellAlignment(block, activeInlineTarget.colIndex);
+  }
+  return block.align || 'left';
+}
+function updateAlignmentButtons() {
+  const block = selectedBlock();
+  const selectedAlignment = alignmentForTarget(block);
+  for (const button of alignmentButtons) {
+    const active = Boolean(block) && button.dataset.textAlign === selectedAlignment;
+    button.setAttribute('aria-pressed', String(active));
+    button.classList.toggle('is-active', active);
+    button.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
+  }
+}
+function applyAlignment(alignment) {
+  const block = selectedBlock();
+  if (!block || !['left','center','right'].includes(alignment)) return;
+  const target = activeInlineTarget?.blockId === block.id ? activeInlineTarget : null;
+  mutate(() => {
+    if (block.type === 'table' && target?.field === 'tableCell') {
+      const rowIndex = target.rowIndex + 1;
+      if (!Array.isArray(block.cellAlignments)) {
+        block.cellAlignments = Array.from({ length: block.rows.length + 1 }, () => Array(block.headers.length).fill(block.align || 'left'));
+      }
+      while (block.cellAlignments.length < block.rows.length + 1) {
+        block.cellAlignments.push(Array(block.headers.length).fill(block.align || 'left'));
+      }
+      block.cellAlignments[rowIndex][target.colIndex] = alignment;
+    } else if (block.type === 'columns' && target?.field === 'columnCell') {
+      if (!Array.isArray(block.columnAlignments)) block.columnAlignments = Array(block.columns.length).fill(block.align || 'left');
+      block.columnAlignments[target.colIndex] = alignment;
+    } else {
+      block.align = alignment;
+      if (block.type === 'table') {
+        block.cellAlignments = Array.from({ length: block.rows.length + 1 }, () => Array(block.headers.length).fill(alignment));
+      } else if (block.type === 'columns') {
+        block.columnAlignments = Array(block.columns.length).fill(alignment);
+      }
+    }
+  }, 'Perataan teks diperbarui.');
 }
 function applyBoxStyle(node, box, kind) {
   if (!box) return;
@@ -446,10 +506,8 @@ function renderInspector() {
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
   textInput.disabled = !block || !['text', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
-  alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
   textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : ['text','dynamic'].includes(block.type) ? (block.text || '') : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
-  alignInput.value = block?.align ?? 'left';
   sizeInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
   sizeInput.value = block?.size || 'normal';
   boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
@@ -505,6 +563,7 @@ function renderInspector() {
     paddingInputs[side].disabled = !block;
     paddingInputs[side].value = String(spacingPadding?.[side] ?? (block?.type === 'section' ? 8 : 0));
   }
+  updateAlignmentButtons();
 }
 function renderAll() {
   renderCanvas();
@@ -607,10 +666,31 @@ editorSurface.addEventListener('click', event => {
     renderInspector();
   }
 });
+function resolveInlineEditor(event) {
+  if (event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]')) return null;
+  const direct = event.target.closest('[data-inline-edit]');
+  if (direct) return direct;
+  const cell = event.target.closest('td, th, .column-cell, .section-header');
+  return cell?.querySelector('[data-inline-edit]') || null;
+}
+function trackInlineTarget(editor, blockId) {
+  if (!editor) { activeInlineTarget = null; return; }
+  activeInlineTarget = {
+    blockId,
+    field: editor.dataset.field,
+    rowIndex: Number(editor.dataset.rowIndex ?? -2),
+    colIndex: Number(editor.dataset.colIndex ?? -1)
+  };
+}
 designPaper.addEventListener('click', event => {
-  const block = event.target.closest('[data-block-id]');
-  if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize], [data-table-width], [data-drag-handle]')));
-  else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+  const blockNode = event.target.closest('[data-block-id]');
+  if (blockNode) {
+    const editor = resolveInlineEditor(event);
+    trackInlineTarget(editor, blockNode.dataset.blockId);
+    const preserveCanvas = Boolean(editor || event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]'));
+    selectBlock(blockNode.dataset.blockId, preserveCanvas);
+  } else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+    activeInlineTarget = null;
     selectedBlockId = null;
     renderCanvas();
     renderInspector();
@@ -618,14 +698,20 @@ designPaper.addEventListener('click', event => {
 });
 designPaper.addEventListener('dblclick', event => {
   const blockNode = event.target.closest('[data-block-id]');
-  const editor = event.target.closest('[data-inline-edit]');
+  const editor = resolveInlineEditor(event);
   if (!blockNode || !editor) return;
   event.preventDefault();
   selectBlock(blockNode.dataset.blockId, true);
+  trackInlineTarget(editor, blockNode.dataset.blockId);
   editor.contentEditable = 'true';
   editor.focus();
   const selection = window.getSelection();
-  if (selection) { const range = document.createRange(); range.selectNodeContents(editor); selection.removeAllRanges(); selection.addRange(range); }
+  if (selection) {
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
 });
 designPaper.addEventListener('keydown', event => {
   if (event.target.closest('[data-inline-edit]')) return;
@@ -637,6 +723,7 @@ designPaper.addEventListener('contextmenu', event => {
   const node = event.target.closest('[data-block-id]');
   if (!node) { blockContextMenu.hidden = true; return; }
   event.preventDefault();
+  activeInlineTarget = null;
   selectBlock(node.dataset.blockId, true);
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
@@ -871,10 +958,10 @@ tableBorderInput.addEventListener('change', () => { const block = selectedBlock(
 totalAmountInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'total') return; const value = Math.max(0, Math.min(1000000000, Math.round(Number(totalAmountInput.value) || 0))); if (block.amount === value) return; mutate(() => { block.amount = value; }, 'Nilai total diperbarui.'); });
 ruleCharacterInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule') return; const value = (ruleCharacterInput.value || '-').slice(0, 1); mutate(() => { block.character = value; }, 'Karakter garis diperbarui.'); });
 imageAltInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = imageAltInput.value.slice(0, 200); if (block.alt === value) return; mutate(() => { block.alt = value; }, 'Deskripsi gambar diperbarui.'); });
-$('table-add-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length >= 100) return; mutate(() => { block.rows.push(Array(block.headers.length).fill('')); }, 'Baris tabel ditambahkan.'); });
-$('table-remove-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length <= 0) return; mutate(() => { block.rows.pop(); }, 'Baris terakhir tabel dihapus.'); });
-$('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); const count = block.headers.length; block.columnWidths = Array(count).fill(Number((100/count).toFixed(2))); block.columnWidths[count-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
-$('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { const oldWidths = columnWidths(block); block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = oldWidths.slice(0, -1); const widthSum = widths.reduce((sum,v)=>sum+v,0); const normalized = widths.map(width => width / widthSum * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
+$('table-add-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length >= 100) return; mutate(() => { block.rows.push(Array(block.headers.length).fill('')); if (Array.isArray(block.cellAlignments)) block.cellAlignments.push(Array(block.headers.length).fill(block.align || 'left')); }, 'Baris tabel ditambahkan.'); });
+$('table-remove-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length <= 0) return; mutate(() => { block.rows.pop(); if (Array.isArray(block.cellAlignments)) block.cellAlignments.pop(); }, 'Baris terakhir tabel dihapus.'); });
+$('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); if (Array.isArray(block.cellAlignments)) block.cellAlignments.forEach(row => row.push(block.align || 'left')); const count = block.headers.length; block.columnWidths = Array(count).fill(Number((100/count).toFixed(2))); block.columnWidths[count-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
+$('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { const oldWidths = columnWidths(block); block.headers.pop(); block.rows.forEach(row => row.pop()); if (Array.isArray(block.cellAlignments)) block.cellAlignments.forEach(row => row.pop()); const widths = oldWidths.slice(0, -1); const widthSum = widths.reduce((sum,v)=>sum+v,0); const normalized = widths.map(width => width / widthSum * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
 
 tableWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'table') return;
@@ -959,11 +1046,7 @@ priceInput.addEventListener('change', () => {
   if (block.price === value) return;
   mutate(() => { block.price = value; }, 'Harga item diperbarui.');
 });
-alignInput.addEventListener('change', () => {
-  const block = selectedBlock();
-  if (!block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type) || !['left', 'center', 'right'].includes(alignInput.value)) return;
-  mutate(() => { block.align = alignInput.value; }, 'Perataan teks diperbarui.');
-});
+alignmentButtons.forEach(button => button.addEventListener('click', () => applyAlignment(button.dataset.textAlign)));
 $('add-text-button').addEventListener('click', () => addBlock('text'));
 $('add-item-button').addEventListener('click', () => addBlock('item'));
 $('add-image-button')?.addEventListener('click', () => $('image-file-input').click());
@@ -1032,6 +1115,11 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keydown', event => {
   if (!(event.ctrlKey || event.metaKey)) return;
   const key = event.key.toLowerCase();
+  if (event.shiftKey && ['l','e','r'].includes(key)) {
+    event.preventDefault();
+    applyAlignment(({ l: 'left', e: 'center', r: 'right' })[key]);
+    return;
+  }
   if (key === 's') { event.preventDefault(); document.activeElement?.blur?.(); saveCurrent('save'); }
   else if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   else if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }

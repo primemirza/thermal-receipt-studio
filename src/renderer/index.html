@@ -41,6 +41,20 @@
       <button type="button" class="icon-button" id="undo-button" disabled title="Urungkan (Ctrl+Z)" aria-label="Urungkan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6l-3 2"/></svg></button>
       <button type="button" class="icon-button" id="redo-button" disabled title="Ulangi (Ctrl+Y)" aria-label="Ulangi"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6l3 2"/></svg></button>
     </div></div>
+    <div class="tool-section toolbar-align-group" aria-label="Perataan teks">
+      <span class="tool-label">Perataan</span>
+      <div class="tool-group" role="group" aria-label="Perataan teks terpilih">
+        <button type="button" class="icon-button align-button" id="align-left-button" data-text-align="left" aria-pressed="false" title="Rata kiri (Ctrl+Shift+L)" aria-label="Rata kiri">
+          <svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M4 5h16M4 9h10M4 13h16M4 17h10M4 21h16"/></svg>
+        </button>
+        <button type="button" class="icon-button align-button" id="align-center-button" data-text-align="center" aria-pressed="false" title="Rata tengah (Ctrl+Shift+E)" aria-label="Rata tengah">
+          <svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M4 5h16M7 9h10M4 13h16M7 17h10M4 21h16"/></svg>
+        </button>
+        <button type="button" class="icon-button align-button" id="align-right-button" data-text-align="right" aria-pressed="false" title="Rata kanan (Ctrl+Shift+R)" aria-label="Rata kanan">
+          <svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M4 5h16M10 9h10M4 13h16M10 17h10M4 21h16"/></svg>
+        </button>
+      </div>
+    </div>
     <div class="tool-section" aria-label="Sisipkan objek"><span class="tool-label">Sisipkan</span>
       <div class="insert-subsections">
         <div class="tool-subsection" aria-label="Teks"><span class="tool-label">Teks</span><div class="tool-group">
@@ -68,10 +82,7 @@
       <div class="inspector inspector-scroll" id="block-inspector">
         <div class="inspector-heading"><strong>Properti terpilih</strong><span id="selected-block-label">Pilih elemen di kanvas</span></div>
         <label for="block-text-input">Teks / isi</label><input id="block-text-input" type="text" disabled placeholder="Pilih elemen untuk mengedit isi" />
-        <div class="inspector-fields">
-          <label for="block-price-input">Harga item<input id="block-price-input" type="number" min="0" step="1" disabled placeholder="0" /></label>
-          <label for="block-align-input">Perataan<select id="block-align-input" disabled><option value="left">Kiri</option><option value="center">Tengah</option><option value="right">Kanan</option></select></label>
-        </div>
+        <label for="block-price-input">Harga item<input id="block-price-input" type="number" min="0" step="1" disabled placeholder="0" /></label>
         <div class="inspector-fields">
           <label for="block-size-input">Ukuran teks<select id="block-size-input" disabled><option value="small">Kecil</option><option value="normal">Normal</option><option value="large">Besar</option><option value="double">Dobel</option></select></label>
           <label class="inspector-check" for="block-bold-input"><input id="block-bold-input" type="checkbox" disabled /> Tebal</label>

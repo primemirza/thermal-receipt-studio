@@ -38,6 +38,11 @@ function assertWidths(widths, count, label) {
     throw new TypeError(label + ' harus berjumlah 100% dan tiap kolom minimal 10%.');
   }
 }
+function assertAlignments(alignments, count, label) {
+  if (!Array.isArray(alignments) || alignments.length !== count || alignments.some(value => !ALIGNMENTS.includes(value))) {
+    throw new TypeError(label + ' tidak valid; tiap sel harus kiri, tengah, atau kanan.');
+  }
+}
 export function validateDocument(doc) {
   if (!doc || typeof doc !== 'object' || doc.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
     throw new TypeError('Versi dokumen tidak didukung.');
@@ -49,7 +54,8 @@ export function validateDocument(doc) {
   }
   const ids = new Set();
   let totalBlocks = 0;
-  function validateBlocks(blocks) {
+  function validateBlocks(blocks, depth = 0) {
+    if (depth > 20) throw new TypeError('Section hanya boleh bertingkat maksimal 20 level.');
     if (!Array.isArray(blocks)) throw new TypeError('Daftar elemen tidak valid.');
     for (const block of blocks) {
       totalBlocks += 1;
@@ -63,7 +69,7 @@ export function validateDocument(doc) {
       if (block.type === 'section') {
         assertString(block.name || 'Section', 'Nama section');
         if (block.padding !== undefined) assertBox(block.padding, 'Padding section', 60);
-        validateBlocks(block.children);
+        validateBlocks(block.children, depth + 1);
         continue;
       }
       if (block.type === 'text') assertString(block.text, 'Teks elemen');
@@ -91,6 +97,10 @@ export function validateDocument(doc) {
         if (block.width !== undefined && (!Number.isFinite(block.width) || block.width < 20 || block.width > 100)) throw new TypeError('Lebar tabel harus 20–100%.');
         if (block.offset !== undefined && (!Number.isFinite(block.offset) || block.offset < 0 || block.offset > 80 || block.offset + (block.width ?? 100) > 100)) throw new TypeError('Posisi tabel tidak valid untuk lebar yang dipilih.');
         if (block.padding !== undefined && (!Number.isFinite(block.padding) || block.padding < 0 || block.padding > 20)) throw new TypeError('Padding sel tabel harus 0–20 px.');
+        if (block.cellAlignments !== undefined) {
+          if (!Array.isArray(block.cellAlignments) || block.cellAlignments.length !== block.rows.length + 1) throw new TypeError('Perataan sel tabel tidak valid.');
+          block.cellAlignments.forEach((row, rowIndex) => assertAlignments(row, block.headers.length, 'Perataan baris tabel ' + rowIndex));
+        }
       }
       if (block.type === 'columns') {
         if (!Array.isArray(block.columns) || block.columns.length < 2 || block.columns.length > 4 || block.columns.some(value => typeof value !== 'string' || value.length > 200)) throw new TypeError('Kolom tidak valid.');
@@ -99,6 +109,7 @@ export function validateDocument(doc) {
         if (block.gap !== undefined && (!Number.isFinite(block.gap) || block.gap < 0 || block.gap > 30)) throw new TypeError('Jarak antar kolom harus 0–30 px.');
         if (block.border !== undefined && !['all', 'vertical', 'none'].includes(block.border)) throw new TypeError('Border kolom tidak valid.');
         if (block.width !== undefined && (!Number.isFinite(block.width) || block.width < 20 || block.width > 100)) throw new TypeError('Lebar objek kolom harus 20–100%.');
+        if (block.columnAlignments !== undefined) assertAlignments(block.columnAlignments, block.columns.length, 'Perataan kolom teks');
       }
       if (block.type === 'image') {
         assertString(block.dataUrl, 'Data gambar', 8_000_000);
