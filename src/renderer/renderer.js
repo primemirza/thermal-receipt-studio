@@ -207,12 +207,24 @@ function renderPreview() {
 function renderInspector() {
   const block = selectedBlock();
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
-  textInput.disabled = !block || !['text', 'item', 'total', 'dynamic', 'qrcode', 'barcode'].includes(block.type);
+  textInput.disabled = !block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
-  alignInput.disabled = !block || !['text'].includes(block.type);
+  alignInput.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
   textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : block.type === 'text' ? block.text : ['dynamic', 'qrcode', 'barcode'].includes(block.type) ? (block.field || block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
   alignInput.value = block?.align ?? 'left';
+  sizeInput.disabled = !block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type);
+  sizeInput.value = block?.size || 'normal';
+  boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  boldInput.checked = Boolean(block?.bold);
+  spacerHeightInput.disabled = !block || block.type !== 'spacer';
+  spacerHeightInput.value = block?.type === 'spacer' ? String(block.height) : '';
+  imageWidthInput.disabled = !block || block.type !== 'image';
+  imageWidthInput.value = block?.type === 'image' ? String(block.width) : '';
+  ruleStyleInput.disabled = !block || block.type !== 'rule';
+  ruleStyleInput.value = block?.type === 'rule' ? (block.style || 'solid') : 'solid';
+  tableBorderInput.disabled = !block || block.type !== 'table';
+  tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';
   $('delete-block-button').disabled = !block || documentModel.blocks.length <= 1;
 }
 function renderAll() {
@@ -230,9 +242,10 @@ function setZoom(value) {
   renderPreview();
   setStatus('Zoom preview ' + state.zoom + '%.');
 }
-function selectBlock(id) {
+function selectBlock(id, preserveCanvas = false) {
   selectedBlockId = id;
-  renderCanvas();
+  if (!preserveCanvas) renderCanvas();
+  else designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === id));
   renderInspector();
 }
 function addBlock(type) {
@@ -242,7 +255,7 @@ function addBlock(type) {
       item: { id, type: 'item', name: 'Item baru', price: 0 },
       rule: { id, type: 'rule', style: 'solid', character: '-' },
       spacer: { id, type: 'spacer', height: 2 },
-      table: { id, type: 'table', headers: ['Item', 'Qty', 'Harga'], rows: [['Contoh', '1', '5000']] },
+      table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', '']], border: 'all', columnWidths: [50, 50], align: 'left', size: 'normal', bold: false },
       columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'] },
       qrcode: { id, type: 'qrcode', value: 'https://example.invalid' },
       barcode: { id, type: 'barcode', value: '1234567890' },
@@ -267,7 +280,7 @@ guideButton.addEventListener('click', () => {
 });
 designPaper.addEventListener('click', event => {
   const block = event.target.closest('[data-block-id]');
-  if (block) selectBlock(block.dataset.blockId);
+  if (block) selectBlock(block.dataset.blockId, Boolean(event.target.closest('[data-inline-edit], [data-col-resize]')));
 });
 designPaper.addEventListener('keydown', event => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -277,14 +290,10 @@ designPaper.addEventListener('keydown', event => {
 textInput.addEventListener('change', () => {
   const block = selectedBlock();
   if (!block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type)) return;
-  const value = textInput.value.slice(0, 200);
-  if ((block.type === 'text' ? block.text : block.type === 'item' ? block.name : block.label) === value) return;
-  mutate(() => {
-    if (block.type === 'text') block.text = value;
-    else if (block.type === 'item') block.name = value;
-    else if (block.type === 'total') block.label = value;
-    else block.value = value;
-  }, 'Perubahan teks diterapkan.');
+  const value = textInput.value.slice(0, block.type === 'qrcode' ? 2000 : 200);
+  const key = block.type === 'text' ? 'text' : block.type === 'item' ? 'name' : block.type === 'total' ? 'label' : 'value';
+  if (block[key] === value) return;
+  mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
 priceInput.addEventListener('change', () => {
   const block = selectedBlock();
@@ -295,7 +304,7 @@ priceInput.addEventListener('change', () => {
 });
 alignInput.addEventListener('change', () => {
   const block = selectedBlock();
-  if (!block || block.type !== 'text' || !['left', 'center', 'right'].includes(alignInput.value)) return;
+  if (!block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type) || !['left', 'center', 'right'].includes(alignInput.value)) return;
   mutate(() => { block.align = alignInput.value; }, 'Perataan teks diperbarui.');
 });
 $('add-text-button').addEventListener('click', () => addBlock('text'));
