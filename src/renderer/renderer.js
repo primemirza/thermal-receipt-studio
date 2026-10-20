@@ -651,6 +651,7 @@ blockContextMenu.addEventListener('click', event => {
   blockContextMenu.hidden = true;
   if (action === 'insert-text') addBlock('text');
   else if (action === 'insert-section') addBlock('section');
+  else if (action === 'duplicate') duplicateSelectedBlock();
   else if (action === 'delete') deleteSelectedBlock();
   else if (action === 'move-up' || action === 'move-down') {
     const entry = findBlockEntry(selectedBlockId);
@@ -703,7 +704,9 @@ designPaper.addEventListener('focusout', event => {
     const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', true);
     if (updated && field === 'value' && ['qrcode','barcode'].includes(block.type)) {
       const graphic = blockNode?.querySelector('.generated-code');
-      if (graphic) graphic.replaceWith(createCodeGraphic(block));
+      const wrapper = graphic?.closest('.resizable-object');
+      if (wrapper) wrapper.replaceWith(createResizableObject(block, createCodeGraphic(block)));
+      else if (graphic) graphic.replaceWith(createCodeGraphic(block));
     }
   }
   cell.contentEditable = 'false';
@@ -728,6 +731,44 @@ designPaper.addEventListener('keydown', event => {
   }
 });
 designPaper.addEventListener('pointerdown', event => {
+  const objectHandle = event.target.closest('[data-object-resize]');
+  if (objectHandle) {
+    event.preventDefault(); event.stopPropagation();
+    const wrapper = objectHandle.closest('.resizable-object');
+    const blockId = objectHandle.closest('[data-block-id]')?.dataset.blockId;
+    const block = findBlockEntry(blockId)?.block;
+    if (!wrapper || !block || !['image', 'qrcode', 'barcode'].includes(block.type)) return;
+    const startWidth = Number(block.width || (block.type === 'qrcode' ? 96 : block.type === 'barcode' ? 220 : 120));
+    const startX = event.clientX, startY = event.clientY;
+    const minWidth = block.type === 'qrcode' ? 32 : block.type === 'barcode' ? 64 : 1;
+    const getWidth = moveEvent => {
+      const dx = moveEvent.clientX - startX, dy = moveEvent.clientY - startY;
+      const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+      return Math.max(minWidth, Math.min(512, Math.round(startWidth + delta)));
+    };
+    const move = moveEvent => { wrapper.style.width = getWidth(moveEvent) + 'px'; };
+    const finish = upEvent => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      if (Math.abs(upEvent.clientX - startX) < 1 && Math.abs(upEvent.clientY - startY) < 1) return;
+      const width = getWidth(upEvent);
+      mutate(() => {
+        const current = findBlockEntry(blockId)?.block;
+        if (current && ['image', 'qrcode', 'barcode'].includes(current.type)) current.width = width;
+      }, 'Ukuran objek diperbarui.');
+    };
+    const cancel = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      wrapper.style.width = startWidth + 'px';
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', finish, { once: true });
+    document.addEventListener('pointercancel', cancel, { once: true });
+    return;
+  }
   const widthHandle = event.target.closest('[data-table-width]');
   if (widthHandle) {
     event.preventDefault(); event.stopPropagation();
@@ -960,6 +1001,18 @@ $('table-dialog-form').addEventListener('submit', event => {
   const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, width: 100, padding: 4, align: 'left', size: 'normal', bold: false };
   $('table-dialog').close(); mutate(() => insertNewBlock(block), 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
+function duplicateSelectedBlock() {
+  const sourceId = selectedBlockId;
+  const entry = findBlockEntry(sourceId);
+  if (!entry) return;
+  const duplicate = cloneBlockWithFreshIds(entry.block);
+  mutate(() => {
+    const current = findBlockEntry(sourceId);
+    if (!current) return;
+    current.list.splice(current.index + 1, 0, duplicate);
+    selectedBlockId = duplicate.id;
+  }, 'Elemen diduplikasi.');
+}
 function deleteSelectedBlock() {
   if (!selectedBlock()) return;
   mutate(() => {
@@ -993,14 +1046,19 @@ async function saveCurrent(mode = 'save') {
   if (!result?.ok) { setStatus('Gagal menyimpan: ' + (result?.message || result?.error || 'kesalahan tidak diketahui')); return false; }
   if (!result.value) { setStatus('Penyimpanan dibatalkan.'); return false; }
   currentFilePath = result.value.path;
+  updateWindowTitle();
   isDirty = false;
   setStatus('Dokumen tersimpan: ' + currentFilePath);
   return true;
 }
+function updateWindowTitle() {
+  const fileName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
+  document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
+}
 function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
 $('new-document-button').addEventListener('click', () => {
   if (!confirmDiscard()) return;
-  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; isDirty = false;
+  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; updateWindowTitle(); isDirty = false;
   state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen baru dibuat.');
 });
 $('open-document-button').addEventListener('click', async () => {
@@ -1012,7 +1070,7 @@ $('open-document-button').addEventListener('click', async () => {
     const openedDocument = migrateLegacyDocument(result.value.document);
     validateDocument(openedDocument);
     documentModel = cloneDocument(openedDocument);
-    selectedBlockId = null; currentFilePath = result.value.path; isDirty = false;
+    selectedBlockId = null; currentFilePath = result.value.path; updateWindowTitle(); isDirty = false;
     state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
   } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
 });
@@ -1020,6 +1078,7 @@ $('save-document-button').addEventListener('click', () => saveCurrent('save'));
 $('save-as-document-button').addEventListener('click', () => saveCurrent('saveAs'));
 
 async function boot() {
+  updateWindowTitle();
   renderAll();
   try {
     const ver = await window.trs.getVersion();
