@@ -47,7 +47,7 @@ test('renderer and toolbar expose object creation and preview branches', async (
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   for (const type of ['spacer', 'table', 'columns', 'qrcode', 'barcode', 'image']) assert.ok(js.includes("type: '" + type + "'") || js.includes("block.type === '" + type + "'"), type);
-  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-section-button', 'global-layout-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border', 'block-italic-input', 'block-underline-input', 'block-total-amount', 'block-rule-character', 'block-image-alt', 'table-add-row', 'table-remove-row', 'table-add-column', 'table-remove-column', 'columns-dialog-form', 'columns-count', 'columns-dialog-cancel', 'global-layout-form', 'global-margin-top', 'global-margin-right', 'global-margin-bottom', 'global-margin-left', 'block-table-width', 'block-table-padding', 'block-columns-width', 'block-columns-padding', 'block-columns-gap', 'block-column-widths', 'block-section-name', 'block-section-child-count', 'block-spacing-fields', 'block-margin-top', 'block-margin-right', 'block-margin-bottom', 'block-margin-left', 'block-padding-top', 'block-padding-right', 'block-padding-bottom', 'block-padding-left', 'block-context-menu']) assert.ok(html.includes(id), id);
+  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-section-button', 'global-layout-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border', 'block-italic-input', 'block-underline-input', 'block-total-amount', 'block-rule-character', 'block-image-alt', 'table-add-row', 'table-remove-row', 'table-add-column', 'table-remove-column', 'columns-dialog-form', 'columns-count', 'columns-dialog-cancel', 'global-layout-form', 'global-margin-top', 'global-margin-right', 'global-margin-bottom', 'global-margin-left', 'block-table-width', 'block-table-padding', 'block-columns-width', 'block-columns-padding', 'block-columns-gap', 'block-column-widths', 'block-section-name', 'block-section-child-count', 'block-spacing-fields', 'block-margin-top', 'block-margin-right', 'block-margin-bottom', 'block-margin-left', 'block-padding-top', 'block-padding-right', 'block-padding-bottom', 'block-padding-left', 'block-context-menu', 'align-left-button', 'align-center-button', 'align-right-button']) assert.ok(html.includes(id), id);
 });
 
 
@@ -267,6 +267,90 @@ test('separator renders one style stroke instead of repeated glyphs plus a borde
   assert.ok(js.includes("character !== '-' ? character.repeat(columns) : ''"));
   assert.match(css, /\.design-block\.design-block-rule \{ border-bottom: 0 !important; \}/);
   assert.match(css, /\.receipt-line\.rule-character \{ border-bottom: 0 !important; \}/);
+});
+
+test('Word-style alignment toolbar applies to all blocks and individual table/column cells', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  const model = fs.readFileSync(path.join(root, 'src/renderer/document-model.js'), 'utf8');
+  for (const id of ['align-left-button','align-center-button','align-right-button']) assert.ok(html.includes('id="' + id + '"'));
+  assert.ok(!html.includes('id="block-align-input"'), 'alignment is not a property inspector control anymore');
+  assert.ok(js.includes('function applyAlignment(alignment)'));
+  assert.ok(js.includes("block.cellAlignments[rowIndex][target.colIndex] = alignment"));
+  assert.ok(js.includes("block.columnAlignments[target.colIndex] = alignment"));
+  assert.ok(js.includes("alignmentButtons.forEach(button => button.addEventListener('click'"));
+  assert.ok(js.includes("event.shiftKey && ['l','e','r'].includes(key)"));
+  assert.ok(model.includes("assertAlignments(block.cellAlignments"));
+  assert.ok(model.includes("assertAlignments(block.columnAlignments"));
+});
+
+test('tables and text columns preserve explicit false bold/italic/underline values', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
+  assert.ok(js.includes("node.style.fontWeight = block.bold === true ? '700' : '400'"));
+  assert.ok(js.includes("table.style.fontWeight = block.bold === true ? '700' : '400'"));
+  assert.ok(js.includes("cell.style.fontWeight = block.bold === true ? '700' : '400'"));
+  assert.match(css, /\.canvas-table th, \.preview-table th \{[\s\S]*?font-weight: inherit/);
+  assert.match(css, /\.column-cell \{[\s\S]*?font-weight: inherit/);
+});
+
+test('nested sections can contain further sections and alignment model stays valid through round-trip', () => {
+  const doc = createSampleDocument();
+  const root = {
+    id: 'section-root', type: 'section', name: 'Root',
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    padding: { top: 8, right: 8, bottom: 8, left: 8 }, children: []
+  };
+  const nested = {
+    id: 'section-nested', type: 'section', name: 'Nested',
+    margin: { top: 1, right: 1, bottom: 1, left: 1 },
+    padding: { top: 2, right: 2, bottom: 2, left: 2 }, children: [
+      { id: 'nested-text', type: 'text', text: 'Di dalam section', align: 'center' }
+    ]
+  };
+  root.children.push(nested);
+  doc.blocks.push(root);
+  insertBlockAtSelection(doc, root.id, { id: 'section-child-after-nested', type: 'text', text: 'Child berikutnya' });
+  assert.equal(root.children.at(-1).id, 'section-child-after-nested');
+  assert.equal(validateDocument(doc), true);
+  const loaded = parseTrstudio(serializeTrstudio(doc), validateDocument);
+  assert.deepEqual(loaded.document, doc);
+  const tooDeep = createSampleDocument();
+  let children = tooDeep.blocks;
+  for (let i = 0; i < 22; i += 1) {
+    const section = { id: 'deep-section-' + i, type: 'section', name: 'Level ' + i, margin: { top:0,right:0,bottom:0,left:0 }, padding: { top:0,right:0,bottom:0,left:0 }, children: [] };
+    children.push(section); children = section.children;
+  }
+  assert.throws(() => validateDocument(tooDeep), /20 level/);
+});
+
+test('table and column per-cell alignment values are validated and round-trip', () => {
+  const doc = createSampleDocument();
+  doc.blocks.push({
+    id: 'aligned-table', type: 'table', headers: ['A','B'], rows: [['1','2']],
+    cellAlignments: [['center','right'], ['left','center']], columnWidths: [50,50]
+  });
+  doc.blocks.push({
+    id: 'aligned-columns', type: 'columns', columns: ['Kiri','Kanan'],
+    columnAlignments: ['left','right'], columnWidths: [50,50]
+  });
+  assert.equal(validateDocument(doc), true);
+  const loaded = parseTrstudio(serializeTrstudio(doc), validateDocument);
+  assert.deepEqual(loaded.document, doc);
+  const invalid = cloneDocument(doc);
+  invalid.blocks.find(block => block.id === 'aligned-table').cellAlignments[1][0] = 'justify';
+  assert.throws(() => validateDocument(invalid), /Perataan/);
+  const invalidColumns = cloneDocument(doc);
+  invalidColumns.blocks.find(block => block.id === 'aligned-columns').columnAlignments.push('left');
+  assert.throws(() => validateDocument(invalidColumns), /Perataan/);
 });
 
 test('inline editing is activated only on double-click and context menu does not enable it', async () => {
