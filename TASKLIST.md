@@ -127,7 +127,7 @@ Separator, spacer, teks manual, gambar (data URL internal), QR dan barcode yang 
 - QR/barcode dirender sebagai simbol nyata menggunakan pustaka lokal; gambar dan kode tetap dapat disimpan dalam dokumen offline.
 - Perubahan properti divalidasi secara atomik; input invalid tidak merusak model/undo history.
 - Tidak ada fitur tanggal/waktu otomatis; pengguna memasukkan teks tanggal/waktu manual.
-- CI, smoke test, dan build portable Windows pada commit akhir wajib diverifikasi. Status tetap `IN PROGRESS` sampai CI hijau dan uji manual pengguna diterima. Perbaikan lanjutan akan diajukan melalui PR terpisah; tidak ada merge otomatis sebelum CI hijau dan persetujuan pengguna.
+- CI terakhir pada PR #14 hijau untuk tes unit Ubuntu/Windows dan Electron smoke Ubuntu. Build portable Windows serta uji manual pengguna masih perlu dilakukan sebelum `TESTED`/`ACCEPTED`. PR #14 tetap terbuka; tidak ada merge otomatis.
 - Uji manual minimum: tabel 1 dan 6 kolom; edit dan perpindahan antar sel; resize di batas minimum; tambah/hapus baris/kolom; undo/redo setelah resize; save/open; QR/barcode dapat dipindai pada preview/cetakan.
 
 ---
