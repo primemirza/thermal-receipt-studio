@@ -128,7 +128,7 @@ Separator, spacer, teks manual, gambar internal, QR/barcode offline, tabel/sel e
 - Menu konteks klik kanan untuk aksi umum; keyboard `Del`, Undo/Redo dan Simpan tetap berlaku.
 - Perubahan layout harus tervalidasi dan survive round-trip `.trstudio`; objek tanggal/waktu otomatis tidak tersedia, tanggal/waktu ditulis manual.
 
-**Status tes:** tes dan smoke CI untuk follow-up branch harus dijalankan melalui PR baru. Build portable Windows dan uji manual pengguna masih diperlukan sebelum status `TESTED`/`ACCEPTED`.
+**Status tes:** GitHub Actions run #41 pada PR #15 hijau: `npm test` 40/40 lulus pada Ubuntu dan Windows; Electron smoke test Ubuntu lulus. Build portable Windows dan uji manual pengguna masih diperlukan sebelum status `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** toolbar pada ukuran jendela yang berbeda; edit teks dengan klik/double-click; insert sesudah blok aktif; section kosong/berisi; margin global; resize kedua tepi tabel dan divider kolom; padding; save/open `.trstudio`; pemindaian QR/barcode.
 
