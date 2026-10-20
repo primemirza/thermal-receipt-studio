@@ -284,7 +284,7 @@ test('Word-style alignment toolbar applies to all blocks and individual table/co
   assert.ok(js.includes("block.columnAlignments[target.colIndex] = alignment"));
   assert.ok(js.includes("alignmentButtons.forEach(button => button.addEventListener('click'"));
   assert.ok(js.includes("event.shiftKey && ['l','e','r'].includes(key)"));
-  assert.ok(model.includes("assertAlignments(block.cellAlignments"));
+  assert.ok(model.includes("block.cellAlignments.forEach((row, rowIndex) => assertAlignments(row, block.headers.length"));
   assert.ok(model.includes("assertAlignments(block.columnAlignments"));
 });
 
