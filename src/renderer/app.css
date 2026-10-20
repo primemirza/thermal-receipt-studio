@@ -555,3 +555,116 @@ body #section-layout-fields[hidden] { display: none !important; }
   body .editor-panel .editor-surface { flex-basis: 260px; max-height: none; }
   body .editor-panel .inspector { max-height: 400px; }
 }
+
+
+/* Phase 5 follow-up: separate properties, canvas, and print preview into three columns. */
+body .workspace {
+  display: grid;
+  grid-template-columns: minmax(255px, .68fr) minmax(340px, 1.15fr) minmax(320px, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+body .workspace > .panel { min-width: 0; min-height: 0; }
+body .inspector-panel .inspector-scroll {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+body .inspector-panel .panel-heading { flex: 0 0 auto; padding-bottom: 8px; }
+body .inspector-panel .panel-footnote { flex: 0 0 auto; padding: 8px 12px 12px; }
+body .inspector-panel .inspector-heading { align-items: flex-start; flex-wrap: wrap; }
+body .inspector-panel .inspector-heading span { overflow-wrap: anywhere; text-align: right; }
+body .editor-panel .editor-surface { flex: 1 1 0; min-height: 0; max-height: none; }
+body .preview-panel .preview-stage { flex: 1 1 0; min-height: 0; }
+body .inspector-panel .inspector-fields[hidden],
+body .inspector-panel #block-spacing-fields[hidden] { display: none !important; }
+
+.block-spacing-fields { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.spacing-heading { margin: 4px 0 6px; color: var(--text); font-size: 11px; font-weight: 650; }
+.spacing-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.inspector .spacing-grid label { min-width: 0; margin-bottom: 4px; }
+.inspector .spacing-grid input { min-width: 0; padding: 6px 4px; text-align: center; }
+.spacing-grid input { font-variant-numeric: tabular-nums; }
+
+/* A divider is itself the only stroke of a rule block. */
+.design-block.design-block-rule { border-bottom: 0 !important; }
+.design-block.design-block-rule > .design-rule { align-self: center; min-height: 0; }
+.design-rule.rule-character { border-bottom: 0 !important; }
+.receipt-line.rule-character { border-bottom: 0 !important; }
+
+/* Image, QR and barcode can be resized directly on the canvas. */
+.resizable-object {
+  position: relative;
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 1px;
+  max-width: 100%;
+  box-sizing: border-box;
+  line-height: 0;
+}
+.resizable-object > img,
+.resizable-object > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.object-resize-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid white;
+  border-radius: 4px;
+  background: #0067c0;
+  color: white;
+  box-shadow: 0 1px 3px #0003;
+  font: 12px/1 var(--ui);
+  cursor: nwse-resize;
+  opacity: .3;
+  touch-action: none;
+  user-select: none;
+}
+.resizable-object:hover > .object-resize-handle,
+.resizable-object:focus-within > .object-resize-handle,
+.object-resize-handle:focus-visible { opacity: 1; }
+.object-resize-handle:active { cursor: nwse-resize; background: #004f9e; }
+
+/* Do not enter text edit mode unless the user double-clicks a text field. */
+.design-block [data-inline-edit][contenteditable="false"] { cursor: default; }
+.design-block [data-inline-edit][contenteditable="true"] { cursor: text; user-select: text; -webkit-user-select: text; }
+.design-block [data-inline-edit][contenteditable="true"]:focus { outline: 1px solid #e1b94e; outline-offset: 1px; }
+
+/* Main editor remains usable in smaller windows; the preview moves below the first two columns. */
+@media (max-width: 1180px) {
+  body .workspace {
+    grid-template-columns: minmax(235px, .7fr) minmax(320px, 1fr);
+    overflow: auto;
+  }
+  body .preview-panel { grid-column: 1 / -1; min-height: 440px; }
+  body .inspector-panel { min-height: 400px; }
+}
+@media (max-width: 760px) {
+  body .workspace { grid-template-columns: minmax(0, 1fr); overflow: auto; }
+  body .workspace > .panel { min-height: 380px; }
+  body .preview-panel { grid-column: auto; }
+  body .inspector-panel { min-height: 480px; }
+  body .inspector-panel .inspector-scroll { overflow: visible; }
+  .spacing-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
