@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
 const statusVersion = $('status-version');
 const appMeta = $('app-meta');
-const paperButtons = [...document.querySelectorAll('[data-paper]')];
+const paperButtons = [...document.querySelectorAll('button[data-paper]')];
 const designPaper = $('design-paper');
 const receiptPreview = $('receipt-preview');
 const previewStage = $('preview-stage');
@@ -587,10 +587,12 @@ function setZoom(value) {
   zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
   setStatus('Zoom area kerja dan preview ' + state.zoom + '%.');
 }
-function selectBlock(id, preserveCanvas = false) {
+function selectBlock(id) {
   selectedBlockId = id;
-  if (!preserveCanvas) renderCanvas();
-  else designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === id));
+  // Never replace canvas DOM during a pointer/click sequence. Replacing the target
+  // between the two click events prevents Chromium from emitting a usable dblclick
+  // and destroys the node that should receive keyboard input.
+  designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === id));
   renderInspector();
 }
 function addBlock(type) {
@@ -673,11 +675,32 @@ editorSurface.addEventListener('click', event => {
   }
 });
 function resolveInlineEditor(event) {
-  if (event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]')) return null;
-  const direct = event.target.closest('[data-inline-edit]');
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  if (!target) return null;
+  // Resize/reorder handles are controls, not text-edit targets.
+  if (target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]')) return null;
+  const direct = target.closest('[data-inline-edit]');
   if (direct) return direct;
-  const cell = event.target.closest('td, th, .column-cell, .section-header');
-  return cell?.querySelector('[data-inline-edit]') || null;
+
+  const cell = target.closest('td, th, .column-cell, .section-header');
+  if (cell) return cell.querySelector('[data-inline-edit]');
+
+  // A double-click can land on the block padding/type label rather than on the
+  // inner span. Resolve the block's primary editable field instead of failing.
+  const blockNode = target.closest('[data-block-id]');
+  if (!blockNode) return null;
+  const block = findBlockEntry(blockNode.dataset.blockId)?.block;
+  if (!block) return null;
+  const fieldByType = {
+    text: 'text', dynamic: 'text', item: 'name', total: 'label',
+    section: 'name', qrcode: 'value', barcode: 'value'
+  };
+  const field = fieldByType[block.type];
+  if (field) return blockNode.querySelector('[data-field="' + field + '"]');
+  // For tables/columns, clicking a non-cell part of the block falls back to the
+  // first editable cell so the whole block remains operable by double-click.
+  if (block.type === 'table' || block.type === 'columns') return blockNode.querySelector('[data-inline-edit]');
+  return null;
 }
 function trackInlineTarget(editor, blockId) {
   if (!editor) { activeInlineTarget = null; return; }
@@ -693,10 +716,12 @@ function beginInlineEdit(editor, blockId) {
   trackInlineTarget(editor, blockId);
   selectedBlockId = blockId;
   designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === blockId));
+  // Set editability before focusing, and leave this exact node mounted until blur.
   editor.setAttribute('contenteditable', 'true');
   editor.setAttribute('role', 'textbox');
   editor.setAttribute('aria-label', 'Edit teks langsung');
-  editor.focus({ preventScroll: true });
+  editor.setAttribute('spellcheck', 'false');
+  editor.focus();
   const selection = window.getSelection();
   if (selection) {
     const range = document.createRange();
@@ -707,31 +732,35 @@ function beginInlineEdit(editor, blockId) {
   return document.activeElement === editor;
 }
 designPaper.addEventListener('click', event => {
-  const blockNode = event.target.closest('[data-block-id]');
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  const blockNode = target?.closest('[data-block-id]');
   if (blockNode) {
     const editor = resolveInlineEditor(event);
     trackInlineTarget(editor, blockNode.dataset.blockId);
-    const preserveCanvas = Boolean(editor || event.target.closest('[data-col-resize], [data-table-width], [data-drag-handle], [data-object-resize]'));
-    selectBlock(blockNode.dataset.blockId, preserveCanvas);
+    // Selection is class-only; never render the canvas from this handler.
+    selectBlock(blockNode.dataset.blockId);
     if (event.detail >= 2 && editor) {
       event.preventDefault();
       beginInlineEdit(editor, blockNode.dataset.blockId);
     }
-  } else if (event.target === designPaper || event.target.closest('.section-children') && event.target.classList.contains('section-empty') === false && event.target.children.length === 0) {
+  } else if (target === designPaper || target?.closest('.section-children') && target.classList.contains('section-empty') === false && target.children.length === 0) {
     activeInlineTarget = null;
     selectedBlockId = null;
     renderCanvas();
     renderInspector();
   }
 });
-designPaper.addEventListener('dblclick', event => {
-  const blockNode = event.target.closest('[data-block-id]');
+// Capture dblclick on the editor surface before any child/bubble handler can alter
+// the event target. This also covers nested section, table and columns content.
+$('editor-surface').addEventListener('dblclick', event => {
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  const blockNode = target?.closest('[data-block-id]');
   const editor = resolveInlineEditor(event);
   if (!blockNode || !editor) return;
   event.preventDefault();
   event.stopPropagation();
   beginInlineEdit(editor, blockNode.dataset.blockId);
-});
+}, true);
 designPaper.addEventListener('keydown', event => {
   if (event.target.closest('[data-inline-edit]')) return;
   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -743,7 +772,7 @@ designPaper.addEventListener('contextmenu', event => {
   if (!node) { blockContextMenu.hidden = true; return; }
   event.preventDefault();
   activeInlineTarget = null;
-  selectBlock(node.dataset.blockId, true);
+  selectBlock(node.dataset.blockId);
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
   blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 245)) + 'px';

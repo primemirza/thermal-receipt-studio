@@ -300,45 +300,23 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PRIORITAS: DOUBLE-CLICK EDIT DAN ZOOM KANVAS (2026-10-21)
+## FASE 5 — PERBAIKAN AKAR MASALAH DOUBLE-CLICK EDIT (2026-10-21)
 
-Umpan balik setelah PR #17 di-merge: toolbar alignment dan fungsi lain berjalan baik, tetapi double-click edit masih gagal; zoom hanya memengaruhi preview. Perbaikan terkini ada pada branch `fix/phase-5-inline-edit-and-canvas-zoom` dan belum diuji pengguna.
+Pengguna telah merge PR #18, tetapi klik ganda masih gagal. Audit runtime melalui Electron smoke test mengidentifikasi akar masalah:
+- `paperButtons` awalnya diisi dengan `document.querySelectorAll('[data-paper]')`, yang ikut mengambil elemen kanvas `#design-paper` karena elemen itu juga mempunyai atribut `data-paper`.
+- Ketika pengguna mengklik teks pada kanvas, listener pemilihan ukuran kertas ikut memanggil `setPaper()` → `mutate()` → `renderAll()` → `renderCanvas()`. Target teks diganti setelah klik pertama; sehingga double-click tidak pernah dapat menyelesaikan edit. Ini dibuktikan oleh stack trace runtime dari smoke test.
 
-- Mode edit diaktifkan melalui event click dengan `detail >= 2` sekaligus handler `dblclick`, dengan satu helper yang mengaktifkan `contenteditable`, memfokuskan editor, dan memilih teks tanpa mengganti node kanvas.
-- Zoom sekarang diterapkan ke `designPaper` dan preview memakai state zoom yang sama; label/status toolbar menyebut kedua area.
-- Tes regresi baru memeriksa jalur click-count, helper editing, dan penerapan zoom ke kanvas + preview.
-- PR belum dibuka / belum di-merge; menunggu CI dan uji portable Windows.
+Perbaikan pada branch `fix/phase-5-dblclick-edit-reliable` / PR #19:
+- Selector diperketat menjadi `button[data-paper]`; hanya tombol lebar kertas dapat memicu `setPaper`.
+- `selectBlock()` hanya mengubah kelas selection dan inspector, tidak merender ulang kanvas ketika blok dipilih.
+- Double-click ditangkap pada capture phase di `editor-surface`, dengan resolver untuk span teks, sel tabel/header, sel kolom, section, dan field utama blok.
+- Fungsi smoke mode Electron diperluas untuk dispatch klik pertama/kedua dan `dblclick`, memverifikasi target tidak terlepas, `contenteditable=true`, fokus, serta perubahan teks yang tersimpan pada preview.
+- Perbaikan tambahan dari temuan smoke test: window-open handler dipindahkan ke API yang tepat, `mainWindow.webContents.setWindowOpenHandler`, agar jendela dapat diinisialisasi pada Electron CI.
 
+### Verifikasi otomatis
+- GitHub Actions run #76 hijau: unit test **53/53 Ubuntu**, **53/53 Windows**, Electron smoke test Ubuntu **lulus**.
+- Smoke test melaporkan `attachedAfterFirstClick=true`, `attachedAfterSecondClick=true`, `editable=true`, `focused=true`, `committed=true`, dan `canvasReplacementsAfterFirstClick=0`.
 
-PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru ada di `feature/phase-5-inline-edit-align-controls`; belum dinyatakan TESTED/ACCEPTED.
-
-### Perbaikan lanjutan
-- Menambahkan tiga tombol ikon rata kiri/tengah/kanan pada toolbar dengan state aktif dan shortcut Ctrl+Shift+L/E/R. Kontrol perataan di inspector dihapus.
-- Event editing sekarang mencari isi dalam sel tabel/kolom maupun target teks langsung. Normal click memilih konteks sel; double-click mengaktifkan `contenteditable` tanpa mengganti DOM yang sedang mendapat fokus; click kanan mengosongkan target inline dan hanya membuka menu.
-- Tabel menyimpan `cellAlignments` berbentuk matrix (baris pertama untuk header, berikutnya untuk tiap row). Columns menyimpan `columnAlignments`. Validator memeriksa dimensi dan nilai kiri/tengah/kanan; perubahan row/column menjaga matrix tetap cocok.
-- Perataan toolbar beroperasi pada elemen yang dipilih; jika target aktif adalah sel tabel atau kolom, hanya target itu yang berubah. Pada toolbar saat blok tabel/columns dipilih dari bagian luar sel, seluruh sel/kolom dapat diratakan bersamaan.
-- `applyTextStyle`, table renderer dan column renderer sekarang menetapkan `font-weight`, `font-style`, dan `text-decoration` eksplisit untuk nilai true/false. CSS memaksa table header mewarisi format blok sehingga gaya bold bawaan browser tak bocor.
-- Section bersarang telah didukung oleh rendering dan insertion recursive sebelumnya; ditambahkan validasi kedalaman maksimum 20 untuk mencegah dokumen bersarang berlebihan.
-- Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
-
-### Status verifikasi
-- GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus.
-- Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
-- Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
-
-
-PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru ada di `feature/phase-5-inline-edit-align-controls`; belum dinyatakan TESTED/ACCEPTED.
-
-### Perbaikan lanjutan
-- Menambahkan tiga tombol ikon rata kiri/tengah/kanan pada toolbar dengan state aktif dan shortcut Ctrl+Shift+L/E/R. Kontrol perataan di inspector dihapus.
-- Event editing sekarang mencari isi dalam sel tabel/kolom maupun target teks langsung. Normal click memilih konteks sel; double-click mengaktifkan `contenteditable` tanpa mengganti DOM yang sedang mendapat fokus; click kanan mengosongkan target inline dan hanya membuka menu.
-- Tabel menyimpan `cellAlignments` berbentuk matrix (baris pertama untuk header, berikutnya untuk tiap row). Columns menyimpan `columnAlignments`. Validator memeriksa dimensi dan nilai kiri/tengah/kanan; perubahan row/column menjaga matrix tetap cocok.
-- Perataan toolbar beroperasi pada elemen yang dipilih; jika target aktif adalah sel tabel atau kolom, hanya target itu yang berubah. Pada toolbar saat blok tabel/columns dipilih dari bagian luar sel, seluruh sel/kolom dapat diratakan bersamaan.
-- `applyTextStyle`, table renderer dan column renderer sekarang menetapkan `font-weight`, `font-style`, dan `text-decoration` eksplisit untuk nilai true/false. CSS memaksa table header mewarisi format blok sehingga gaya bold bawaan browser tak bocor.
-- Section bersarang telah didukung oleh rendering dan insertion recursive sebelumnya; ditambahkan validasi kedalaman maksimum 20 untuk mencegah dokumen bersarang berlebihan.
-- Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
-
-### Status verifikasi
-- GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus.
-- Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
-- Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
+### Masih menunggu
+- PR #19 belum di-merge. Pengguna masih perlu memverifikasi artifact portable Windows dengan klik ganda pada teks biasa, sel tabel/header, dan sel kolom.
+- Fase 5 tetap `IN PROGRESS` sampai uji manual artifact diterima.
