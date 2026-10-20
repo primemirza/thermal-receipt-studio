@@ -1,6 +1,6 @@
 # PROGRESS — Thermal Receipt Studio
 
-Diperbarui terakhir: 2026-10-19 (Fase 0)
+Diperbarui terakhir: 2026-10-20 (Fase 5 editor dan layout)
 
 ---
 
@@ -300,19 +300,26 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — IMPLEMENTASI AWAL OBJEK (2026-10-20)
+## FASE 5 — EDITOR OBJEK DAN LAYOUT (2026-10-20)
 
-Branch: `feature/phase-5-receipt-objects-layout`.
+Branch: `feature/phase-5-receipt-objects-layout`. PR #12 tetap terbuka dan belum di-merge.
 
-### Sudah diimplementasikan pada branch
-- Model dokumen mengenali tipe `spacer`, `dynamic`, `table`, `columns`, `image`, `qrcode`, dan `barcode`, dengan validasi field, batas ukuran, karakter barcode, dan format gambar.
-- Toolbar menyediakan aksi tambah garis, spacer, placeholder tanggal/waktu, tabel, kolom, QR, barcode, dan gambar.
-- Gambar raster PNG/JPEG/WebP/GIF maksimal 5 MiB dibaca lokal dan disimpan sebagai data URL base64 di model dokumen; ini membuat gambar ikut berada di dalam JSON dokumen saat disimpan.
-- Renderer memiliki cabang awal untuk spacer, placeholder dinamis, tabel/kolom teks, gambar, serta placeholder QR/barcode.
-- Tes baru memeriksa validasi tipe objek, round-trip `.trstudio`, validasi gambar, dan kontrol toolbar.
+### Implementasi saat ini
+- Toolbar telah dikelompokkan menjadi Kertas/Zoom, Dokumen, Riwayat, dan Sisipkan. Aksi menggunakan tombol ikon dengan `title` tooltip dan label aksesibilitas.
+- Menghapus tombol penghapusan khusus. Blok yang dipilih dapat dihapus dengan `Del`; Ctrl/Cmd+Z, Ctrl/Cmd+Y, dan Ctrl/Cmd+S juga disediakan.
+- Blok teks, nama item, label total, nilai QR/barcode, sel tabel, dan teks kolom dapat diedit langsung di kanvas. Properti umum mencakup alignment, ukuran teks, dan tebal; properti spesifik mencakup nilai total, karakter/gaya garis, tinggi spacer, ukuran/deskripsi gambar, lebar QR/barcode, dan border tabel.
+- Blok dapat disusun ulang dengan drag-and-drop. Operasi yang mengubah model memakai undo/redo; validasi gagal mengembalikan model dan riwayat ke keadaan sebelumnya.
+- Dialog penyisipan tabel meminta jumlah kolom dan jumlah baris (termasuk header), serta pilihan border. Isi sel bisa diedit langsung, batas kolom bisa di-drag, dan inspector menyediakan tambah/hapus baris/kolom.
+- Preview tabel menggunakan data dan lebar kolom dari model yang sama. Lebar kolom divalidasi, proporsional, dan tersimpan di `.trstudio`.
+- QR Code Generator dengan dukungan UTF-8 dan JsBarcode CODE128 dibundel secara lokal di `src/renderer/vendor/` dan lisensinya didokumentasikan. Tujuannya membuat simbol QR/barcode nyata tanpa CDN/permintaan jaringan runtime.
+- Objek tanggal/waktu otomatis dihapus dari toolbar/model. Pengguna memasukkan tanggal dan waktu historis sebagai teks biasa.
 
-### Belum selesai / belum diverifikasi
-- QR dan barcode saat ini baru placeholder teks, belum dirender sebagai simbol yang dapat dipindai. Integrasi generator offline masih diperlukan.
-- Inspector untuk mengedit seluruh properti tabel, kolom, gambar, spacer, dan pilihan placeholder masih perlu diselesaikan.
-- Belum ada hasil CI yang diverifikasi pada commit terbaru; belum ada build portable untuk pengujian manual.
-- Status Fase 5 tetap `IN PROGRESS`, bukan `TESTED` atau `ACCEPTED`.
+### Inspeksi tambahan dan regresi yang dicakup
+- Validasi header, struktur baris/sel, opsi border, batas dan jumlah lebar kolom, tipe ukuran, dan data barcode.
+- Tes round-trip model objek melalui arsip `.trstudio`, validasi gambar internal, penolakan tabel invalid, wiring toolbar/dialog, adanya mekanisme edit langsung, pengubahan lebar kolom, shortcut `Del`, dan aset generator offline.
+- Gagal validasi di jalur perubahan model ditangani tanpa meninggalkan dokumen dalam keadaan invalid.
+
+### Status verifikasi
+- Ini adalah status implementasi, **belum dinyatakan TESTED atau ACCEPTED**.
+- Setelah rangkaian perubahan ini, CI/tes harus diperiksa pada commit branch terbaru. Build portable Windows dan uji manual pengguna juga masih diperlukan.
+- Perhatian khusus pengujian manual: insert tabel dengan 1 dan 6 kolom; mengetik dan berpindah antar sel; resize kolom sampai batas minimum; add/remove baris/kolom; undo/redo setelah resize; save/open file; dan pastikan QR/barcode dapat dipindai dari preview/cetakan.
