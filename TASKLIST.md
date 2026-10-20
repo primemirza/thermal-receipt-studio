@@ -114,24 +114,25 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS** (dimulai atas persetujuan pengguna pada 2026-10-20; implementasi awal objek dan model sedang diuji)
+Status fase: **IN PROGRESS**. Implementasi awal PR #14 telah di-merge dan diuji pengguna. Perbaikan operasional lanjutan dikerjakan di branch `feature/phase-5-editor-layout-sections`.
 
-Separator, spacer, teks manual, gambar (data URL internal), QR dan barcode yang dapat dipindai secara offline, tabel/sel yang dapat diedit langsung, border dan lebar kolom dengan drag, objek kolom, alignment, ukuran, opsi objek, drag-and-drop urutan blok, dan shortcut keyboard. Tanggal/waktu ditulis manual; tidak ada placeholder tanggal otomatis.
+Separator, spacer, teks manual, gambar internal, QR/barcode offline, tabel/sel editable, columns, section berisi child blocks, layout global, margin/padding, alignment, ukuran/format teks, drag-and-drop urutan, shortcut keyboard, dan preview.
 
-**Kriteria:** semua objek dibuat/diedit/disimpan/dibuka · preview sesuai · unit test objek & layout.
+**Kriteria editor (lanjutan):**
+- Toolbar ikon dikelompokkan, tidak tumpang tindih, dan bisa scroll horizontal pada jendela sempit. Inspector properti dapat discroll sampai bawah.
+- Klik/klik ganda pada teks, sel tabel, atau konten kolom bisa masuk mode edit tanpa perlu drag; pemindahan blok dilakukan hanya dari pegangan drag khusus.
+- Penyisipan di bawah blok terpilih; bila section terpilih sisipkan sebagai anak, bila anak section terpilih sisipkan setelahnya di section yang sama, tanpa seleksi sisipkan di akhir dokumen.
+- Section bertingkat menyatukan margin dan padding anak; margin global diterapkan ke kanvas/preview.
+- Tabel: jumlah baris/kolom saat insert, border, padding sel, lebar tabel dan lebar kolom dapat diatur; lebar luar tabel dapat di-drag dari sisi kiri atau kanan.
+- Columns: pilihan jumlah, padding, jarak, border, lebar objek, dan lebar tiap kolom; lebar divider bisa di-drag.
+- Menu konteks klik kanan untuk aksi umum; keyboard `Del`, Undo/Redo dan Simpan tetap berlaku.
+- Perubahan layout harus tervalidasi dan survive round-trip `.trstudio`; objek tanggal/waktu otomatis tidak tersedia, tanggal/waktu ditulis manual.
 
-**Kriteria editor tambahan (Fase 5):**
-- Toolbar ikon dikelompokkan menurut fungsi dan setiap ikon memiliki tooltip/label aksesibilitas.
-- Kontrol umum: pilih blok, edit teks langsung di kanvas, format/alignment/ukuran, drag-and-drop susunan blok, undo/redo, dan hapus blok dengan `Del` (tanpa tombol hapus khusus).
-- Tabel: dialog jumlah baris/kolom, opsi border saat insert, edit sel langsung, drag pemisah lebar kolom, tambah/hapus baris dan kolom setelah insert.
-- QR/barcode dirender sebagai simbol nyata menggunakan pustaka lokal; gambar dan kode tetap dapat disimpan dalam dokumen offline.
-- Perubahan properti divalidasi secara atomik; input invalid tidak merusak model/undo history.
-- Tidak ada fitur tanggal/waktu otomatis; pengguna memasukkan teks tanggal/waktu manual.
-- CI terakhir pada PR #14 hijau untuk tes unit Ubuntu/Windows dan Electron smoke Ubuntu. Build portable Windows serta uji manual pengguna masih perlu dilakukan sebelum `TESTED`/`ACCEPTED`. PR #14 tetap terbuka; tidak ada merge otomatis.
-- Uji manual minimum: tabel 1 dan 6 kolom; edit dan perpindahan antar sel; resize di batas minimum; tambah/hapus baris/kolom; undo/redo setelah resize; save/open; QR/barcode dapat dipindai pada preview/cetakan.
+**Status tes:** tes dan smoke CI untuk follow-up branch harus dijalankan melalui PR baru. Build portable Windows dan uji manual pengguna masih diperlukan sebelum status `TESTED`/`ACCEPTED`.
+
+**Uji manual minimum:** toolbar pada ukuran jendela yang berbeda; edit teks dengan klik/double-click; insert sesudah blok aktif; section kosong/berisi; margin global; resize kedua tepi tabel dan divider kolom; padding; save/open `.trstudio`; pemindaian QR/barcode.
 
 ---
-
 ## FASE 6 — LAYOUT THERMAL DAN ENCODER
 
 Status fase: **NOT STARTED**
