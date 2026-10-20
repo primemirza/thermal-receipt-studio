@@ -33,6 +33,9 @@ function setStatus(message) { statusText.textContent = message; }
 function dynamicLabel(field) {
   return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
 }
+function dynamicLabel(field) {
+  return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
+}
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
 function captureHistoryState() {
   return { document: cloneDocument(documentModel), selectedBlockId };
@@ -90,6 +93,22 @@ function renderCanvas() {
     node.append(make('span', 'block-type', block.type.toUpperCase()));
     if (block.type === 'rule') {
       node.append(make('span', 'design-rule'));
+    } else if (block.type === 'spacer') {
+      node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris'));
+      node.style.minHeight = (block.height * 8) + 'px';
+    } else if (block.type === 'dynamic') {
+      node.append(make('span', '', dynamicLabel(block.field)));
+    } else if (block.type === 'table') {
+      const table = make('div', 'object-table');
+      table.append(make('div', 'object-table-row object-table-head', block.headers.join(' │ ')));
+      block.rows.forEach(row => table.append(make('div', 'object-table-row', row.join(' │ '))));
+      node.append(table);
+    } else if (block.type === 'columns') {
+      node.append(make('span', 'object-columns', block.columns.join(' │ ')));
+    } else if (block.type === 'image') {
+      const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
+    } else if (block.type === 'qrcode' || block.type === 'barcode') {
+      node.append(make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value));
     } else if (block.type === 'item') {
       node.append(make('span', '', block.name));
       node.append(make('span', 'block-price', money(block.price)));
@@ -109,12 +128,25 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   for (const block of documentModel.blocks) {
     if (block.type === 'rule') {
-      fragment.append(makeLine('rule', [make('span', '', '-'.repeat(columns))]));
+      fragment.append(makeLine('rule', [make('span', '', (block.character || '-').repeat(columns))]));
+    } else if (block.type === 'spacer') {
+      const spacer = make('div', 'receipt-spacer'); spacer.style.height = (block.height * 4) + 'px'; fragment.append(spacer);
+    } else if (block.type === 'dynamic') {
+      fragment.append(makeLine(block.align === 'center' ? 'center' : '', [make('span', '', dynamicLabel(block.field))]));
+    } else if (block.type === 'table') {
+      fragment.append(makeLine('', [make('span', 'object-table-preview', [block.headers.join(' | '), ...block.rows.map(row => row.join(' | '))].join('\n'))]));
+    } else if (block.type === 'columns') {
+      fragment.append(makeLine('', [make('span', 'object-columns-preview', block.columns.join(' | '))]));
+    } else if (block.type === 'image') {
+      const line = makeLine(block.align === 'center' ? 'center' : '', []);
+      const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img); fragment.append(line);
+    } else if (block.type === 'qrcode' || block.type === 'barcode') {
+      fragment.append(makeLine('center', [make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value)]));
     } else if (block.type === 'item') {
       fragment.append(makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]));
     } else if (block.type === 'total') {
       fragment.append(makeLine('', [make('b', '', block.label), make('b', 'right', money(block.amount))]));
-    } else {
+    } else if (block.type === 'text') {
       const cls = block.align === 'center' ? 'center' : '';
       const content = make(block.bold ? 'b' : 'span', '', block.text);
       const line = makeLine(cls, [content]);
