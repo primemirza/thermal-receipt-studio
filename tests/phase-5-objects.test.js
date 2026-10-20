@@ -320,6 +320,16 @@ test('nested sections can contain further sections and alignment model stays val
   doc.blocks.push(root);
   insertBlockAtSelection(doc, root.id, { id: 'section-child-after-nested', type: 'text', text: 'Child berikutnya' });
   assert.equal(root.children.at(-1).id, 'section-child-after-nested');
+  const grandchild = {
+    id: 'section-grandchild', type: 'section', name: 'Section di dalam section',
+    margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    padding: { top: 2, right: 2, bottom: 2, left: 2 }, children: []
+  };
+  insertBlockAtSelection(doc, nested.id, grandchild);
+  assert.equal(nested.children.at(-1).id, grandchild.id);
+  const grandchildText = { id: 'grandchild-text', type: 'text', text: 'Nested paling dalam' };
+  insertBlockAtSelection(doc, grandchild.id, grandchildText);
+  assert.equal(grandchild.children[0].id, grandchildText.id);
   assert.equal(validateDocument(doc), true);
   const loaded = parseTrstudio(serializeTrstudio(doc), validateDocument);
   assert.deepEqual(loaded.document, doc);
@@ -365,6 +375,8 @@ test('inline editing is activated only on double-click and context menu does not
   assert.ok(factory.includes("span.contentEditable = 'false'"));
   assert.ok(dbl.includes("editor.contentEditable = 'true'"));
   assert.ok(dbl.includes('selectNodeContents(editor)'));
+  assert.ok(js.includes("const cell = event.target.closest('td, th, .column-cell, .section-header')"));
+  assert.ok(js.includes('function trackInlineTarget(editor, blockId)'));
   assert.ok(context.includes('event.preventDefault()'));
   assert.ok(!context.includes("contentEditable = 'true'"));
   assert.ok(js.includes("cell.contentEditable = 'false'"));
