@@ -212,3 +212,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .primary-action { color: white; background: var(--accent); border-color: var(--accent); }
 @media (max-width: 900px) { .toolbar { align-items: flex-start; } .tool-section { flex-direction: row; align-items: center; } .tool-section > .tool-label { margin: 0 4px 0 0; } }
 @media (max-width: 560px) { .tool-section { flex-wrap: wrap; } .canvas-table th, .canvas-table td { padding: 3px 2px; } }
+
+.object-columns-preview { display: flex; width: 100%; }
+.object-columns-preview > span { flex: 1; min-width: 0; padding: 2px 3px; border-right: 1px dashed #aaa; overflow-wrap: anywhere; }
+.object-columns-preview > span:last-child { border-right: 0; }
+.design-block.is-dragging { opacity: .4; }
+.design-block[draggable="true"] { user-select: none; }
+.design-block [contenteditable="true"] { user-select: text; }
