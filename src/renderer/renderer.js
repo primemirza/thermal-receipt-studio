@@ -236,6 +236,21 @@ alignInput.addEventListener('change', () => {
 });
 $('add-text-button').addEventListener('click', () => addBlock('text'));
 $('add-item-button').addEventListener('click', () => addBlock('item'));
+$('add-image-button')?.addEventListener('click', () => $('image-file-input').click());
+$('image-file-input')?.addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    setStatus('Gambar harus PNG/JPEG/WebP/GIF dan maksimal 5 MiB.'); return;
+  }
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file);
+  }).catch(() => null);
+  if (!dataUrl) { setStatus('Gagal membaca file gambar.'); return; }
+  const id = 'b-' + crypto.randomUUID();
+  mutate(() => { documentModel.blocks.push({ id, type: 'image', dataUrl, alt: file.name.slice(0, 200), width: 180, align: 'center' }); selectedBlockId = id; }, 'Gambar ditambahkan ke dokumen.');
+});
 for (const [id, type] of [['add-rule-button','rule'], ['add-spacer-button','spacer'], ['add-dynamic-button','dynamic'], ['add-table-button','table'], ['add-columns-button','columns'], ['add-qr-button','qrcode'], ['add-barcode-button','barcode']]) {
   const button = $(id);
   if (button) button.addEventListener('click', () => addBlock(type));
