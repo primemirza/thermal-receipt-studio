@@ -78,4 +78,37 @@ test('editor exposes common-document editing interactions', async () => {
   assert.ok(html.includes('title="Sisipkan tabel"') || html.includes('title="Sisipkan tabel"') || html.includes('id="add-table-button" title="Sisipkan tabel"'));
   assert.ok(!html.includes('add-dynamic-button'));
   assert.ok(!html.includes('delete-block-button'));
+  assert.ok(html.includes('vendor/qrcode.js'));
+  assert.ok(html.includes('vendor/qrcode_UTF8.js'));
+  assert.ok(html.includes('vendor/JsBarcode.all.min.js'));
+});
+
+test('QR dan CODE128 dirender oleh library lokal tanpa layanan remote', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  assert.ok(fs.statSync(path.join(root, 'src/renderer/vendor/qrcode.js')).size > 10000);
+  assert.ok(fs.statSync(path.join(root, 'src/renderer/vendor/JsBarcode.all.min.js')).size > 10000);
+  assert.ok(js.includes('window.qrcode(0')));
+  assert.ok(js.includes('window.JsBarcode(svg')));
+  assert.ok(js.includes("format: 'CODE128'"));
+  assert.ok(!/https?:\\/\\/(?:cdn\\.|unpkg\\.com|cdnjs\\.cloudflare\\.com)/i.test(html));
+});
+
+test('single-column tables and editable widths remain valid', () => {
+  const doc = createSampleDocument();
+  doc.blocks.push({ id: 'one-column-table', type: 'table', headers: ['Detail'], rows: [['Nilai']], columnWidths: [100], border: 'horizontal' });
+  assert.equal(validateDocument(doc), true);
+});
+
+test('barcode accepts printable CODE128 data but rejects control characters', () => {
+  const valid = createSampleDocument();
+  valid.blocks.push({ id: 'code128-valid', type: 'barcode', value: 'INV-2026/10: A_01' });
+  assert.equal(validateDocument(valid), true);
+  const invalid = createSampleDocument();
+  invalid.blocks.push({ id: 'code128-invalid', type: 'barcode', value: 'INV\\n001' });
+  assert.throws(() => validateDocument(invalid), /ASCII yang dapat dicetak/);
 });
