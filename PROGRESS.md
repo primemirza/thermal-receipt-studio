@@ -288,3 +288,13 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Aset gambar dan `preview.png` belum disimpan; parser secara eksplisit menolak arsip dengan aset gambar. Ini belum memenuhi bagian portabilitas aset dan perlu ditangani sebelum fase diterima.
 - Tes dan smoke/build Windows belum diverifikasi pada commit ini. Status belum TESTED/ACCEPTED.
 - Fase 5 belum dimulai.
+
+
+---
+
+## PENERIMAAN FASE 4 DAN AWAL FASE 5 — 2026-10-20
+
+- Pengguna mengonfirmasi telah menguji build Fase 4 dan secara eksplisit menyatakan Fase 4 selesai. Status Fase 4 diperbarui menjadi `ACCEPTED`; penerimaan didasarkan pada uji manual pengguna.
+- Fase 5 dimulai dengan branch `feature/phase-5-receipt-objects-layout` dari `main`.
+- Ruang lingkup Fase 5 sesuai TASKLIST: objek separator/spacer, gambar dengan aset internal, QR dan barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran dan opsi objek; objek harus dapat dibuat/diedit/disimpan/dibuka dan dirender konsisten di preview.
+- Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
