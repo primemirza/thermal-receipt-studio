@@ -342,19 +342,26 @@ textInput.addEventListener('change', () => {
   if (block[key] === value) return;
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
+function commitInlineChange(block, apply, message, preserveCanvas) {
+  saveUndoPoint(); apply(); isDirty = true; validateDocument(documentModel);
+  if (preserveCanvas) { renderPreview(); renderInspector(); updateHistoryButtons(); }
+  else renderAll();
+  setStatus(message);
+}
 designPaper.addEventListener('focusout', event => {
   const cell = event.target.closest('[data-inline-edit]'); if (!cell) return;
   const blockNode = cell.closest('[data-block-id]'); const block = documentModel.blocks.find(item => item.id === blockNode?.dataset.blockId); if (!block) return;
-  const field = cell.dataset.field; const value = cell.textContent.slice(0, 200);
-  if (field === 'tableCell') {
-    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers?.[col] : block.rows?.[row]?.[col];
-    if (oldValue === value || block.type !== 'table') return;
-    mutate(() => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.');
+  const field = cell.dataset.field; const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200; const value = cell.textContent.slice(0, max);
+  const nextCell = event.relatedTarget?.closest?.('[data-inline-edit]');
+  const preserveCanvas = Boolean(nextCell && nextCell.closest('[data-block-id]')?.dataset.blockId === block.id);
+  if (field === 'tableCell' && block.type === 'table') {
+    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex); const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col]; if (oldValue === value) return;
+    commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', preserveCanvas);
   } else if (field === 'columnCell' && block.type === 'columns') {
     const index = Number(cell.dataset.colIndex); if (block.columns[index] === value) return;
-    mutate(() => { block.columns[index] = value; }, 'Isi kolom diperbarui.');
-  } else if (['text','name','label','value'].includes(field) && block[field] !== value) {
-    mutate(() => { block[field] = value; }, 'Isi elemen diperbarui.');
+    commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', preserveCanvas);
+  } else if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field) && block[field] !== value) {
+    commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', preserveCanvas);
   }
 });
 designPaper.addEventListener('pointerdown', event => {
