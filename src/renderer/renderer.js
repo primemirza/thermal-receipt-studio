@@ -327,9 +327,9 @@ function createPreviewLeaf(block, columns) {
   } else return null;
   const wrapper = make('div', 'receipt-block-preview preview-' + block.type);
   applyTextStyle(wrapper, block);
+  wrapper.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size || 'normal'];
   if (block.type === 'table') {
     wrapper.style.width = '100%';
-    line.style.width = '100%';
   } else if (block.type === 'columns') {
     wrapper.style.width = '100%';
   }
