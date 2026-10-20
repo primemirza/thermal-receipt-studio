@@ -47,7 +47,7 @@ test('renderer and toolbar expose object creation and preview branches', async (
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   for (const type of ['spacer', 'table', 'columns', 'qrcode', 'barcode', 'image']) assert.ok(js.includes("type: '" + type + "'") || js.includes("block.type === '" + type + "'"), type);
-  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border', 'block-italic-input', 'block-underline-input', 'block-total-amount', 'block-rule-character', 'block-image-alt', 'table-add-row', 'table-remove-row', 'table-add-column', 'table-remove-column']) assert.ok(html.includes(id), id);
+  for (const id of ['add-rule-button', 'add-spacer-button', 'add-table-button', 'add-columns-button', 'add-qr-button', 'add-barcode-button', 'add-image-button', 'table-dialog-form', 'table-columns-count', 'table-rows-count', 'block-size-input', 'block-bold-input', 'block-spacer-height', 'block-image-width', 'block-table-border', 'block-italic-input', 'block-underline-input', 'block-total-amount', 'block-rule-character', 'block-image-alt', 'table-add-row', 'table-remove-row', 'table-add-column', 'table-remove-column', 'columns-dialog-form', 'columns-count', 'columns-dialog-cancel']) assert.ok(html.includes(id), id);
 });
 
 
