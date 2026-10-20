@@ -35,10 +35,8 @@ export function validateDocument(doc) {
     ids.add(block.id);
     if (!BLOCK_TYPES.includes(block.type)) throw new TypeError('Jenis elemen tidak didukung.');
     if (block.align !== undefined && !ALIGNMENTS.includes(block.align)) throw new TypeError('Perataan elemen tidak valid.');
-    if (block.type === 'text') {
-      assertString(block.text, 'Teks elemen');
-      if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tidak valid.');
-    }
+    if (block.type === 'text') assertString(block.text, 'Teks elemen');
+    if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tidak valid.');
     if (block.type === 'rule' && block.style !== undefined && !['solid', 'dashed', 'double'].includes(block.style)) throw new TypeError('Gaya separator tidak valid.');
     if (block.type === 'spacer' && (!Number.isInteger(block.height) || block.height < 1 || block.height > 20)) throw new TypeError('Tinggi spacer harus 1–20 baris.');
     if (block.type === 'item' && (typeof block.name !== 'string' || block.name.length > 200 || !Number.isFinite(block.price) || block.price < 0)) throw new TypeError('Data item tidak valid.');
