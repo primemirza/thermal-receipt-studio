@@ -116,9 +116,19 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 Status fase: **IN PROGRESS** (dimulai atas persetujuan pengguna pada 2026-10-20; implementasi awal objek dan model sedang diuji)
 
-Separator, spacer, gambar (data URL internal), QR & barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran & opsi objek.
+Separator, spacer, teks manual, gambar (data URL internal), QR dan barcode yang dapat dipindai secara offline, tabel/sel yang dapat diedit langsung, border dan lebar kolom dengan drag, objek kolom, alignment, ukuran, opsi objek, drag-and-drop urutan blok, dan shortcut keyboard. Tanggal/waktu ditulis manual; tidak ada placeholder tanggal otomatis.
 
 **Kriteria:** semua objek dibuat/diedit/disimpan/dibuka · preview sesuai · unit test objek & layout.
+
+**Kriteria editor tambahan (Fase 5):**
+- Toolbar ikon dikelompokkan menurut fungsi dan setiap ikon memiliki tooltip/label aksesibilitas.
+- Kontrol umum: pilih blok, edit teks langsung di kanvas, format/alignment/ukuran, drag-and-drop susunan blok, undo/redo, dan hapus blok dengan `Del` (tanpa tombol hapus khusus).
+- Tabel: dialog jumlah baris/kolom, opsi border saat insert, edit sel langsung, drag pemisah lebar kolom, tambah/hapus baris dan kolom setelah insert.
+- QR/barcode dirender sebagai simbol nyata menggunakan pustaka lokal; gambar dan kode tetap dapat disimpan dalam dokumen offline.
+- Perubahan properti divalidasi secara atomik; input invalid tidak merusak model/undo history.
+- Tidak ada fitur tanggal/waktu otomatis; pengguna memasukkan teks tanggal/waktu manual.
+- CI terakhir pada PR #14 hijau untuk tes unit Ubuntu/Windows dan Electron smoke Ubuntu. Build portable Windows serta uji manual pengguna masih perlu dilakukan sebelum `TESTED`/`ACCEPTED`. PR #14 tetap terbuka; tidak ada merge otomatis.
+- Uji manual minimum: tabel 1 dan 6 kolom; edit dan perpindahan antar sel; resize di batas minimum; tambah/hapus baris/kolom; undo/redo setelah resize; save/open; QR/barcode dapat dipindai pada preview/cetakan.
 
 ---
 
