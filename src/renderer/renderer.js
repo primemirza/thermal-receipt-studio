@@ -115,6 +115,17 @@ function createPreviewTable(block) {
   table.style.textAlign = block.align || 'left'; table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal']; if (block.bold) table.style.fontWeight = '700';
   return table;
 }
+function createCodeGraphic(block) {
+  if (block.type === 'qrcode') {
+    try { const qr = window.qrcode(0, 'M'); qr.addData(block.value, 'Byte'); qr.make(); const img = document.createElement('img'); img.className = 'generated-code generated-qr'; img.alt = 'QR code untuk ' + block.value; img.src = qr.createDataURL(3, 4); img.style.width = (block.width || 96) + 'px'; img.style.height = 'auto'; img.style.maxWidth = '100%'; return img; }
+    catch (error) { const fallback = make('span', 'object-placeholder', 'QR tidak valid: ' + (error?.message || 'payload terlalu panjang')); return fallback; }
+  }
+  if (block.type === 'barcode') {
+    try { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); window.JsBarcode(svg, block.value, { format: 'CODE128', lineColor: '#111111', width: 1.4, height: 48, displayValue: true, font: 'monospace', fontSize: 12, margin: 4 }); svg.classList.add('generated-code', 'generated-barcode'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'Barcode ' + block.value); svg.style.width = (block.width || 220) + 'px'; svg.style.maxWidth = '100%'; svg.style.height = 'auto'; return svg; }
+    catch (error) { return make('span', 'object-placeholder', 'Barcode tidak valid: ' + (error?.message || 'periksa isi barcode')); }
+  }
+  return make('span', 'object-placeholder', 'Objek kode tidak dikenal');
+}
 function applyBlockLayout(node, block) {
   node.style.textAlign = block.align || 'left';
   if (block.align === 'right') node.style.justifyContent = 'flex-end'; else if (block.align === 'center') node.style.justifyContent = 'center';
@@ -143,7 +154,7 @@ function renderCanvas() {
     } else if (block.type === 'image') {
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; node.append(img);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      const code = make('span', 'object-placeholder', block.type.toUpperCase() + ' · '); code.append(createEditableText(block.value, 'value')); node.append(code);
+      node.append(createCodeGraphic(block)); const value = createEditableText(block.value, 'value'); value.className = 'code-value'; node.append(value);
     } else if (block.type === 'item') {
       node.append(createEditableText(block.name, 'name'));
       node.append(make('span', 'block-price', money(block.price)));
@@ -174,7 +185,7 @@ function renderPreview() {
       const line = makeLine(block.align === 'center' ? 'center' : '', []); if (block.align === 'right') line.style.justifyContent = 'flex-end';
       const img = document.createElement('img'); img.src = block.dataUrl; img.alt = block.alt || 'Gambar struk'; img.style.width = block.width + 'px'; img.style.maxWidth = '100%'; line.append(img); fragment.append(line);
     } else if (block.type === 'qrcode' || block.type === 'barcode') {
-      const code = make('span', 'object-placeholder', block.type.toUpperCase() + ' · ' + block.value); const line = makeLine(block.align === 'center' ? 'center' : '', [code]); if (block.align === 'right') line.style.justifyContent = 'flex-end'; fragment.append(line);
+      const line = makeLine(block.align === 'center' ? 'center' : '', [createCodeGraphic(block)]); if (block.align === 'right') line.style.justifyContent = 'flex-end'; fragment.append(line);
     } else if (block.type === 'item') {
       fragment.append(makeLine('', [make('span', '', block.name), make('span', 'right', money(block.price))]));
     } else if (block.type === 'total') {
@@ -221,8 +232,8 @@ function renderInspector() {
   boldInput.checked = Boolean(block?.bold);
   spacerHeightInput.disabled = !block || block.type !== 'spacer';
   spacerHeightInput.value = block?.type === 'spacer' ? String(block.height) : '';
-  imageWidthInput.disabled = !block || block.type !== 'image';
-  imageWidthInput.value = block?.type === 'image' ? String(block.width) : '';
+  imageWidthInput.disabled = !block || !['image','qrcode','barcode'].includes(block.type);
+  imageWidthInput.value = block && ['image','qrcode','barcode'].includes(block.type) ? String(block.width || (block.type === 'qrcode' ? 96 : block.type === 'barcode' ? 220 : '')) : '';
   ruleStyleInput.disabled = !block || block.type !== 'rule';
   ruleStyleInput.value = block?.type === 'rule' ? (block.style || 'solid') : 'solid';
   tableBorderInput.disabled = !block || block.type !== 'table';
@@ -259,8 +270,8 @@ function addBlock(type) {
       spacer: { id, type: 'spacer', height: 2 },
       table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', '']], border: 'all', columnWidths: [50, 50], align: 'left', size: 'normal', bold: false },
       columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'] },
-      qrcode: { id, type: 'qrcode', value: 'https://example.invalid' },
-      barcode: { id, type: 'barcode', value: '1234567890' },
+      qrcode: { id, type: 'qrcode', value: 'https://example.invalid', width: 96, align: 'center' },
+      barcode: { id, type: 'barcode', value: '1234567890', width: 220, align: 'center' },
       text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' }
     };
     const block = templates[type] || templates.text;
