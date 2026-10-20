@@ -1,8 +1,11 @@
 // Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { validateDocument } from '../renderer/document-model.js';
+import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +25,8 @@ function userDataDir() {
 }
 
 let mainWindow = null;
+const currentFiles = new Map();
+const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -71,9 +76,9 @@ if (!gotLock) {
   });
 
   // --- IPC tervalidasi (API sangat terbatas pada Fase 1) ---
-  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir']);
+  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save']);
 
-  ipcMain.handle('trs:invoke', async (_evt, payload) => {
+  ipcMain.handle('trs:invoke', async (event, payload) => {
     // Payload divalidasi ketat; renderer tidak pernah memanggil channel secara bebas.
     if (typeof payload !== 'object' || payload === null) {
       return { ok: false, error: 'INVALID_PAYLOAD' };
@@ -82,7 +87,7 @@ if (!gotLock) {
     if (typeof channel !== 'string' || !ALLOWED_CHANNELS.has(channel)) {
       return { ok: false, error: 'CHANNEL_NOT_ALLOWED' };
     }
-    if (!Array.isArray(args) || args.length !== 0) {
+    if (!Array.isArray(args) || (channel === 'document:save' ? args.length !== 2 : args.length !== 0)) {
       return { ok: false, error: 'INVALID_ARGS' };
     }
     switch (channel) {
@@ -92,6 +97,37 @@ if (!gotLock) {
         const dir = userDataDir();
         try { fs.mkdirSync(dir, { recursive: true }); } catch { /* dilaporkan */ }
         return { ok: true, value: dir };
+      }
+
+      case 'document:open': {
+        const picked = await dialog.showOpenDialog(mainWindow, { title: 'Buka dokumen struk', properties: ['openFile'], filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] });
+        if (picked.canceled || !picked.filePaths[0]) return { ok: true, value: null };
+        try {
+          const filePath = picked.filePaths[0];
+          const parsed = parseTrstudio(fs.readFileSync(filePath), validateDocument);
+          currentFiles.set(event.sender.id, filePath);
+          return { ok: true, value: { document: parsed.document, path: filePath } };
+        } catch (err) { return { ok: false, error: 'FILE_INVALID', message: String(err?.message || err) }; }
+      }
+      case 'document:save': {
+        const [document, mode] = args;
+        try {
+          validateDocument(document);
+          if (Buffer.byteLength(JSON.stringify(document), 'utf8') > MAX_DOCUMENT_JSON_BYTES) return { ok: false, error: 'DOCUMENT_TOO_LARGE' };
+          if (!['save', 'saveAs'].includes(mode)) return { ok: false, error: 'INVALID_ARGS' };
+          let filePath = mode === 'saveAs' ? null : currentFiles.get(event.sender.id);
+          if (!filePath) {
+            const picked = await dialog.showSaveDialog(mainWindow, { title: mode === 'saveAs' ? 'Simpan dokumen sebagai' : 'Simpan dokumen struk', defaultPath: 'Struk baru.trstudio', buttonLabel: 'Simpan', filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] });
+            if (picked.canceled || !picked.filePath) return { ok: true, value: null };
+            filePath = picked.filePath.toLowerCase().endsWith('.trstudio') ? picked.filePath : picked.filePath + '.trstudio';
+          }
+          const bytes = serializeTrstudio(document);
+          const tempPath = filePath + '.' + randomUUID() + '.tmp';
+          try { fs.writeFileSync(tempPath, bytes, { flag: 'wx' }); fs.renameSync(tempPath, filePath); }
+          catch (err) { try { fs.rmSync(tempPath, { force: true }); } catch {} throw err; }
+          currentFiles.set(event.sender.id, filePath);
+          return { ok: true, value: { path: filePath } };
+        } catch (err) { return { ok: false, error: 'SAVE_FAILED', message: String(err?.message || err) }; }
       }
       default:
         return { ok: false, error: 'UNHANDLED' };

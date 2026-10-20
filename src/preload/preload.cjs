@@ -15,4 +15,6 @@ async function invoke(channel, args = []) {
 contextBridge.exposeInMainWorld('trs', {
   getVersion: () => invoke('app:getVersion'),
   getUserDataDir: () => invoke('app:getUserDataDir'),
+  openDocument: () => invoke('document:open'),
+  saveDocument: (document, mode = 'save') => invoke('document:save', [document, mode]),
 });

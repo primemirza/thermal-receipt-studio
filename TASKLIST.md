@@ -95,9 +95,18 @@ Status fase: **IMPLEMENTED** (menunggu CI dan verifikasi pengguna)
 
 ## FASE 4 — PENYIMPANAN FILE .TRSTUDIO
 
-Status fase: **NOT STARTED**
+Status fase: **IN PROGRESS** (implementasi pada PR; menunggu CI dan uji manual)
 
-ZIP: `manifest.json`, `document.json`, `assets/images/`, `preview.png` (opsional). New/Open/Save/Save As, versioning skema, atomic write, penanganan korup, batas ukuran, anti path-traversal, validasi konten arsip, portabilitas aset.
+| # | Tugas | Status | Catatan |
+|---|---|---|---|
+| 4.1 | Format arsip ZIP dengan manifest dan dokumen JSON | IMPLEMENTED | `manifest.json` + `document.json`; ZIP lokal dengan CRC/checksum dan batas ukuran |
+| 4.2 | New / Open / Save / Save As | IMPLEMENTED | Tombol UI, dialog file native, status dokumen dan konfirmasi perubahan belum disimpan |
+| 4.3 | Validasi skema saat membuka file | IMPLEMENTED | Versi model dan nilai field diperiksa melalui `validateDocument` |
+| 4.4 | Atomic write | IMPLEMENTED | Tulis ke file temporer unik lalu rename |
+| 4.5 | Penanganan arsip rusak dan path traversal | IMPLEMENTED | Validasi nama entri, metode kompresi, ukuran, rentang data dan CRC |
+| 4.6 | Round-trip dan tes regresi | IMPLEMENTED | Tes ditambahkan; status TESTED menunggu CI aktual |
+
+**Batasan eksplisit:** aset gambar dan `preview.png` belum dipersistenkan; parser menolak aset gambar pada Fase 4 ini. Tidak ada klaim portabilitas aset sampai cakupan aset diimplementasikan.
 
 **Kriteria:** round-trip tanpa kehilangan data · file invalid ditangani aman · tes otomatis.
 
