@@ -47,13 +47,14 @@ test('renderer uses prefix-free number formatting and explicit total values in b
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
-  for (const expected of ['selectBlock', 'addBlock', 'delete-block-button', 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId']) {
+  for (const expected of ['selectBlock', 'addBlock', "event.key !== 'Delete'", 'undo-button', 'redo-button', 'textInput.addEventListener', 'priceInput.addEventListener', 'renderPreview', 'captureHistoryState', 'snapshot.document', 'snapshot.selectedBlockId']) {
     assert.ok(js.includes(expected), 'renderer memuat ' + expected);
   }
   assert.match(js, /const money = \(amount\) => currency\.format\(amount\)/);
   assert.doesNotMatch(js, /'Rp\\s*'\s*\+\s*currency\.format/);
   assert.match(js, /block\.amount/);
   assert.doesNotMatch(js, /totalAmount/);
-  assert.match(html, /id="undo-button"[^>]*>Undo<\/button>/);
-  assert.match(html, /id="redo-button"[^>]*>Redo<\/button>/);
+  assert.match(html, /id="undo-button"[^>]*title="Urungkan \(Ctrl\+Z\)"[^>]*><svg/);
+  assert.match(html, /id="redo-button"[^>]*title="Ulangi \(Ctrl\+Y\)"[^>]*><svg/);
+  assert.doesNotMatch(html, /delete-block-button/);
 });
