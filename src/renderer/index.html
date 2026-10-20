@@ -148,6 +148,15 @@
     </form>
   </dialog>
 
+  <dialog id="columns-dialog" class="table-dialog">
+    <form id="columns-dialog-form" method="dialog">
+      <h2>Sisipkan kolom teks</h2>
+      <p>Pilih jumlah kolom. Isi setiap kolom dapat diedit langsung setelah disisipkan.</p>
+      <label for="columns-count">Jumlah kolom<select id="columns-count"><option value="2">2 kolom</option><option value="3">3 kolom</option><option value="4">4 kolom</option></select></label>
+      <div class="table-dialog-actions"><button type="button" id="columns-dialog-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Sisipkan kolom</button></div>
+    </form>
+  </dialog>
+
   <footer class="statusbar">
     <span class="status-left"><span class="status-dot"></span><span id="status-text" role="status" aria-live="polite">Siap · bekerja offline</span></span>
     <span id="status-version" class="status-version">v0.1.0</span>
