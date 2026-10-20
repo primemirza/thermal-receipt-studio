@@ -102,7 +102,7 @@ if (!gotLock) {
 
       case 'window:setTitle': {
         const [title] = args;
-        if (typeof title !== 'string' || title.length > 260 || !/^Thermal Receipt Studio(?: - .+)?$/.test(title)) {
+        if (typeof title !== 'string' || title.length > 512 || !/^Thermal Receipt Studio(?: - .+)?$/.test(title)) {
           return { ok: false, error: 'INVALID_TITLE' };
         }
         mainWindow?.setTitle(title);
