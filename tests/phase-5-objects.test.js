@@ -291,6 +291,24 @@ test('Word-style alignment toolbar applies to all blocks and individual table/co
   assert.ok(model.includes("assertAlignments(block.columnAlignments"));
 });
 
+test('Electron smoke mode executes an actual renderer double-click/edit/commit path', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const main = fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf8');
+  assert.ok(main.includes("wins[0].webContents.executeJavaScript("));
+  assert.ok(main.includes("target.dispatchEvent(new MouseEvent(type"));
+  assert.ok(main.includes("dispatch('click', 1)"));
+  assert.ok(main.includes("dispatch('click', 2)"));
+  assert.ok(main.includes("dispatch('dblclick', 2)"));
+  assert.ok(main.includes("target.getAttribute('contenteditable') === 'true'"));
+  assert.ok(main.includes("document.activeElement === target"));
+  assert.ok(main.includes("target.blur()"));
+  assert.ok(main.includes("TRS_SMOKE_INLINE_EDIT_OK"));
+  assert.ok(main.includes("TRS_SMOKE_FAIL inline-edit="));
+});
+
 test('zoom controls update both canvas and receipt preview without rebuilding the canvas on every step', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
