@@ -298,3 +298,21 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Fase 5 dimulai dengan branch `feature/phase-5-receipt-objects-layout` dari `main`.
 - Ruang lingkup Fase 5 sesuai TASKLIST: objek separator/spacer, gambar dengan aset internal, QR dan barcode offline, tabel/baris/sel, kolom, placeholder tanggal/waktu/dinamis, alignment, ukuran dan opsi objek; objek harus dapat dibuat/diedit/disimpan/dibuka dan dirender konsisten di preview.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
+
+
+## FASE 5 — IMPLEMENTASI AWAL OBJEK (2026-10-20)
+
+Branch: `feature/phase-5-receipt-objects-layout`.
+
+### Sudah diimplementasikan pada branch
+- Model dokumen mengenali tipe `spacer`, `dynamic`, `table`, `columns`, `image`, `qrcode`, dan `barcode`, dengan validasi field, batas ukuran, karakter barcode, dan format gambar.
+- Toolbar menyediakan aksi tambah garis, spacer, placeholder tanggal/waktu, tabel, kolom, QR, barcode, dan gambar.
+- Gambar raster PNG/JPEG/WebP/GIF maksimal 5 MiB dibaca lokal dan disimpan sebagai data URL base64 di model dokumen; ini membuat gambar ikut berada di dalam JSON dokumen saat disimpan.
+- Renderer memiliki cabang awal untuk spacer, placeholder dinamis, tabel/kolom teks, gambar, serta placeholder QR/barcode.
+- Tes baru memeriksa validasi tipe objek, round-trip `.trstudio`, validasi gambar, dan kontrol toolbar.
+
+### Belum selesai / belum diverifikasi
+- QR dan barcode saat ini baru placeholder teks, belum dirender sebagai simbol yang dapat dipindai. Integrasi generator offline masih diperlukan.
+- Inspector untuk mengedit seluruh properti tabel, kolom, gambar, spacer, dan pilihan placeholder masih perlu diselesaikan.
+- Belum ada hasil CI yang diverifikasi pada commit terbaru; belum ada build portable untuk pengujian manual.
+- Status Fase 5 tetap `IN PROGRESS`, bukan `TESTED` atau `ACCEPTED`.
