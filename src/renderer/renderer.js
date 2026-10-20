@@ -25,6 +25,10 @@ const spacerHeightInput = $('block-spacer-height');
 const imageWidthInput = $('block-image-width');
 const ruleStyleInput = $('block-rule-style');
 const tableBorderInput = $('block-table-border');
+const totalAmountInput = $('block-total-amount');
+const ruleCharacterInput = $('block-rule-character');
+const imageAltInput = $('block-image-alt');
+const tableStructureActions = $('table-structure-actions');
 
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
@@ -237,7 +241,17 @@ function renderInspector() {
   ruleStyleInput.disabled = !block || block.type !== 'rule';
   ruleStyleInput.value = block?.type === 'rule' ? (block.style || 'solid') : 'solid';
   tableBorderInput.disabled = !block || block.type !== 'table';
-  tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';
+  tableBorderInput.value = block?.type === 'table' ? (block.border || 'all') : 'all';  totalAmountInput.disabled = !block || block.type !== 'total';
+  totalAmountInput.value = block?.type === 'total' ? String(block.amount) : '';
+  ruleCharacterInput.disabled = !block || block.type !== 'rule';
+  ruleCharacterInput.value = block?.type === 'rule' ? (block.character || '-') : '-';
+  imageAltInput.disabled = !block || block.type !== 'image';
+  imageAltInput.value = block?.type === 'image' ? (block.alt || '') : '';
+  tableStructureActions.hidden = !block || block.type !== 'table';
+  $('table-add-row').disabled = !block || block.type !== 'table' || block.rows.length >= 100;
+  $('table-remove-row').disabled = !block || block.type !== 'table' || block.rows.length <= 0;
+  $('table-add-column').disabled = !block || block.type !== 'table' || block.headers.length >= 6;
+  $('table-remove-column').disabled = !block || block.type !== 'table' || block.headers.length <= 1;
 }
 function renderAll() {
   renderCanvas();
@@ -362,6 +376,13 @@ spacerHeightInput.addEventListener('change', () => { const block = selectedBlock
 imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = Math.max(1, Math.min(512, Math.round(Number(imageWidthInput.value) || 1))); mutate(() => { block.width = value; }, 'Lebar gambar diperbarui.'); });
 ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
 tableBorderInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || !['all','horizontal','none'].includes(tableBorderInput.value)) return; mutate(() => { block.border = tableBorderInput.value; }, 'Border tabel diperbarui.'); });
+totalAmountInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'total') return; const value = Math.max(0, Math.min(1000000000, Math.round(Number(totalAmountInput.value) || 0))); if (block.amount === value) return; mutate(() => { block.amount = value; }, 'Nilai total diperbarui.'); });
+ruleCharacterInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule') return; const value = (ruleCharacterInput.value || '-').slice(0, 1); mutate(() => { block.character = value; }, 'Karakter garis diperbarui.'); });
+imageAltInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'image') return; const value = imageAltInput.value.slice(0, 200); if (block.alt === value) return; mutate(() => { block.alt = value; }, 'Deskripsi gambar diperbarui.'); });
+$('table-add-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length >= 100) return; mutate(() => { block.rows.push(Array(block.headers.length).fill('')); }, 'Baris tabel ditambahkan.'); });
+$('table-remove-row').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.rows.length <= 0) return; mutate(() => { block.rows.pop(); }, 'Baris terakhir tabel dihapus.'); });
+$('table-add-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length >= 6) return; mutate(() => { const widths = columnWidths(block); const next = widths.map(width => width * (100 - 100 / (widths.length + 1)) / 100); next.push(100 / (widths.length + 1)); const total = next.reduce((sum,width)=>sum+width,0); next[next.length-1] += 100-total; block.headers.push('Kolom ' + (block.headers.length + 1)); block.rows.forEach(row => row.push('')); block.columnWidths = next.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom tabel ditambahkan.'); });
+$('table-remove-column').addEventListener('click', () => { const block = selectedBlock(); if (!block || block.type !== 'table' || block.headers.length <= 1) return; mutate(() => { block.headers.pop(); block.rows.forEach(row => row.pop()); const widths = columnWidths(block); const normalized = widths.map(width => width / widths.reduce((sum,v)=>sum+v,0) * 100); block.columnWidths = normalized.map(width => Number(width.toFixed(2))); block.columnWidths[block.columnWidths.length-1] = Number((100-block.columnWidths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2)); }, 'Kolom terakhir tabel dihapus.'); });
 
 priceInput.addEventListener('change', () => {
   const block = selectedBlock();
