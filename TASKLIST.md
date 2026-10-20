@@ -127,7 +127,7 @@ Objek separator, spacer, teks manual, gambar, QR/barcode offline, tabel/sel edit
 - Menu klik kanan memiliki `Duplikat elemen`; duplikat diletakkan tepat di bawah sumber, dan semua ID anak baru pada duplikat section berbeda.
 - Tidak merusak drag handle, resize tabel/kolom, edit sel, undo/redo, validasi, dan round-trip `.trstudio`.
 
-**Status verifikasi:** CI lanjutan pada branch ini belum selesai. Build portable Windows dan uji manual diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
+**Status verifikasi:** GitHub Actions run #52 lulus: `npm test` 47/47 pada Ubuntu dan Windows; Electron smoke test Ubuntu lulus. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** layout 3 kolom; satu separator solid/dashed/double; single click, double-click, right-click; resize gambar/QR/barcode; margin/padding tiap sisi; duplikasi blok/section; title setelah Save, Save As, Open, dan New; save/open `.trstudio`.
 
