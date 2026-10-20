@@ -33,9 +33,6 @@ function setStatus(message) { statusText.textContent = message; }
 function dynamicLabel(field) {
   return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
 }
-function dynamicLabel(field) {
-  return ({ date: '[Tanggal saat cetak]', time: '[Waktu saat cetak]', datetime: '[Tanggal & waktu saat cetak]', receiptNumber: '[Nomor struk]' })[field] || '[Placeholder]';
-}
 function selectedBlock() { return documentModel.blocks.find(block => block.id === selectedBlockId) ?? null; }
 function captureHistoryState() {
   return { document: cloneDocument(documentModel), selectedBlockId };
