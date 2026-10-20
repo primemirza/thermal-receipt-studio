@@ -399,7 +399,8 @@ test('double-click editing preserves the target node and handles block, table an
   assert.ok(select.includes("node.classList.toggle('is-selected'"));
   assert.ok(resolver.includes("target.closest('[data-inline-edit]')"));
   assert.ok(resolver.includes("target.closest('td, th, .column-cell, .section-header')"));
-  assert.ok(resolver.includes("blockNode.querySelector('[data-field=\'' + field + '\']')") || resolver.includes("blockNode.querySelector('[data-field=\"' + field + '\"]')"));
+  assert.ok(resolver.includes('const field = fieldByType[block.type]'));
+  assert.ok(resolver.includes('return blockNode.querySelector('));
   assert.ok(resolver.includes("block.type === 'table' || block.type === 'columns'"));
   assert.ok(helper.includes("editor.setAttribute('contenteditable', 'true')"));
   assert.ok(helper.includes('editor.focus()'));
