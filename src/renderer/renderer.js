@@ -208,11 +208,13 @@ function createColumnLayout(block, editable) {
   container.style.width = (block.width ?? 100) + '%';
   container.style.marginLeft = block.align === 'right' ? 'auto' : block.align === 'center' ? 'auto' : '0';
   container.style.marginRight = block.align === 'left' ? 'auto' : block.align === 'center' ? 'auto' : '0';
-  container.style.gap = (block.gap ?? 0) + 'px';
+  const columnGap = block.gap ?? 0;
+  container.style.gap = columnGap + 'px';
   const widths = columnWidths(block);
+  const gapShare = columnGap * Math.max(0, block.columns.length - 1) / block.columns.length;
   block.columns.forEach((value, index) => {
     const cell = make('div', 'column-cell border-' + (block.border || 'vertical'));
-    cell.style.flex = '0 0 ' + widths[index] + '%';
+    cell.style.flex = '0 0 calc(' + widths[index] + '% - ' + gapShare + 'px)';
     cell.style.padding = (block.padding ?? 4) + 'px';
     if (editable) {
       cell.append(createEditableText(value, 'columnCell', { colIndex: index }));
@@ -706,7 +708,7 @@ designPaper.addEventListener('pointerdown', event => {
     : [...container.querySelectorAll(':scope > .column-cell')];
   const setWidth = (element, width) => {
     if (kind === 'table') element.style.width = width + '%';
-    else element.style.flex = '0 0 ' + width + '%';
+    else { const gapShare = (block.gap ?? 0) * Math.max(0, block.columns.length - 1) / block.columns.length; element.style.flex = '0 0 calc(' + width + '% - ' + gapShare + 'px)'; }
   };
   const move = moveEvent => {
     const delta = (moveEvent.clientX - startX) / widthPx * 100;
@@ -718,10 +720,8 @@ designPaper.addEventListener('pointerdown', event => {
     document.removeEventListener('pointermove', move);
     document.removeEventListener('pointerup', finish);
     if (Math.abs(upEvent.clientX - startX) < 1) return;
-    const styleWidth = kind === 'table'
-      ? parseFloat(sizingElements[index].style.width)
-      : parseFloat(sizingElements[index].style.flexBasis || sizingElements[index].style.flex.split(' ')[1]);
-    const left = Number((Number.isFinite(styleWidth) ? styleWidth : original[index]).toFixed(2));
+    const delta = (upEvent.clientX - startX) / widthPx * 100;
+    const left = Number(Math.max(10, Math.min(pairWidth - 10, original[index] + delta)).toFixed(2));
     const next = [...original];
     next[index] = left;
     next[index + 1] = Number((pairWidth - left).toFixed(2));
