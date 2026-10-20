@@ -212,7 +212,7 @@ if (process.env.TRS_SMOKE === '1') {
           const committed = document.querySelector('#receipt-preview')?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
           document.removeEventListener('click', captureClick, true);
           return {
-            ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed,
+            ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed && canvasReplacementCount === 0,
             attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed, ...diagnostics
           };
         })()`);
