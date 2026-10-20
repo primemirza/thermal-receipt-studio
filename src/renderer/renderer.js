@@ -748,8 +748,8 @@ $('table-remove-column').addEventListener('click', () => { const block = selecte
 
 tableWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'table') return;
-  const currentOffset = block.offset ?? ((block.align || 'left') === 'right' ? 100 - (block.width ?? 100) : (block.align || 'left') === 'center' ? (100 - (block.width ?? 100)) / 2 : 0);
-  const value = Math.max(20, Math.min(100 - currentOffset, Math.round(Number(tableWidthInput.value) || 20)));
+  const fixedOffset = block.offset ?? 0;
+  const value = Math.max(20, Math.min(100 - fixedOffset, Math.round(Number(tableWidthInput.value) || 20)));
   mutate(() => { block.width = value; }, 'Lebar tabel diperbarui.');
 });
 tablePaddingInput.addEventListener('change', () => {
