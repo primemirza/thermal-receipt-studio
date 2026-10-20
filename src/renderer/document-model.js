@@ -55,6 +55,7 @@ export function validateDocument(doc) {
       assertString(block.dataUrl, 'Data gambar', 8_000_000);
       if (!/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/.test(block.dataUrl)) throw new TypeError('Format gambar harus data URL base64 PNG/JPEG/WebP/GIF.');
       if (!Number.isInteger(block.width) || block.width < 1 || block.width > 512) throw new TypeError('Lebar gambar harus 1–512 px.');
+      if (block.alt !== undefined) assertString(block.alt, 'Deskripsi gambar');
     }
     if (block.type === 'qrcode') { assertString(block.value, 'Isi QR', 2000); if (!block.value) throw new TypeError('Isi QR tidak boleh kosong.'); if (block.width !== undefined && (!Number.isInteger(block.width) || block.width < 32 || block.width > 512)) throw new TypeError('Lebar QR harus 32–512 px.'); }
     if (block.type === 'barcode') { assertString(block.value, 'Isi barcode', 128); if (!/^[\x20-\x7E]+$/.test(block.value)) throw new TypeError('Isi barcode harus berisi karakter ASCII yang dapat dicetak.'); if (block.width !== undefined && (!Number.isInteger(block.width) || block.width < 64 || block.width > 512)) throw new TypeError('Lebar barcode harus 64–512 px.'); }
