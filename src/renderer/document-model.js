@@ -58,13 +58,14 @@ export function validateDocument(doc) {
       ids.add(block.id);
       if (!BLOCK_TYPES.includes(block.type) && block.type !== 'dynamic') throw new TypeError('Jenis elemen tidak didukung.');
       if (block.align !== undefined && !ALIGNMENTS.includes(block.align)) throw new TypeError('Perataan elemen tidak valid.');
+      if (block.margin !== undefined) assertBox(block.margin, 'Margin blok', 60);
       if (block.type === 'section') {
         assertString(block.name || 'Section', 'Nama section');
-        if (block.margin !== undefined) assertBox(block.margin, 'Margin section', 60);
         if (block.padding !== undefined) assertBox(block.padding, 'Padding section', 60);
         validateBlocks(block.children);
         continue;
       }
+      if (block.blockPadding !== undefined) assertBox(block.blockPadding, 'Padding blok', 60);
       if (block.type === 'text') assertString(block.text, 'Teks elemen');
       if (block.type === 'dynamic') {
         if (block.field !== undefined && !['date', 'time', 'datetime', 'receiptNumber'].includes(block.field)) throw new TypeError('Placeholder lama tidak valid.');
