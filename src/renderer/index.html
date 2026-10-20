@@ -81,6 +81,19 @@
         <div class="inspector-fields">
           <label for="block-size-input">Ukuran teks<select id="block-size-input" disabled><option value="small">Kecil</option><option value="normal">Normal</option><option value="large">Besar</option><option value="double">Dobel</option></select></label>
           <label class="inspector-check" for="block-bold-input"><input id="block-bold-input" type="checkbox" disabled /> Tebal</label>
+        </div>        <div class="inspector-fields">
+          <label for="block-total-amount">Nilai total<input id="block-total-amount" type="number" min="0" max="1000000000" step="1" disabled placeholder="0" /></label>
+          <label for="block-rule-character">Karakter garis<input id="block-rule-character" type="text" maxlength="1" disabled value="-" /></label>
+        </div>
+        <label for="block-image-alt">Deskripsi gambar<input id="block-image-alt" type="text" maxlength="200" disabled placeholder="Teks alternatif gambar" /></label>
+        <div id="table-structure-actions" class="table-structure-actions" hidden>
+          <span class="tool-label">Struktur tabel</span>
+          <div class="table-action-group">
+            <button type="button" class="text-button" id="table-add-row">+ Baris</button>
+            <button type="button" class="text-button" id="table-remove-row">− Baris</button>
+            <button type="button" class="text-button" id="table-add-column">+ Kolom</button>
+            <button type="button" class="text-button" id="table-remove-column">− Kolom</button>
+          </div>
         </div>
         <div class="inspector-fields">
           <label for="block-spacer-height">Tinggi spacer (baris)<input id="block-spacer-height" type="number" min="1" max="20" step="1" disabled /></label>
