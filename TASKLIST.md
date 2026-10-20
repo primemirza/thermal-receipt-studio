@@ -124,7 +124,7 @@ Status fase: **IN PROGRESS**. PR #14, #15, dan #16 telah di-merge dan diuji peng
 - Bold/italic/underline dipaksakan secara eksplisit sesuai nilai model agar default `<th>` browser tidak membuat teks tebal ketika properti tidak aktif; gaya berlaku pada kanvas dan preview.
 - Tambah/hapus baris/kolom tabel turut menjaga alignment setiap sel konsisten.
 
-**Status verifikasi:** tes tambahan untuk branch ini menunggu CI unit test Ubuntu/Windows dan Electron smoke test. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
+**Status verifikasi:** GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus. Build portable Windows dan uji manual tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** toolbar rata; double-click header/body tabel dan kolom; klik kanan saat cursor berada pada teks; perataan blok, perataan satu sel/kolom dan seluruh tabel/columns; bold on/off; section bersarang; save/open `.trstudio` dengan alignment per-sel.
 
