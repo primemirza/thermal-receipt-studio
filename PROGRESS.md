@@ -314,6 +314,6 @@ PR #14, #15, dan #16 telah di-merge berdasarkan uji pengguna. Follow-up terbaru 
 - Alignment dan section bersarang dipertahankan dalam save/open `.trstudio`; tes regresi ditambah untuk alignment invalid, round-trip, click/double-click target, styling, dan insert section bertingkat.
 
 ### Status verifikasi
-- CI untuk branch follow-up ini belum selesai; PR harus melewati unit test Ubuntu/Windows dan Electron smoke test.
+- GitHub Actions run #57 lulus: `npm test` 51/51 pada Ubuntu dan Windows, serta Electron smoke test Ubuntu lulus.
 - Build portable Windows dan uji manual dibutuhkan untuk memastikan fokus editor tabel/kolom dan perilaku toolbar dalam interaksi nyata.
 - Status Fase 5 tetap `IN PROGRESS` hingga CI dan uji pengguna disetujui.
