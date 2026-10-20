@@ -133,8 +133,8 @@ test('all inspector controls referenced by renderer exist in the HTML', async ()
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
-  const ids = [...js.matchAll(/\\$\\(['\"]([^'\"]+)['\"]\\)/g)].map(match => match[1]);
-  const htmlIds = new Set([...html.matchAll(/\\bid=\"([^\"]+)\"/g)].map(match => match[1]));
+  const ids = [...js.matchAll(/\$\(['"]([^'"]+)['"]\)/g)].map(match => match[1]);
+  const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
   assert.deepEqual([...new Set(ids)].filter(id => !htmlIds.has(id)), []);
   assert.ok((html.match(/class=\"toolbar-icon\"/g) || []).length >= 15);
 });
