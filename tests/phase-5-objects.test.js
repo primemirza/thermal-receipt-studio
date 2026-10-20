@@ -95,7 +95,7 @@ test('QR dan CODE128 dirender oleh library lokal tanpa layanan remote', async ()
   assert.ok(js.includes('window.qrcode(0'));
   assert.ok(js.includes('window.JsBarcode(svg'));
   assert.ok(js.includes("format: 'CODE128'"));
-  assert.ok(!/https?:\\/\\/(?:cdn\\.|unpkg\\.com|cdnjs\\.cloudflare\\.com)/i.test(html));
+  assert.ok(!html.includes('https://cdn.') && !html.includes('https://unpkg.com') && !html.includes('https://cdnjs.cloudflare.com'));
 });
 
 test('single-column tables and editable widths remain valid', () => {
