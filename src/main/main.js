@@ -156,16 +156,48 @@ if (!gotLock) {
   });
 }
 
-// --- Mode smoke untuk CI (TRS_SMOKE=1): buka jendela, verifikasi, lalu keluar dengan kode 0 ---
+// --- Smoke test CI: verify real renderer event flow, including double-click editing. ---
 if (process.env.TRS_SMOKE === '1') {
   app.whenReady().then(() => {
-    setTimeout(() => {
+    setTimeout(async () => {
       const wins = BrowserWindow.getAllWindows();
-      if (wins.length === 1 && !wins[0].isDestroyed()) {
-        console.log('TRS_SMOKE_OK window-title=' + JSON.stringify(wins[0].getTitle()));
-        app.exit(0);
-      } else {
+      if (wins.length !== 1 || wins[0].isDestroyed()) {
         console.error('TRS_SMOKE_FAIL no usable window');
+        app.exit(1);
+        return;
+      }
+      try {
+        const result = await wins[0].webContents.executeJavaScript(`(() => {
+          const target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
+          if (!target) return { ok: false, reason: 'editable sample text not found' };
+          const dispatch = (type, detail) => target.dispatchEvent(new MouseEvent(type, {
+            bubbles: true, cancelable: true, detail, view: window
+          }));
+          dispatch('click', 1);
+          const attachedAfterFirstClick = target.isConnected;
+          dispatch('click', 2);
+          const attachedAfterSecondClick = target.isConnected;
+          dispatch('dblclick', 2);
+          const editable = target.getAttribute('contenteditable') === 'true';
+          const focused = document.activeElement === target;
+          target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
+          target.blur();
+          const committed = document.querySelector('#receipt-preview')?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          return {
+            ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed,
+            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed
+          };
+        })()`);
+        if (!result?.ok) {
+          console.error('TRS_SMOKE_FAIL inline-edit=' + JSON.stringify(result));
+          app.exit(1);
+          return;
+        }
+        console.log('TRS_SMOKE_OK window-title=' + JSON.stringify(wins[0].getTitle()));
+        console.log('TRS_SMOKE_INLINE_EDIT_OK ' + JSON.stringify(result));
+        app.exit(0);
+      } catch (error) {
+        console.error('TRS_SMOKE_FAIL runtime-edit-check=' + String(error?.stack || error));
         app.exit(1);
       }
     }, 4000);
