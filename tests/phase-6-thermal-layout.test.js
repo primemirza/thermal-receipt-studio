@@ -10,6 +10,7 @@ class FakeEncoder {
   bold(value) { this.calls.push(['bold', value]); return this; }
   italic(value) { this.calls.push(['italic', value]); return this; }
   underline(value) { this.calls.push(['underline', value]); return this; }
+  size(value) { this.calls.push(['size', value]); return this; }
   align(value) { this.calls.push(['align', value]); return this; }
   line(value) { this.calls.push(['line', value]); return this; }
   newline() { this.calls.push(['newline']); return this; }
