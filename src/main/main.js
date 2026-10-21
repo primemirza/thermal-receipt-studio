@@ -40,11 +40,26 @@ async function printViaDriver(receiptMarkup, paperWidthMm, printerName) {
   });
   try {
     await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    // Ensure layout and local images settle before measuring the receipt. Electron's
+    // print API accepts custom paper dimensions in microns; CSS "58mm auto" is not
+    // reliably honored by Windows thermal drivers and can fall back to an oversized page.
+    const measured = await printWindow.webContents.executeJavaScript(`
+      (async () => {
+        if (document.fonts?.ready) await document.fonts.ready;
+        await Promise.all(Array.from(document.images, image => image.decode().catch(() => {})));
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
+      })()
+    `);
+    const widthMicrons = paperWidthMm * 1000;
+    const heightMicrons = Math.max(30000, Math.ceil((measured.height + 4) * 25400 / 96));
     const result = await new Promise((resolve, reject) => {
       printWindow.webContents.print({
         silent: true, printBackground: true,
         ...(printerName ? { deviceName: printerName } : {}),
-        margins: { marginType: 'none' }
+        pageSize: { width: widthMicrons, height: heightMicrons },
+        margins: { marginType: 'none' },
+        scaleFactor: 100
       }, (success, failureReason) => {
         if (success) resolve({ success: true, printerName: printerName || 'default' });
         else reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
