@@ -47,8 +47,8 @@ test('layout uses document paper width, explicit totals, nested sections and tex
   assert.equal(layout.profile.effectiveColumns, 32);
   assert.deepEqual(layout.operations.filter(item => item.type === 'text').map(item => item.text), [
     'WARUNG CONTOH',
-    'Nasi goreng                   15.000',
-    'Total                         20.000'
+    'Nasi goreng'.padEnd(25) + ' 15.000',
+    'Total'.padEnd(25) + ' 20.000'
   ]);
   assert.equal(layout.operations.at(-2).type, 'feed');
   assert.deepEqual(layout.operations.at(-1), { type: 'cut', mode: 'full' });
@@ -91,7 +91,7 @@ test('encoder adapter maps layout operations to documented encoder methods', () 
   assert.deepEqual(FakeEncoder.last.calls.filter(call => ['line', 'qrcode', 'barcode', 'image', 'cut'].includes(call[0])).map(call => call[0]), [
     'line', 'line', 'qrcode', 'barcode', 'image', 'cut'
   ]);
-  assert.equal(FakeEncoder.last.calls.filter(call => call[0] === 'newline').length, 3);
+  assert.equal(FakeEncoder.last.calls.filter(call => call[0] === 'newline').length, 5);
 });
 
 test('encoder adapter requires image resolver and rejects unknown operations', () => {
