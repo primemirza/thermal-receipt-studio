@@ -53,6 +53,7 @@ const blockContextMenu = $('block-context-menu');
 let documentModel = createSampleDocument();
 let selectedBlockId = null;
 let activeInlineTarget = null;
+let activeInlineEditSession = null;
 let isDirty = false;
 let currentFilePath = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
@@ -711,6 +712,91 @@ function trackInlineTarget(editor, blockId) {
     colIndex: Number(editor.dataset.colIndex ?? -1)
   };
 }
+function getInlineModelValue(block, cell) {
+  const field = cell.dataset.field;
+  if (field === 'tableCell' && block.type === 'table') {
+    const row = Number(cell.dataset.rowIndex), col = Number(cell.dataset.colIndex);
+    return row < 0 ? block.headers[col] : block.rows[row]?.[col];
+  }
+  if (field === 'columnCell' && block.type === 'columns') return block.columns[Number(cell.dataset.colIndex)];
+  return Object.hasOwn(block, field) ? block[field] : undefined;
+}
+function setInlineModelValue(block, cell, value) {
+  const field = cell.dataset.field;
+  if (field === 'tableCell' && block.type === 'table') {
+    const row = Number(cell.dataset.rowIndex), col = Number(cell.dataset.colIndex);
+    if (row < 0) block.headers[col] = value;
+    else if (block.rows[row]) block.rows[row][col] = value;
+    else return false;
+    return true;
+  }
+  if (field === 'columnCell' && block.type === 'columns') {
+    const index = Number(cell.dataset.colIndex);
+    if (index < 0 || index >= block.columns.length) return false;
+    block.columns[index] = value;
+    return true;
+  }
+  if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field)) {
+    block[field] = value;
+    return true;
+  }
+  return false;
+}
+function inlineValueForCommit(cell, block) {
+  const field = cell.dataset.field;
+  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200;
+  return cell.textContent.slice(0, max);
+}
+function ensureInlineEditSession(cell, blockId) {
+  if (activeInlineEditSession?.element === cell && activeInlineEditSession.blockId === blockId) return activeInlineEditSession;
+  const block = findBlockEntry(blockId)?.block;
+  if (!block) return null;
+  activeInlineEditSession = {
+    element: cell,
+    blockId,
+    originalValue: String(getInlineModelValue(block, cell) ?? ''),
+    wasDirty: isDirty,
+    undoSaved: false,
+    undoBefore: [...state.undo],
+    redoBefore: [...state.redo]
+  };
+  return activeInlineEditSession;
+}
+designPaper.addEventListener('input', event => {
+  const cell = event.target instanceof Element ? event.target.closest('[data-inline-edit][contenteditable="true"]') : null;
+  if (!cell) return;
+  const blockNode = cell.closest('[data-block-id]');
+  const blockId = blockNode?.dataset.blockId;
+  const block = findBlockEntry(blockId)?.block;
+  if (!block) return;
+  const session = ensureInlineEditSession(cell, blockId);
+  const value = inlineValueForCommit(cell, block);
+  if (String(getInlineModelValue(block, cell) ?? '') === value) return;
+  const before = cloneDocument(documentModel);
+  if (!session.undoSaved) {
+    session.undoBefore = [...state.undo];
+    session.redoBefore = [...state.redo];
+    saveUndoPoint();
+    session.undoSaved = true;
+  }
+  try {
+    if (!setInlineModelValue(block, cell, value)) return;
+    validateDocument(documentModel);
+  } catch (error) {
+    documentModel = before;
+    cell.textContent = String(getInlineModelValue(findBlockEntry(blockId)?.block || block, cell) ?? '');
+    state.undo = session.undoBefore;
+    state.redo = session.redoBefore;
+    session.undoSaved = false;
+    updateHistoryButtons();
+    setStatus('Edit tidak diterapkan: ' + String(error?.message || error));
+    return;
+  }
+  isDirty = true;
+  renderPreview();
+  updateHistoryButtons();
+  setStatus('Isi elemen diperbarui.');
+}, true);
 function beginInlineEdit(editor, blockId) {
   if (!editor || !blockId || !editor.isConnected) return false;
   trackInlineTarget(editor, blockId);
@@ -844,6 +930,9 @@ designPaper.addEventListener('blur', event => {
       else if (graphic) graphic.replaceWith(createCodeGraphic(block));
     }
   }
+  // The input listener normally syncs each keystroke to the model; this blur path is a
+  // fallback for programmatic edits and always closes the in-place editor.
+  if (activeInlineEditSession?.element === cell) activeInlineEditSession = null;
   cell.contentEditable = 'false';
 }, true);
 designPaper.addEventListener('keydown', event => {
@@ -853,14 +942,18 @@ designPaper.addEventListener('keydown', event => {
   else if (event.key === 'Escape') {
     event.preventDefault();
     const block = findBlockEntry(cell.closest('[data-block-id]')?.dataset.blockId)?.block;
-    if (block) {
-      const field = cell.dataset.field;
-      if (field === 'tableCell') {
-        const row = Number(cell.dataset.rowIndex), col = Number(cell.dataset.colIndex);
-        cell.textContent = row < 0 ? block.headers[col] : block.rows[row]?.[col] ?? '';
-      } else if (field === 'columnCell') cell.textContent = block.columns[Number(cell.dataset.colIndex)] ?? '';
-      else if (['text','name','label','value'].includes(field)) cell.textContent = block[field] ?? '';
+    const session = activeInlineEditSession?.element === cell ? activeInlineEditSession : null;
+    if (block && session?.undoSaved) {
+      setInlineModelValue(block, cell, session.originalValue);
+      state.undo = session.undoBefore;
+      state.redo = session.redoBefore;
+      isDirty = session.wasDirty;
+      renderPreview();
+      updateHistoryButtons();
+      setStatus('Edit dibatalkan.');
     }
+    if (block) cell.textContent = String(getInlineModelValue(block, cell) ?? '');
+    activeInlineEditSession = null;
     cell.contentEditable = 'false';
     cell.blur();
   }
