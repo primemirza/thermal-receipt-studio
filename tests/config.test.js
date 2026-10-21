@@ -61,7 +61,7 @@ test('CSP ketat ada di index.html', () => {
 test('IPC membatasi channel terdaftar dan memvalidasi title window', async () => {
   // Simulasi handler validasi payload tanpa Electron: ekstrak aturan dari source.
   const main = read('src/main/main.js');
-  assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(\['app:getVersion',\s*'app:getUserDataDir',\s*'document:open',\s*'document:save',\s*'window:setTitle'\]\)/);
+  assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(\['app:getVersion',\s*'app:getUserDataDir',\s*'document:open',\s*'document:save',\s*'window:setTitle',\s*'printer:list',\s*'printer:driver',\s*'printer:raw',\s*'printer:reprint'\]\)/);
   assert.match(main, /case 'window:setTitle':[\s\S]*?mainWindow\?\.setTitle\(title\)/);
 });
 
