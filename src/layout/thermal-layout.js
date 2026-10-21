@@ -79,7 +79,8 @@ function pushText(operations, text, block, width) {
       align,
       bold: block.bold === true,
       italic: block.italic === true,
-      underline: block.underline === true
+      underline: block.underline === true,
+      size: block.size || 'normal'
     });
   }
 }
@@ -115,6 +116,7 @@ function layoutTable(block, width, operations) {
         bold: block.bold === true || (rowIndex === 0 && block.headerBold !== false),
         italic: block.italic === true,
         underline: block.underline === true,
+        size: block.size || 'normal',
         sourceType: 'table'
       });
     }
@@ -151,6 +153,7 @@ function layoutColumns(block, width, operations) {
       bold: block.bold === true,
       italic: block.italic === true,
       underline: block.underline === true,
+      size: block.size || 'normal',
       sourceType: 'columns'
     });
   }
@@ -199,14 +202,14 @@ export function createThermalLayout(document, options = {}) {
           const price = formatAmount(block.price);
           const nameWidth = Math.max(1, width - Array.from(price).length - 1);
           const names = wrapText(block.name, nameWidth);
-          operations.push({ type: 'text', text: padCell(names[0], nameWidth, 'left') + ' ' + price, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, sourceType: 'item' });
+          operations.push({ type: 'text', text: padCell(names[0], nameWidth, 'left') + ' ' + price, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, size: block.size || 'normal', sourceType: 'item' });
           for (const line of names.slice(1)) operations.push({ type: 'text', text: line, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, sourceType: 'item' });
           break;
         }
         case 'total': {
           const value = formatAmount(block.amount);
           const labelWidth = Math.max(1, width - Array.from(value).length - 1);
-          operations.push({ type: 'text', text: padCell(block.label, labelWidth, 'left') + ' ' + value, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, sourceType: 'total' });
+          operations.push({ type: 'text', text: padCell(block.label, labelWidth, 'left') + ' ' + value, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, size: block.size || 'normal', sourceType: 'total' });
           break;
         }
         case 'rule': {
