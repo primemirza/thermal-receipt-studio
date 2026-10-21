@@ -300,23 +300,21 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PERBAIKAN AKAR MASALAH DOUBLE-CLICK EDIT (2026-10-21)
+## FASE 5 — DOUBLE-CLICK EDITING DAN COMMIT LANGSUNG (2026-10-21)
 
-Pengguna telah merge PR #18, tetapi klik ganda masih gagal. Audit runtime melalui Electron smoke test mengidentifikasi akar masalah:
-- `paperButtons` awalnya diisi dengan `document.querySelectorAll('[data-paper]')`, yang ikut mengambil elemen kanvas `#design-paper` karena elemen itu juga mempunyai atribut `data-paper`.
-- Ketika pengguna mengklik teks pada kanvas, listener pemilihan ukuran kertas ikut memanggil `setPaper()` → `mutate()` → `renderAll()` → `renderCanvas()`. Target teks diganti setelah klik pertama; sehingga double-click tidak pernah dapat menyelesaikan edit. Ini dibuktikan oleh stack trace runtime dari smoke test.
+Hasil uji setelah PR #19: Electron smoke run #79 menemukan mode editor dapat aktif (`editable=true`, `focused=true`) tetapi teks tidak tersimpan ke preview (`committed=false`). Run #80 tetap gagal karena blur sintetis tidak memicu jalur commit dalam harness. Karena itu mekanisme simpan tidak boleh hanya bergantung pada blur.
 
-Perbaikan pada branch `fix/phase-5-dblclick-edit-reliable` / PR #19:
-- Selector diperketat menjadi `button[data-paper]`; hanya tombol lebar kertas dapat memicu `setPaper`.
-- `selectBlock()` hanya mengubah kelas selection dan inspector, tidak merender ulang kanvas ketika blok dipilih.
-- Double-click ditangkap pada capture phase di `editor-surface`, dengan resolver untuk span teks, sel tabel/header, sel kolom, section, dan field utama blok.
-- Fungsi smoke mode Electron diperluas untuk dispatch klik pertama/kedua dan `dblclick`, memverifikasi target tidak terlepas, `contenteditable=true`, fokus, serta perubahan teks yang tersimpan pada preview.
-- Perbaikan tambahan dari temuan smoke test: window-open handler dipindahkan ke API yang tepat, `mainWindow.webContents.setWindowOpenHandler`, agar jendela dapat diinisialisasi pada Electron CI.
+Implementasi di branch `fix/phase-5-inline-edit-commit-path` / PR #20:
+- Double-click langsung pada blok di kanvas tetap mengaktifkan `contenteditable` pada field utama; tabel/kolom mengaktifkan sel yang terkena.
+- Listener `input` pada kanvas kini menerapkan teks ke model dokumen ketika pengguna mengetik dan me-render ulang preview saja (kanvas tidak diganti, sehingga fokus tetap ada).
+- Undo snapshot dibuat sekali pada perubahan pertama dalam satu sesi edit, bukan untuk setiap karakter.
+- Saat blur, handler menutup `contenteditable`; fallback commit tetap menangani perubahan yang tidak memicu event input.
+- Escape mengembalikan teks asli, model, status dirty, dan stack undo/redo sebelum sesi edit.
+- Smoke Electron menguji alur klik ganda, aktivasi editor, event input, dan teks yang benar-benar muncul di preview. Diagnostik juga memeriksa bahwa kanvas tidak di-render ulang setelah klik pertama.
 
-### Verifikasi otomatis
-- GitHub Actions run #76 hijau: unit test **53/53 Ubuntu**, **53/53 Windows**, Electron smoke test Ubuntu **lulus**.
-- Smoke test melaporkan `attachedAfterFirstClick=true`, `attachedAfterSecondClick=true`, `editable=true`, `focused=true`, `committed=true`, dan `canvasReplacementsAfterFirstClick=0`.
+### Verifikasi — GitHub Actions run #81
+- Unit test Ubuntu: **53/53 lulus**.
+- Unit test Windows: **53/53 lulus**.
+- Electron smoke: **lulus**, dengan `editable=true`, `focused=true`, `committed=true`, status `Isi elemen diperbarui.`, dan `canvasReplacementsAfterFirstClick=0`.
 
-### Masih menunggu
-- PR #19 belum di-merge. Pengguna masih perlu memverifikasi artifact portable Windows dengan klik ganda pada teks biasa, sel tabel/header, dan sel kolom.
-- Fase 5 tetap `IN PROGRESS` sampai uji manual artifact diterima.
+PR #20 masih terbuka dan belum di-merge. Uji manual pada artifact portable Windows tetap menjadi verifikasi penerimaan karena smoke berjalan pada Electron/Xvfb, bukan perangkat pengguna.
