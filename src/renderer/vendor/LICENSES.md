@@ -35,3 +35,10 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## @point-of-sale/receipt-printer-encoder 4.0.1
+
+- License: MIT
+- Upstream: https://github.com/at-point-of-sale/ReceiptPrinterEncoder
+- Source revision: `129dd3a4398d436afc9ec6a621cfadd22bc49c1a`
+- Bundled file: `src/renderer/vendor/receipt-printer-encoder.mjs`
+- The bundled distribution includes its runtime dependencies. The upstream license is available at https://github.com/at-point-of-sale/ReceiptPrinterEncoder/blob/main/LICENSE.
