@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createSampleDocument } from '../src/renderer/document-model.js';
 import { createThermalLayout, createThermalProfile, wrapText } from '../src/layout/thermal-layout.js';
 import { encodeThermalLayout } from '../src/encoder/receipt-printer-encoder.js';
+import ReceiptPrinterEncoder from '../src/renderer/vendor/receipt-printer-encoder.mjs';
 
 class FakeEncoder {
   constructor(options) { this.options = options; this.calls = []; FakeEncoder.last = this; }
@@ -103,4 +104,23 @@ test('encoder adapter requires image resolver and rejects unknown operations', (
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [{ type: 'unknown' }]
   }, FakeEncoder), /tidak didukung encoder/);
+});
+
+
+test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', () => {
+  const layout = {
+    profile: { columns: 32, effectiveColumns: 32 },
+    operations: [
+      { type: 'text', text: 'THERMAL RECEIPT', align: 'center', bold: true, italic: false, underline: false },
+      { type: 'rule', character: '-', width: 32 },
+      { type: 'text', text: 'Total                 20.000', align: 'left', bold: true, italic: false, underline: false },
+      { type: 'qrcode', value: 'https://example.test' },
+      { type: 'barcode', value: '123456', symbology: 'code128' },
+      { type: 'cut', mode: 'partial' }
+    ]
+  };
+  const bytes = encodeThermalLayout(layout, ReceiptPrinterEncoder);
+  assert.ok(bytes instanceof Uint8Array);
+  assert.ok(bytes.length > 10);
+  assert.deepEqual(Array.from(bytes.slice(0, 2)), [0x1b, 0x40]);
 });
