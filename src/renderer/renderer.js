@@ -817,7 +817,7 @@ function commitInlineChange(block, apply, message, preserveCanvas) {
   if (preserveCanvas) { renderPreview(); renderInspector(); updateHistoryButtons(); } else renderAll();
   setStatus(message); return true;
 }
-designPaper.addEventListener('focusout', event => {
+designPaper.addEventListener('blur', event => {
   const cell = event.target.closest('[data-inline-edit]');
   if (!cell) return;
   const blockNode = cell.closest('[data-block-id]');
@@ -845,7 +845,7 @@ designPaper.addEventListener('focusout', event => {
     }
   }
   cell.contentEditable = 'false';
-});
+}, true);
 designPaper.addEventListener('keydown', event => {
   const cell = event.target.closest('[data-inline-edit][contenteditable="true"]');
   if (!cell) return;
