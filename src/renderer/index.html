@@ -71,6 +71,7 @@
     </div>
     <div class="tool-section toolbar-global-layout" aria-label="Layout global"><span class="tool-label">Halaman</span><button type="button" class="icon-button" id="global-layout-button" title="Atur margin global" aria-label="Atur margin global"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h8M8 17h8M7 10v4M17 10v4"/></svg></button></div>
     <div class="toolbar-spacer"></div>
+    <button type="button" class="text-button" id="printer-button" title="Deteksi printer dan cetak">Printer / Cetak</button>
     <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M8 3v5M13 3v3M18 3v5M3 8h5M3 13h3M3 18h5"/></svg></button>
   </nav>
 
@@ -225,6 +226,26 @@
         <label for="global-margin-left">Kiri (px)<input id="global-margin-left" type="number" min="0" max="60" value="0" /></label>
       </div>
       <div class="table-dialog-actions"><button type="button" id="global-layout-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Terapkan</button></div>
+    </form>
+  </dialog>
+  <dialog id="printer-dialog" class="table-dialog">
+    <form id="printer-dialog-form" method="dialog">
+      <h2>Printer dan pencetakan</h2>
+      <p>Pilih driver Windows untuk printer terpasang, atau raw ESC/POS melalui jaringan. Raw ESC/POS hanya untuk printer yang memang mendukung protokol tersebut.</p>
+      <label for="printer-mode">Jalur cetak<select id="printer-mode"><option value="driver">Driver Windows (printer terpasang)</option><option value="raw">Raw ESC/POS via TCP/IP</option></select></label>
+      <label for="printer-device">Printer Windows<select id="printer-device"><option value="">Memuat daftar printer…</option></select></label>
+      <div id="raw-printer-fields" hidden>
+        <div class="table-dialog-fields">
+          <label for="raw-printer-host">Alamat IP / hostname<input id="raw-printer-host" type="text" maxlength="253" placeholder="192.168.1.50" autocomplete="off" /></label>
+          <label for="raw-printer-port">Port TCP<input id="raw-printer-port" type="number" min="1" max="65535" step="1" value="9100" /></label>
+        </div>
+        <label class="printer-warning"><input id="raw-escpos-confirm" type="checkbox" /> Saya memastikan printer ini mendukung ESC/POS raw. Mengirim data raw ke printer yang tidak kompatibel dapat menghasilkan karakter acak atau tidak mencetak.</label>
+      </div>
+      <div class="table-dialog-actions">
+        <button type="button" id="printer-dialog-cancel" class="text-button">Tutup</button>
+        <button type="button" id="printer-reprint-button" class="text-button">Cetak ulang job terakhir</button>
+        <button type="button" id="printer-print-button" class="text-button primary-action">Cetak sekarang</button>
+      </div>
     </form>
   </dialog>
   <div id="block-context-menu" class="block-context-menu" role="menu" hidden>

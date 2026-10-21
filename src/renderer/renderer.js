@@ -1,5 +1,7 @@
 import { createSampleDocument, cloneDocument, validateDocument, migrateLegacyDocument, insertBlockAtSelection } from './document-model.js';
 import { createThermalLayout } from '../layout/thermal-layout.js';
+import { encodeThermalLayout } from '../encoder/receipt-printer-encoder.js';
+import ReceiptPrinterEncoder from './vendor/receipt-printer-encoder.mjs';
 
 const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
@@ -1338,6 +1340,95 @@ thermalPreviewToggle?.addEventListener('click', () => {
 });
 $('undo-button').addEventListener('click', () => restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'));
 $('redo-button').addEventListener('click', () => restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'));
+
+
+const printerDialog = $('printer-dialog');
+const printerMode = $('printer-mode');
+const printerDevice = $('printer-device');
+const rawPrinterFields = $('raw-printer-fields');
+async function refreshPrinterList() {
+  printerDevice.replaceChildren();
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Printer default Windows';
+  printerDevice.append(placeholder);
+  const result = await window.trs.listPrinters();
+  if (!result?.ok) {
+    placeholder.textContent = 'Daftar printer tidak tersedia';
+    setStatus('Deteksi printer gagal: ' + (result?.message || result?.error || 'kesalahan tidak diketahui'));
+    return;
+  }
+  for (const printer of result.value || []) {
+    const option = document.createElement('option');
+    option.value = printer.name;
+    option.textContent = (printer.displayName || printer.name) + (printer.isDefault ? ' (default)' : '');
+    printerDevice.append(option);
+    if (printer.isDefault) printerDevice.value = printer.name;
+  }
+}
+function updatePrinterMode() {
+  const raw = printerMode.value === 'raw';
+  rawPrinterFields.hidden = !raw;
+  printerDevice.disabled = raw;
+}
+async function resolvePrinterImage(dataUrl) {
+  const image = new Image();
+  image.src = dataUrl;
+  await image.decode();
+  const canvas = document.createElement('canvas');
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) throw new Error('Canvas gambar tidak tersedia untuk encoder.');
+  context.drawImage(image, 0, 0);
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+$('printer-button').addEventListener('click', async () => {
+  updatePrinterMode();
+  printerDialog.showModal();
+  await refreshPrinterList();
+});
+$('printer-dialog-cancel').addEventListener('click', () => printerDialog.close());
+printerMode.addEventListener('change', updatePrinterMode);
+$('printer-print-button').addEventListener('click', async () => {
+  const button = $('printer-print-button');
+  button.disabled = true;
+  try {
+    if (printerMode.value === 'driver') {
+      const result = await window.trs.printViaDriver(receiptPreview.innerHTML, documentModel.paperWidthMm, printerDevice.value);
+      if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
+      setStatus('Job dikirim ke driver Windows: ' + (printerDevice.value || 'printer default') + '.');
+    } else {
+      if (!$('raw-escpos-confirm').checked) throw new Error('Konfirmasi dukungan ESC/POS diperlukan sebelum mengirim data raw.');
+      const host = $('raw-printer-host').value.trim();
+      const port = Number($('raw-printer-port').value);
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      const bytes = await encodeThermalLayout(layout, ReceiptPrinterEncoder, { resolveImage: resolvePrinterImage });
+      const result = await window.trs.printRawTcp(bytes, host, port);
+      if (!result?.ok) throw new Error(result?.message || result?.error || 'Pengiriman ESC/POS gagal.');
+      setStatus('Job ESC/POS dikirim: ' + result.value.bytesSent + ' byte ke ' + host + ':' + port + '.');
+    }
+    printerDialog.close();
+  } catch (error) {
+    setStatus('Cetak gagal: ' + String(error?.message || error));
+  } finally {
+    button.disabled = false;
+  }
+});
+$('printer-reprint-button').addEventListener('click', async () => {
+  const button = $('printer-reprint-button');
+  button.disabled = true;
+  try {
+    const result = await window.trs.reprintLastJob();
+    if (!result?.ok) throw new Error(result?.message || result?.error || 'Cetak ulang gagal.');
+    setStatus('Job cetak terakhir dikirim ulang.');
+    printerDialog.close();
+  } catch (error) {
+    setStatus('Cetak ulang gagal: ' + String(error?.message || error));
+  } finally {
+    button.disabled = false;
+  }
+});
 
 
 async function saveCurrent(mode = 'save') {

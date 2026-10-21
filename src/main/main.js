@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { validateDocument } from '../renderer/document-model.js';
 import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
+import { sendRawTcp } from '../printer/printer-transport.js';
+import { buildDriverPrintHtml } from '../printer/driver-print.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,6 +29,33 @@ function userDataDir() {
 let mainWindow = null;
 const currentFiles = new Map();
 const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
+let lastPrintJob = null;
+
+async function printViaDriver(receiptMarkup, paperWidthMm, printerName) {
+  const html = buildDriverPrintHtml(receiptMarkup, paperWidthMm);
+  if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
+  const printWindow = new BrowserWindow({
+    width: 480, height: 800, show: false, autoHideMenuBar: true,
+    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true }
+  });
+  try {
+    await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    const result = await new Promise((resolve, reject) => {
+      printWindow.webContents.print({
+        silent: true, printBackground: true,
+        ...(printerName ? { deviceName: printerName } : {}),
+        margins: { marginType: 'none' }
+      }, (success, failureReason) => {
+        if (success) resolve({ success: true, printerName: printerName || 'default' });
+        else reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
+      });
+    });
+    lastPrintJob = { mode: 'driver', receiptMarkup, paperWidthMm, printerName };
+    return result;
+  } finally {
+    if (!printWindow.isDestroyed()) printWindow.close();
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -76,7 +105,7 @@ if (!gotLock) {
   });
 
   // --- IPC tervalidasi (API sangat terbatas pada Fase 1) ---
-  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle']);
+  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle', 'printer:list', 'printer:driver', 'printer:raw', 'printer:reprint']);
 
   ipcMain.handle('trs:invoke', async (event, payload) => {
     // Payload divalidasi ketat; renderer tidak pernah memanggil channel secara bebas.
@@ -87,13 +116,45 @@ if (!gotLock) {
     if (typeof channel !== 'string' || !ALLOWED_CHANNELS.has(channel)) {
       return { ok: false, error: 'CHANNEL_NOT_ALLOWED' };
     }
-    const expectedArgs = channel === 'document:save' ? 2 : channel === 'window:setTitle' ? 1 : 0;
+    const expectedArgs = ({ 'document:save': 2, 'window:setTitle': 1, 'printer:driver': 3, 'printer:raw': 3 })[channel] ?? 0;
     if (!Array.isArray(args) || args.length !== expectedArgs) {
       return { ok: false, error: 'INVALID_ARGS' };
     }
     switch (channel) {
       case 'app:getVersion':
         return { ok: true, value: app.getVersion() };
+      case 'printer:list': {
+        try {
+          const printers = await mainWindow?.webContents.getPrintersAsync();
+          return { ok: true, value: (printers || []).map(printer => ({ name: printer.name, displayName: printer.displayName || printer.name, isDefault: Boolean(printer.isDefault), status: printer.status ?? 0 })) };
+        } catch (err) { return { ok: false, error: 'PRINTER_ENUMERATION_FAILED', message: String(err?.message || err) }; }
+      }
+      case 'printer:driver': {
+        try {
+          const [receiptMarkup, paperWidthMm, printerName] = args;
+          const result = await printViaDriver(receiptMarkup, paperWidthMm, printerName);
+          return { ok: true, value: result };
+        } catch (err) { return { ok: false, error: 'DRIVER_PRINT_FAILED', message: String(err?.message || err) }; }
+      }
+      case 'printer:raw': {
+        try {
+          const [bytes, host, port] = args;
+          const result = await sendRawTcp(host, port, bytes);
+          lastPrintJob = { mode: 'raw', bytes: Array.from(bytes), host, port };
+          return { ok: true, value: result };
+        } catch (err) { return { ok: false, error: err?.code || 'RAW_PRINT_FAILED', message: String(err?.message || err) }; }
+      }
+      case 'printer:reprint': {
+        if (!lastPrintJob) return { ok: false, error: 'NO_PREVIOUS_PRINT', message: 'Belum ada job cetak untuk dicetak ulang.' };
+        try {
+          if (lastPrintJob.mode === 'raw') {
+            const result = await sendRawTcp(lastPrintJob.host, lastPrintJob.port, lastPrintJob.bytes);
+            return { ok: true, value: result };
+          }
+          const result = await printViaDriver(lastPrintJob.receiptMarkup, lastPrintJob.paperWidthMm, lastPrintJob.printerName);
+          return { ok: true, value: result };
+        } catch (err) { return { ok: false, error: 'REPRINT_FAILED', message: String(err?.message || err) }; }
+      }
       case 'app:getUserDataDir': {
         const dir = userDataDir();
         try { fs.mkdirSync(dir, { recursive: true }); } catch { /* dilaporkan */ }

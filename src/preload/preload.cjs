@@ -18,4 +18,8 @@ contextBridge.exposeInMainWorld('trs', {
   openDocument: () => invoke('document:open'),
   saveDocument: (document, mode = 'save') => invoke('document:save', [document, mode]),
   setWindowTitle: (title) => invoke('window:setTitle', [title]),
+  listPrinters: () => invoke('printer:list'),
+  printViaDriver: (receiptMarkup, paperWidthMm, printerName = '') => invoke('printer:driver', [receiptMarkup, paperWidthMm, printerName]),
+  printRawTcp: (bytes, host, port = 9100) => invoke('printer:raw', [Array.from(bytes), host, port]),
+  reprintLastJob: () => invoke('printer:reprint'),
 });

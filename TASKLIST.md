@@ -156,14 +156,26 @@ Status fase: **TESTED** (GitHub Actions PR #22 run #104 lulus; menunggu pemeriks
 
 ## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN
 
-Status fase: **NOT STARTED**
+Status fase: **IN PROGRESS** (branch `feature/phase-7-printer-detection-printing`; implementasi awal sedang diuji CI).
 
-Dua jalur terpisah: (1) cetak via driver Windows (`webContents.print` / `SystemReceiptPrinter` bila native rebuild OK), (2) raw ESC/POS (USB/network) — dengan dokumentasi bahwa printer non-ESC/POS tidak boleh dikirim raw. Deteksi, pemilihan, profil, kirim job, offline/error handling, reprint, feed/cut, pesan error informatif.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 7.1 | Deteksi printer terpasang melalui Electron | IMPLEMENTED | IPC `printer:list` memakai `webContents.getPrintersAsync()`; menampilkan nama, default, dan status printer. Perlu verifikasi di Windows nyata. |
+| 7.2 | Jalur driver Windows | IMPLEMENTED | Jendela cetak tersembunyi memuat markup preview lokal dan memanggil `webContents.print()` ke printer terpilih. Belum diuji pada perangkat fisik. |
+| 7.3 | Jalur raw ESC/POS melalui TCP | IMPLEMENTED | Transport TCP dengan port default 9100, batas byte job, validasi target, timeout, dan pesan error terarah. Hanya untuk printer yang mendukung ESC/POS. |
+| 7.4 | Integrasi layout/encoder ke jalur raw | IMPLEMENTED | Renderer membentuk layout, meng-encode byte ESC/POS, lalu mengirim byte melalui API preload terbatas. Gambar dikonversi ke ImageData di renderer. Perlu verifikasi hasil nyata pada printer. |
+| 7.5 | Cetak ulang job terakhir | IMPLEMENTED | Job terakhir disimpan dalam memori proses aplikasi. Tidak persisten setelah aplikasi ditutup; itu bukan klaim recovery. |
+| 7.6 | UI pemilihan jalur, printer, alamat dan port | IMPLEMENTED | Dialog printer menyediakan driver Windows atau raw TCP. Profil jaringan saat ini diisi per job dan belum disimpan sebagai preferensi. |
+| 7.7 | Error handling dan validasi IPC | IMPLEMENTED | Whitelist channel IPC, validasi payload transport, timeout dan pesan error. Perlu uji manual offline/perangkat terputus. |
+| 7.8 | Tes otomatis transport dan dokumen driver | TESTED | GitHub Actions run #110 lulus: 72/72 tes pada Ubuntu dan Windows; Electron smoke Ubuntu lulus. Belum mencakup cetak fisik atau build portable khusus branch. |
+| 7.9 | Evaluasi `SystemReceiptPrinter` / native addon | BLOCKED | Belum diintegrasikan. Dependensi native perlu diuji ABI Electron Windows terlebih dahulu. Jalur driver memakai API Electron; raw jaringan memakai `node:net`. |
 
-**Kriteria:** tiap jalur punya tes yang dapat diotomatisasi · keterbatasan terdokumentasi · tanpa klaim uji fisik yang belum dilakukan.
+**Batasan penting:** belum ada klaim cetak fisik yang berhasil. Printer yang bukan ESC/POS tidak boleh dipilih pada jalur raw. Port TCP 9100 merupakan default umum, bukan jaminan untuk setiap printer. Reprint hanya menyimpan job terakhir selama proses aplikasi aktif. Profil printer persisten belum ada; preferensi disimpan pada fase berikutnya.
+
+**Kriteria fase:** deteksi dan pemilihan printer · kedua jalur dipisahkan dengan jelas · validasi dan error handling · tes otomatis lulus · batasan serta kebutuhan uji fisik terdokumentasi. Fase tetap IN PROGRESS sampai CI dan pemeriksaan pengguna selesai.
 
 ---
-
+ 
 ## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY
 
 Status fase: **NOT STARTED**
