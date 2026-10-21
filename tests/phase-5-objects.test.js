@@ -308,6 +308,9 @@ test('Electron smoke mode executes an actual renderer double-click/edit/commit p
   assert.ok(main.includes("document.activeElement === target"));
   assert.ok(main.includes("target.blur()"));
   const renderer = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  assert.ok(renderer.includes("designPaper.addEventListener('input', event => {"));
+  assert.ok(renderer.includes("if (!session.undoSaved)"), 'one undo snapshot is created per inline editing session');
+  assert.ok(renderer.includes("renderPreview();"), 'typed text updates the preview without replacing the canvas');
   assert.ok(renderer.includes("designPaper.addEventListener('blur', event => {"));
   assert.ok(renderer.includes("}, true);"), 'blur must be captured at the design surface so direct edits commit reliably');
   assert.ok(!renderer.includes("designPaper.addEventListener('focusout', event => {"), 'avoid relying on bubbling focusout to save inline edits');
