@@ -6,7 +6,7 @@ export const MAX_RAW_JOB_BYTES = 8 * 1024 * 1024;
 
 export function validateRawPrinterTarget(host, port = DEFAULT_RAW_PRINTER_PORT) {
   if (typeof host !== 'string' || host.trim() !== host || host.length < 1 || host.length > 253 ||
-      /[\\s/\\\\]/.test(host) || host.includes('://')) {
+      /[\s/\\]/.test(host) || host.includes('://')) {
     throw new TypeError('Alamat printer harus berupa hostname atau alamat IP, tanpa protokol.');
   }
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -48,7 +48,7 @@ export function sendRawTcp(host, port, bytes, options = {}) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const socket = connect({ host: target.host, port: target.port });
-    const finish = (error) => {
+    const finish = error => {
       if (settled) return;
       settled = true;
       socket.setTimeout?.(0);
@@ -56,13 +56,11 @@ export function sendRawTcp(host, port, bytes, options = {}) {
       else resolve({ bytesSent: payload.length, host: target.host, port: target.port });
     };
     socket.setTimeout?.(timeoutMs);
-    socket.once('connect', () => {
-      socket.end(payload, error => finish(error));
-    });
+    socket.once('connect', () => socket.end(payload, error => finish(error)));
     socket.once('timeout', () => {
       const error = Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' });
-      socket.destroy(error);
       finish(error);
+      socket.destroy();
     });
     socket.once('error', finish);
     socket.once('close', hadError => {
