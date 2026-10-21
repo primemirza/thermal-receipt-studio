@@ -777,3 +777,13 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
   align-self: flex-end;
   margin: 0;
 }
+
+/* Optional thermal-layout simulation. The existing visual preview remains the default. */
+.preview-heading-actions { display: flex; align-items: center; gap: 8px; }
+.thermal-layout-preview { white-space: normal; }
+.thermal-layout-line {
+  width: 100%; min-height: 1.45em; overflow-wrap: anywhere;
+  font-family: var(--mono); font-size: 10px; line-height: 1.45; white-space: pre;
+}
+.thermal-layout-media { display: flex; justify-content: center; align-items: flex-start; white-space: normal; }
+.thermal-layout-media img { display: block; height: auto; }
