@@ -800,6 +800,7 @@ designPaper.addEventListener('input', event => {
 function beginInlineEdit(editor, blockId) {
   if (!editor || !blockId || !editor.isConnected) return false;
   trackInlineTarget(editor, blockId);
+  ensureInlineEditSession(editor, blockId);
   selectedBlockId = blockId;
   designPaper.querySelectorAll('[data-block-id]').forEach(node => node.classList.toggle('is-selected', node.dataset.blockId === blockId));
   // Set editability before focusing, and leave this exact node mounted until blur.
@@ -903,61 +904,75 @@ function commitInlineChange(block, apply, message, preserveCanvas) {
   if (preserveCanvas) { renderPreview(); renderInspector(); updateHistoryButtons(); } else renderAll();
   setStatus(message); return true;
 }
-designPaper.addEventListener('blur', event => {
-  const cell = event.target.closest('[data-inline-edit]');
+function finishInlineEdit(cell) {
   if (!cell) return;
   const blockNode = cell.closest('[data-block-id]');
-  const block = findBlockEntry(blockNode?.dataset.blockId)?.block;
-  if (!block) { cell.contentEditable = 'false'; return; }
-  const field = cell.dataset.field;
-  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200;
-  const value = cell.textContent.slice(0, max);
-  if (field === 'tableCell' && block.type === 'table') {
-    const row = Number(cell.dataset.rowIndex); const col = Number(cell.dataset.colIndex);
-    const oldValue = row < 0 ? block.headers[col] : block.rows[row]?.[col];
-    if (oldValue !== value) {
-      commitInlineChange(block, () => { if (row < 0) block.headers[col] = value; else block.rows[row][col] = value; }, 'Isi sel tabel diperbarui.', true);
+  const blockId = blockNode?.dataset.blockId;
+  const block = findBlockEntry(blockId)?.block;
+  const session = activeInlineEditSession?.element === cell ? activeInlineEditSession : null;
+  if (block) {
+    const value = inlineValueForCommit(cell, block);
+    const oldValue = String(getInlineModelValue(block, cell) ?? '');
+    // Input events sync normal typing. This is a safeguard for edits applied by
+    // assistive technology or scripts that changed text without dispatching input.
+    if (oldValue !== value && setInlineModelValue(block, cell, value)) {
+      const before = cloneDocument(documentModel);
+      const undoBefore = [...state.undo];
+      const redoBefore = [...state.redo];
+      if (!session?.undoSaved) saveUndoPoint();
+      try {
+        validateDocument(documentModel);
+        isDirty = true;
+        renderPreview();
+        updateHistoryButtons();
+        setStatus('Isi elemen diperbarui.');
+      } catch (error) {
+        documentModel = before;
+        state.undo = session?.undoBefore ?? undoBefore;
+        state.redo = session?.redoBefore ?? redoBefore;
+        cell.textContent = oldValue;
+        updateHistoryButtons();
+        setStatus('Edit tidak diterapkan: ' + String(error?.message || error));
+      }
     }
-  } else if (field === 'columnCell' && block.type === 'columns') {
-    const index = Number(cell.dataset.colIndex);
-    if (block.columns[index] !== value) commitInlineChange(block, () => { block.columns[index] = value; }, 'Isi kolom diperbarui.', true);
-  } else if (['text','name','label','value'].includes(field) && Object.hasOwn(block, field) && block[field] !== value) {
-    const updated = commitInlineChange(block, () => { block[field] = value; }, 'Isi elemen diperbarui.', true);
-    if (updated && field === 'value' && ['qrcode','barcode'].includes(block.type)) {
+    if (['qrcode','barcode'].includes(block.type) && cell.dataset.field === 'value') {
       const graphic = blockNode?.querySelector('.generated-code');
       const wrapper = graphic?.closest('.resizable-object');
       if (wrapper) wrapper.replaceWith(createResizableObject(block, createCodeGraphic(block)));
       else if (graphic) graphic.replaceWith(createCodeGraphic(block));
     }
   }
-  // The input listener normally syncs each keystroke to the model; this blur path is a
-  // fallback for programmatic edits and always closes the in-place editor.
+  cell.setAttribute('contenteditable', 'false');
+  cell.removeAttribute('role');
+  cell.removeAttribute('aria-label');
   if (activeInlineEditSession?.element === cell) activeInlineEditSession = null;
-  cell.contentEditable = 'false';
+}
+document.addEventListener('pointerdown', event => {
+  const cell = activeInlineEditSession?.element;
+  if (!cell || !cell.isConnected) {
+    activeInlineEditSession = null;
+    return;
+  }
+  const target = event.target instanceof Node ? event.target : event.target?.parentNode;
+  if (target && cell.contains(target)) return;
+  // A real pointer action inside this app ends editing. Losing OS/window focus
+  // emits no such pointer action, so switching to Photos keeps the editor active.
+  finishInlineEdit(cell);
 }, true);
 designPaper.addEventListener('keydown', event => {
-  const cell = event.target.closest('[data-inline-edit][contenteditable="true"]');
+  const cell = event.target instanceof Element
+    ? event.target.closest('[data-inline-edit][contenteditable="true"]')
+    : null;
   if (!cell) return;
-  if (event.key === 'Enter') { event.preventDefault(); cell.blur(); }
-  else if (event.key === 'Escape') {
+  if (event.key === 'Enter') {
     event.preventDefault();
-    const block = findBlockEntry(cell.closest('[data-block-id]')?.dataset.blockId)?.block;
-    const session = activeInlineEditSession?.element === cell ? activeInlineEditSession : null;
-    if (block && session?.undoSaved) {
-      setInlineModelValue(block, cell, session.originalValue);
-      state.undo = session.undoBefore;
-      state.redo = session.redoBefore;
-      isDirty = session.wasDirty;
-      renderPreview();
-      updateHistoryButtons();
-      setStatus('Edit dibatalkan.');
-    }
-    if (block) cell.textContent = String(getInlineModelValue(block, cell) ?? '');
-    activeInlineEditSession = null;
-    cell.contentEditable = 'false';
+    finishInlineEdit(cell);
     cell.blur();
   }
+  // Other keys, including Escape, leave inline mode active. The requested exit
+  // conditions are Enter or an actual pointer action outside the edited element.
 });
+
 designPaper.addEventListener('pointerdown', event => {
   const objectHandle = event.target.closest('[data-object-resize]');
   if (objectHandle) {
@@ -1281,7 +1296,8 @@ async function saveCurrent(mode = 'save') {
   return true;
 }
 function updateWindowTitle() {
-  const fileName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
+  const savedName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
+  const fileName = savedName.replace(/\\.trstudio$/i, '');
   document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
   window.trs.setWindowTitle(document.title).catch(() => {});
 }
