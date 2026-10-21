@@ -7,7 +7,7 @@ test('driver print document uses selected paper width and embeds local receipt m
   assert.match(html, /@page \\{ size: 80mm auto/);
   assert.match(html, /width: 72mm/);
   assert.match(html, /Total 20\\.000/);
-  assert.match(html, /marginType/ === false ? /x/ : /body/);
+  assert.match(html, /<body>/);
 });
 
 test('driver print document rejects invalid widths, oversized and executable markup', () => {
