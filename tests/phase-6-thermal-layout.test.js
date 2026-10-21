@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { createSampleDocument } from '../src/renderer/document-model.js';
 import { createThermalLayout, createThermalProfile, wrapText } from '../src/layout/thermal-layout.js';
 import { encodeThermalLayout } from '../src/encoder/receipt-printer-encoder.js';
-import ReceiptPrinterEncoder from '../src/renderer/vendor/receipt-printer-encoder.mjs';
 
 class FakeEncoder {
   constructor(options) { this.options = options; this.calls = []; FakeEncoder.last = this; }
@@ -108,6 +107,22 @@ test('encoder adapter requires image resolver and rejects unknown operations', a
 
 
 test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', async () => {
+  // The browser bundle references the platform ImageData constructor at module initialization.
+  // Electron renderer provides it natively; Node unit tests use this minimal import-time polyfill.
+  globalThis.ImageData ??= class ImageData {
+    constructor(dataOrWidth, widthOrHeight, height) {
+      if (typeof dataOrWidth === 'number') {
+        this.width = dataOrWidth;
+        this.height = widthOrHeight;
+        this.data = new Uint8ClampedArray(this.width * this.height * 4);
+      } else {
+        this.data = dataOrWidth;
+        this.width = widthOrHeight;
+        this.height = height;
+      }
+    }
+  };
+  const { default: ReceiptPrinterEncoder } = await import('../src/renderer/vendor/receipt-printer-encoder.mjs');
   const layout = {
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [
