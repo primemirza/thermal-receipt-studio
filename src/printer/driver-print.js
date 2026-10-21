@@ -12,7 +12,7 @@ export function buildDriverPrintHtml(receiptMarkup, paperWidthMm = 58) {
   }
   const width = paperWidthMm === 58 ? '48mm' : '72mm';
   return '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' +
-    '@page { size: ' + paperWidthMm + 'mm auto; margin: 0; }' +
+    '@page { margin: 0; }' +
     '* { box-sizing: border-box; } html, body { margin: 0; padding: 0; background: white; color: black; }' +
     'body { width: ' + width + '; padding: 2mm; font: 10pt/1.35 Consolas, "Courier New", monospace; }' +
     '.receipt-preview { width: 100% !important; padding: 0 !important; margin: 0 !important; border: 0 !important; box-shadow: none !important; background: white !important; color: black !important; font: inherit !important; }' +
