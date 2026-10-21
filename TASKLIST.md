@@ -135,20 +135,22 @@ Implementasi Fase 5 mencakup objek separator/spacer, gambar, QR/barcode, tabel d
 ---
 ## FASE 6 — LAYOUT THERMAL DAN ENCODER
 
-Status fase: **IN PROGRESS** (dimulai setelah Fase 5 diterima dan status TASKLIST diperbarui).
+Status fase: **TESTED** (GitHub Actions PR #22 run #104 lulus; menunggu pemeriksaan dan persetujuan pengguna sebelum Fase 7).
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
-| 6.1 | Audit implementasi terkini dan API nyata `@point-of-sale/receipt-printer-encoder` yang sudah direncanakan | IN PROGRESS | Gunakan versi/API yang terdokumentasi; jangan mengarang method atau mengubah stack |
-| 6.2 | Implementasi modul layout murni, terpisah dari Electron/DOM | NOT STARTED | Model dokumen → layout cetak deterministik; sumber kebenaran bersama preview dan encoder sesuai arsitektur |
-| 6.3 | Perhitungan kolom efektif untuk kertas 58 mm dan 80 mm | NOT STARTED | Mengikuti profil kolom encoder dan margin dokumen yang sudah ada |
-| 6.4 | Wrapping teks, alignment, tabel, dan objek columns | NOT STARTED | Pertahankan alignment per sel/kolom dari model Fase 5 |
-| 6.5 | Pemetaan gambar, QR, barcode, separator/rule, spacer/feed, dan cut ke encoder | NOT STARTED | Gunakan hanya API encoder yang benar-benar tersedia; dokumentasikan batasan |
-| 6.6 | Fixture/golden tests untuk layout 58/80 mm dan output encoder | NOT STARTED | Tes dijalankan sebelum status TESTED diberikan |
-| 6.7 | Evaluasi kompatibilitas `SystemReceiptPrinter` | NOT STARTED | Evaluasi sesuai rencana; keputusan raw-vs-driver dan pengiriman job tetap pada Fase 7 |
-| 6.8 | Dokumentasikan hasil, batasan, hasil tes, dan status akhir Fase 6 | NOT STARTED | Selaraskan TASKLIST.md, PROGRESS.md, dan dokumentasi arsitektur yang relevan |
+| 6.1 | Audit implementasi terkini dan API nyata `@point-of-sale/receipt-printer-encoder` yang sudah direncanakan | TESTED | API v4 diverifikasi dari dokumentasi resmi; bundle 4.0.1 dipin dan byte stream diuji di CI |
+| 6.2 | Implementasi modul layout murni, terpisah dari Electron/DOM | TESTED | `src/layout/thermal-layout.js` terpisah dari Electron/DOM; toggle simulasi thermal memakai output layout, sementara preview visual tetap menjadi default |
+| 6.3 | Perhitungan kolom efektif untuk kertas 58 mm dan 80 mm | TESTED | Profil 32 kolom (58 mm) dan 48 kolom (80 mm) lulus tes; margin CSS px dikonversi ke kolom Font A secara aproksimatif |
+| 6.4 | Wrapping teks, alignment, tabel, dan objek columns | TESTED | Wrapping, alignment teks/sel/kolom, item, total, tabel, kolom, dan section bersarang lulus tes CI |
+| 6.5 | Pemetaan gambar, QR, barcode, separator/rule, spacer/feed, dan cut ke encoder | IMPLEMENTED | Adapter menggunakan metode terdokumentasi; resolver gambar async diperlukan untuk data URL menjadi input gambar |
+| 6.6 | Fixture/golden tests untuk layout 58/80 mm dan output encoder | IMPLEMENTED | Tes unit dan tes byte stream terhadap bundle encoder nyata ditambahkan; menunggu hasil CI aktual |
+| 6.7 | Evaluasi kompatibilitas `SystemReceiptPrinter` | IMPLEMENTED | Paket memakai `@grandchef/node-printer` native; risiko ABI Electron harus diuji pada Fase 7. Jalur driver `webContents.print` tetap fallback; pengiriman job belum dibuat di Fase 6 |
+| 6.8 | Dokumentasikan hasil, batasan, hasil tes, dan status akhir Fase 6 | TESTED | Implementasi, batasan, hasil CI, dan keputusan kompatibilitas dicatat di PROGRESS.md; menunggu persetujuan pengguna |
 
 **Kriteria penerimaan:** output layout & encoder teruji · fixture & tes · batasan kompatibilitas terdokumentasi · tanpa klaim tanpa bukti. Tidak memasuki Fase 7 tanpa konfirmasi eksplisit pengguna.
+
+**Status sementara:** CI PR #22 run #98 lulus (unit test 62/62 pada Ubuntu dan Windows; Electron smoke Ubuntu lulus). Fase 6 tetap IN PROGRESS karena output layout thermal belum diintegrasikan ke preview yang sudah ada. Fase 7 belum dimulai.
 
 ---
 

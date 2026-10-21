@@ -318,3 +318,27 @@ Perubahan follow-up pada `fix/phase-5-persist-inline-edit-window-focus`, setelah
 - Electron smoke: **lulus**. Hasil menunjukkan `staysActiveAfterWindowBlur=true`, `exitsOnEnter=true`, `exitsOnOutsideClick=true`, `committedAfterOutsideClick=true`, dan kanvas tidak diganti sepanjang rangkaian klik.
 
 Artifact portable Windows tetap perlu diuji manual oleh pengguna. Fase 5 tetap `IN PROGRESS` sampai uji artifact diterima.
+
+---
+
+## FASE 6 — LAYOUT THERMAL DAN ENCODER (2026-10-21)
+
+Status: **TESTED** pada branch `feature/phase-6-thermal-layout-encoder`; belum digabung ke `main` dan menunggu pemeriksaan/persetujuan pengguna.
+
+### Implementasi pada branch
+- `src/layout/thermal-layout.js`: modul layout murni untuk profil kolom 58/80 mm, wrapping teks, perataan, item/total, rule, spacer/feed, section bersarang, tabel, kolom, gambar, QR, dan barcode.
+- `src/encoder/receipt-printer-encoder.js`: adapter operasi layout ke API ReceiptPrinterEncoder v4. Resolver gambar async dibutuhkan untuk memuat data URL ke input gambar yang diterima encoder.
+- `src/renderer/vendor/receipt-printer-encoder.mjs`: bundle distribusi ESM resmi ReceiptPrinterEncoder 4.0.1, dipin dari upstream revision `129dd3a4398d436afc9ec6a621cfadd22bc49c1a`. Atribusi lisensi dicatat di `src/renderer/vendor/LICENSES.md`. Tidak menambah dependency npm atau mengubah lockfile.
+- `src/renderer/renderer.js` + `index.html`/`app.css`: tombol **Simulasi thermal** mengubah preview ke operasi layout monospace. Preview visual lama tetap default dan dapat dipulihkan dengan tombol **Preview visual**.
+- `tests/phase-6-thermal-layout.test.js`: tes profil, wrapping, pemetaan objek, adapter, dan pengujian output byte stream terhadap bundle encoder nyata.
+
+### Batasan dan validasi
+- Profil awal memakai 32 kolom untuk 58 mm dan 48 kolom untuk 80 mm. Profil printer yang berbeda dapat membutuhkan override; ini bukan jaminan lebar fisik universal.
+- Margin dokumen tersimpan dalam CSS px, sedangkan layout thermal memakai kolom karakter. Konversi menggunakan perkiraan 12 px per karakter Font A dan perlu divalidasi terhadap printer/profil nyata.
+- Tes output encoder memverifikasi bytes yang dihasilkan, bukan hasil cetak fisik. Belum ada klaim kompatibilitas universal untuk QR, barcode, gambar, atau fungsi cut karena dukungan bergantung pada model printer.
+- Belum ada perubahan UI, alur cetak, atau transport printer. Itu tidak termasuk integrasi yang sudah selesai; deteksi/pengiriman job tetap Fase 7.
+- GitHub Actions PR #22 run #104: **lulus**. Unit test **63/63** pada Ubuntu dan **63/63** pada Windows; Electron smoke Ubuntu lulus. Run: https://github.com/primemirza/thermal-receipt-studio/actions/runs/39590572566.
+- Percobaan CI sebelumnya gagal pada import bundle browser karena Node tidak menyediakan global `ImageData`; tes Node diperbaiki dengan polyfill khusus tes. Electron renderer tetap memakai `ImageData` native. Setelah perbaikan, run #104 lulus pada kedua OS.
+- Evaluasi `SystemReceiptPrinter`: dokumentasi upstream menjelaskan bahwa paket mencetak bytes encoder melalui system printer driver, tetapi dependensi `@grandchef/node-printer` adalah native addon. Integrasi ditunda ke Fase 7 agar ABI Electron dan perilaku Windows diuji terpisah; `webContents.print` tetap opsi driver tanpa native addon.
+- Integrasi preview dilakukan secara opt-in: simulasi thermal memakai layout engine; preview visual lama tetap menjadi tampilan default. Tes regresi dan smoke CI lulus.
+- Batasan yang belum diklaim: belum ada build portable Windows khusus PR ini, uji printer fisik, atau integrasi transport/cetak. Fase 7 tidak dimulai.
