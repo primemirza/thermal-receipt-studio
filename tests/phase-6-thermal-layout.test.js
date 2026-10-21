@@ -73,7 +73,7 @@ test('layout covers rules, spacers, tables, columns, image, QR and barcode objec
   assert.equal(layout.operations[5].dataUrl, 'data:image/png;base64,AA==');
 });
 
-test('encoder adapter maps layout operations to documented encoder methods', () => {
+test('encoder adapter maps layout operations to documented encoder methods', async () => {
   const layout = {
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [
@@ -86,7 +86,7 @@ test('encoder adapter maps layout operations to documented encoder methods', () 
       { type: 'cut', mode: 'partial' }
     ]
   };
-  const result = encodeThermalLayout(layout, FakeEncoder, { resolveImage: dataUrl => ({ dataUrl }) });
+  const result = await encodeThermalLayout(layout, FakeEncoder, { resolveImage: dataUrl => ({ dataUrl }) });
   assert.deepEqual(Array.from(result), [27, 64, 10]);
   assert.deepEqual(FakeEncoder.last.options.columns, 32);
   assert.deepEqual(FakeEncoder.last.calls.filter(call => ['line', 'qrcode', 'barcode', 'image', 'cut'].includes(call[0])).map(call => call[0]), [
@@ -95,19 +95,19 @@ test('encoder adapter maps layout operations to documented encoder methods', () 
   assert.equal(FakeEncoder.last.calls.filter(call => call[0] === 'newline').length, 5);
 });
 
-test('encoder adapter requires image resolver and rejects unknown operations', () => {
-  assert.throws(() => encodeThermalLayout({
+test('encoder adapter requires image resolver and rejects unknown operations', async () => {
+  await assert.rejects(() => encodeThermalLayout({
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [{ type: 'image', dataUrl: 'data:image/png;base64,AA==', width: 32 }]
   }, FakeEncoder), /resolveImage/);
-  assert.throws(() => encodeThermalLayout({
+  await assert.rejects(() => encodeThermalLayout({
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [{ type: 'unknown' }]
   }, FakeEncoder), /tidak didukung encoder/);
 });
 
 
-test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', () => {
+test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', async () => {
   const layout = {
     profile: { columns: 32, effectiveColumns: 32 },
     operations: [
@@ -119,7 +119,7 @@ test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', ()
       { type: 'cut', mode: 'partial' }
     ]
   };
-  const bytes = encodeThermalLayout(layout, ReceiptPrinterEncoder);
+  const bytes = await encodeThermalLayout(layout, ReceiptPrinterEncoder);
   assert.ok(bytes instanceof Uint8Array);
   assert.ok(bytes.length > 10);
   assert.deepEqual(Array.from(bytes.slice(0, 2)), [0x1b, 0x40]);
