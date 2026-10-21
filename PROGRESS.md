@@ -300,13 +300,21 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PERBAIKAN COMMIT MODE EDIT INLINE (2026-10-21)
+## FASE 5 — DOUBLE-CLICK EDITING DAN COMMIT LANGSUNG (2026-10-21)
 
-Uji pengguna setelah PR #19 dan workflow run #39476402809 menunjukkan double-click dapat membuat elemen fokus/editable, tetapi perubahan tidak muncul di preview (`committed=false`). Jadi kriteria keberhasilan bukan hanya membuka mode edit; teks yang diganti harus diterapkan ke model dokumen saat fokus keluar.
+Hasil uji setelah PR #19: Electron smoke run #79 menemukan mode editor dapat aktif (`editable=true`, `focused=true`) tetapi teks tidak tersimpan ke preview (`committed=false`). Run #80 tetap gagal karena blur sintetis tidak memicu jalur commit dalam harness. Karena itu mekanisme simpan tidak boleh hanya bergantung pada blur.
 
-Perubahan pada branch `fix/phase-5-inline-edit-commit-path`:
-- Delegasi penyimpanan inline edit dipindahkan dari `focusout` bubbling ke listener `blur` pada capture phase di `designPaper`; ini memastikan blur dari elemen contenteditable ditangani oleh kanvas.
-- Smoke Electron menambahkan diagnostik status model dan cuplikan preview agar kegagalan commit jelas terlihat.
-- Tes regresi mewajibkan listener blur capture dan menolak fallback lama yang hanya mengandalkan event focusout bubbling.
+Implementasi di branch `fix/phase-5-inline-edit-commit-path` / PR #20:
+- Double-click langsung pada blok di kanvas tetap mengaktifkan `contenteditable` pada field utama; tabel/kolom mengaktifkan sel yang terkena.
+- Listener `input` pada kanvas kini menerapkan teks ke model dokumen ketika pengguna mengetik dan me-render ulang preview saja (kanvas tidak diganti, sehingga fokus tetap ada).
+- Undo snapshot dibuat sekali pada perubahan pertama dalam satu sesi edit, bukan untuk setiap karakter.
+- Saat blur, handler menutup `contenteditable`; fallback commit tetap menangani perubahan yang tidak memicu event input.
+- Escape mengembalikan teks asli, model, status dirty, dan stack undo/redo sebelum sesi edit.
+- Smoke Electron menguji alur klik ganda, aktivasi editor, event input, dan teks yang benar-benar muncul di preview. Diagnostik juga memeriksa bahwa kanvas tidak di-render ulang setelah klik pertama.
 
-Gerbang verifikasi: GitHub Actions unit test Ubuntu/Windows dan Electron smoke test harus lulus. PR masih menunggu CI; belum siap untuk merge sebelum smoke test membuktikan teks muncul di preview.
+### Verifikasi — GitHub Actions run #81
+- Unit test Ubuntu: **53/53 lulus**.
+- Unit test Windows: **53/53 lulus**.
+- Electron smoke: **lulus**, dengan `editable=true`, `focused=true`, `committed=true`, status `Isi elemen diperbarui.`, dan `canvasReplacementsAfterFirstClick=0`.
+
+PR #20 masih terbuka dan belum di-merge. Uji manual pada artifact portable Windows tetap menjadi verifikasi penerimaan karena smoke berjalan pada Electron/Xvfb, bukan perangkat pengguna.
