@@ -25,12 +25,13 @@ export function encodeThermalLayout(layout, EncoderClass, options = {}) {
   if (!layout?.profile || !Array.isArray(layout.operations)) throw new TypeError('Layout thermal tidak valid.');
   if (typeof EncoderClass !== 'function') throw new TypeError('Konstruktor ReceiptPrinterEncoder wajib diberikan.');
 
-  const encoder = new EncoderClass({
-    printer: options.printer || 'epson',
+  const encoderOptions = {
     language: options.language || 'esc-pos',
     columns: layout.profile.columns,
     feedBeforeCut: 0
-  });
+  };
+  if (options.printer) encoderOptions.printer = options.printer;
+  const encoder = new EncoderClass(encoderOptions);
   encoder.initialize();
 
   for (const operation of layout.operations) {
