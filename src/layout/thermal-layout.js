@@ -22,7 +22,7 @@ export function wrapText(value, width) {
       continue;
     }
     let line = '';
-    for (const word of paragraph.split(/\s+/)) {
+    for (let word of paragraph.split(/\s+/)) {
       if (!word) continue;
       if (!line) {
         while (Array.from(word).length > width) {
