@@ -139,12 +139,12 @@ Status fase: **IN PROGRESS** (dimulai setelah Fase 5 diterima dan status TASKLIS
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
-| 6.1 | Audit implementasi terkini dan API nyata `@point-of-sale/receipt-printer-encoder` yang sudah direncanakan | IN PROGRESS | Gunakan versi/API yang terdokumentasi; jangan mengarang method atau mengubah stack |
-| 6.2 | Implementasi modul layout murni, terpisah dari Electron/DOM | NOT STARTED | Model dokumen → layout cetak deterministik; sumber kebenaran bersama preview dan encoder sesuai arsitektur |
-| 6.3 | Perhitungan kolom efektif untuk kertas 58 mm dan 80 mm | NOT STARTED | Mengikuti profil kolom encoder dan margin dokumen yang sudah ada |
-| 6.4 | Wrapping teks, alignment, tabel, dan objek columns | NOT STARTED | Pertahankan alignment per sel/kolom dari model Fase 5 |
-| 6.5 | Pemetaan gambar, QR, barcode, separator/rule, spacer/feed, dan cut ke encoder | NOT STARTED | Gunakan hanya API encoder yang benar-benar tersedia; dokumentasikan batasan |
-| 6.6 | Fixture/golden tests untuk layout 58/80 mm dan output encoder | NOT STARTED | Tes dijalankan sebelum status TESTED diberikan |
+| 6.1 | Audit implementasi terkini dan API nyata `@point-of-sale/receipt-printer-encoder` yang sudah direncanakan | IMPLEMENTED | API v4 diverifikasi dari dokumentasi resmi; bundle 4.0.1 dipin di `src/renderer/vendor` beserta atribusi lisensi |
+| 6.2 | Implementasi modul layout murni, terpisah dari Electron/DOM | IMPLEMENTED | `src/layout/thermal-layout.js`; output berupa operasi terstruktur tanpa DOM/Electron |
+| 6.3 | Perhitungan kolom efektif untuk kertas 58 mm dan 80 mm | IMPLEMENTED | Profil awal 32 kolom (58 mm) dan 48 kolom (80 mm); margin CSS px dikonversi ke kolom Font A secara aproksimatif |
+| 6.4 | Wrapping teks, alignment, tabel, dan objek columns | IMPLEMENTED | Wrapping, alignment teks/sel/kolom, item, total, dan section bersarang dipetakan dari model yang ada |
+| 6.5 | Pemetaan gambar, QR, barcode, separator/rule, spacer/feed, dan cut ke encoder | IMPLEMENTED | Adapter menggunakan metode terdokumentasi; resolver gambar async diperlukan untuk data URL menjadi input gambar |
+| 6.6 | Fixture/golden tests untuk layout 58/80 mm dan output encoder | IMPLEMENTED | Tes unit dan tes byte stream terhadap bundle encoder nyata ditambahkan; menunggu hasil CI aktual |
 | 6.7 | Evaluasi kompatibilitas `SystemReceiptPrinter` | NOT STARTED | Evaluasi sesuai rencana; keputusan raw-vs-driver dan pengiriman job tetap pada Fase 7 |
 | 6.8 | Dokumentasikan hasil, batasan, hasil tes, dan status akhir Fase 6 | NOT STARTED | Selaraskan TASKLIST.md, PROGRESS.md, dan dokumentasi arsitektur yang relevan |
 
