@@ -8,11 +8,11 @@ function setTextStyle(encoder, operation) {
   if (typeof encoder.align === 'function') encoder.align(align);
 }
 
-function toImage(imageOperation, resolveImage) {
+async function toImage(imageOperation, resolveImage) {
   if (typeof resolveImage !== 'function') {
     throw new TypeError('Gambar memerlukan resolveImage untuk mengubah data URL menjadi input gambar encoder.');
   }
-  const image = resolveImage(imageOperation.dataUrl, imageOperation);
+  const image = await resolveImage(imageOperation.dataUrl, imageOperation);
   if (!image) throw new TypeError('Resolver gambar tidak menghasilkan input yang valid.');
   return image;
 }
@@ -21,7 +21,7 @@ function toImage(imageOperation, resolveImage) {
  * Convert a deterministic thermal layout into the documented ReceiptPrinterEncoder v4 API.
  * EncoderClass is injected so the layout and mapping stay testable without Electron or a printer.
  */
-export function encodeThermalLayout(layout, EncoderClass, options = {}) {
+export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
   if (!layout?.profile || !Array.isArray(layout.operations)) throw new TypeError('Layout thermal tidak valid.');
   if (typeof EncoderClass !== 'function') throw new TypeError('Konstruktor ReceiptPrinterEncoder wajib diberikan.');
 
@@ -58,7 +58,7 @@ export function encodeThermalLayout(layout, EncoderClass, options = {}) {
         encoder.newline();
         break;
       case 'image':
-        encoder.align('center').image(toImage(operation, options.resolveImage), { width: operation.width });
+        encoder.align('center').image(await toImage(operation, options.resolveImage), { width: operation.width });
         encoder.newline();
         break;
       case 'cut':
