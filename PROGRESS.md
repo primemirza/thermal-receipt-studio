@@ -318,3 +318,22 @@ Perubahan follow-up pada `fix/phase-5-persist-inline-edit-window-focus`, setelah
 - Electron smoke: **lulus**. Hasil menunjukkan `staysActiveAfterWindowBlur=true`, `exitsOnEnter=true`, `exitsOnOutsideClick=true`, `committedAfterOutsideClick=true`, dan kanvas tidak diganti sepanjang rangkaian klik.
 
 Artifact portable Windows tetap perlu diuji manual oleh pengguna. Fase 5 tetap `IN PROGRESS` sampai uji artifact diterima.
+
+---
+
+## FASE 6 — LAYOUT THERMAL DAN ENCODER (2026-10-21)
+
+Status: **IN PROGRESS**. Implementasi awal dikerjakan pada branch `feature/phase-6-thermal-layout-encoder`; belum dinyatakan TESTED/ACCEPTED dan belum digabung ke `main`.
+
+### Implementasi pada branch
+- `src/layout/thermal-layout.js`: modul layout murni untuk profil kolom 58/80 mm, wrapping teks, perataan, item/total, rule, spacer/feed, section bersarang, tabel, kolom, gambar, QR, dan barcode.
+- `src/encoder/receipt-printer-encoder.js`: adapter operasi layout ke API ReceiptPrinterEncoder v4. Resolver gambar async dibutuhkan untuk memuat data URL ke input gambar yang diterima encoder.
+- `src/renderer/vendor/receipt-printer-encoder.mjs`: bundle distribusi ESM resmi ReceiptPrinterEncoder 4.0.1, dipin dari upstream revision `129dd3a4398d436afc9ec6a621cfadd22bc49c1a`. Atribusi lisensi dicatat di `src/renderer/vendor/LICENSES.md`. Tidak menambah dependency npm atau mengubah lockfile.
+- `tests/phase-6-thermal-layout.test.js`: tes profil, wrapping, pemetaan objek, adapter, dan pengujian output byte stream terhadap bundle encoder nyata.
+
+### Batasan dan validasi
+- Profil awal memakai 32 kolom untuk 58 mm dan 48 kolom untuk 80 mm. Profil printer yang berbeda dapat membutuhkan override; ini bukan jaminan lebar fisik universal.
+- Margin dokumen tersimpan dalam CSS px, sedangkan layout thermal memakai kolom karakter. Konversi menggunakan perkiraan 12 px per karakter Font A dan perlu divalidasi terhadap printer/profil nyata.
+- Tes output encoder memverifikasi bytes yang dihasilkan, bukan hasil cetak fisik. Belum ada klaim kompatibilitas universal untuk QR, barcode, gambar, atau fungsi cut karena dukungan bergantung pada model printer.
+- Belum ada perubahan UI, alur cetak, atau transport printer. Itu tidak termasuk integrasi yang sudah selesai; deteksi/pengiriman job tetap Fase 7.
+- CI PR #22 masih menunggu hasil pada saat catatan ini dibuat. Status TESTED hanya akan diperbarui setelah hasil aktual diperiksa.
