@@ -114,7 +114,11 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS**. Follow-up terkini pada branch `fix/phase-5-persist-inline-edit-window-focus` setelah PR #20: hilangkan ekstensi `.trstudio` dari title bar; pertahankan mode inline saat aplikasi kehilangan fokus dan tutup hanya ketika pointer ditekan di luar elemen edit atau Enter; seragamkan gaya label toolbar dan selaraskan tombol panduan di ujung kanan.
+Status fase: **ACCEPTED** (pengguna mengonfirmasi Fase 5 selesai pada 2026-10-21).
+
+Implementasi Fase 5 mencakup objek separator/spacer, gambar, QR/barcode, tabel dan kolom, placeholder dinamis, alignment per sel/kolom, formatting teks, section bersarang, serta inline edit yang tetap aktif saat window kehilangan fokus. Rincian perubahan dan bukti CI dicatat pada PROGRESS.md bagian Fase 5.
+
+**Verifikasi yang tercatat:** GitHub Actions run #85 lulus; unit test 55/55 pada Ubuntu dan Windows; Electron smoke lulus untuk persistence saat blur, exit via Enter, exit via pointer luar, dan hasil edit tersimpan. Penerimaan fase mengikuti konfirmasi pengguna. Uji fisik printer tetap belum dilakukan dan bukan kriteria Fase 5.
 
 **Cakupan follow-up terbaru:**
 - Toolbar dirapikan dengan baseline label dan tombol sejajar; tiga ikon perataan (kiri/tengah/kanan) tersedia di toolbar, dengan indikator pilihan dan shortcut Ctrl+Shift+L/E/R. Aturan perataan di inspector dihapus.
@@ -131,11 +135,20 @@ Status fase: **IN PROGRESS**. Follow-up terkini pada branch `fix/phase-5-persist
 ---
 ## FASE 6 — LAYOUT THERMAL DAN ENCODER
 
-Status fase: **NOT STARTED**
+Status fase: **IN PROGRESS** (dimulai setelah Fase 5 diterima dan status TASKLIST diperbarui).
 
-Modul layout murni (kolom efektif 58/80 mm, wrapping, alignment, tabel/kolom, gambar, QR, barcode, feed, cut) → dipetakan ke API nyata `ReceiptPrinterEncoder` (hanya method terdokumentasi). Integrasi `SystemReceiptPrinter` dievaluasi di fase ini (keputusan raw-vs-driver di-backlogkan ke Fase 7).
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 6.1 | Audit implementasi terkini dan API nyata `@point-of-sale/receipt-printer-encoder` yang sudah direncanakan | IN PROGRESS | Gunakan versi/API yang terdokumentasi; jangan mengarang method atau mengubah stack |
+| 6.2 | Implementasi modul layout murni, terpisah dari Electron/DOM | NOT STARTED | Model dokumen → layout cetak deterministik; sumber kebenaran bersama preview dan encoder sesuai arsitektur |
+| 6.3 | Perhitungan kolom efektif untuk kertas 58 mm dan 80 mm | NOT STARTED | Mengikuti profil kolom encoder dan margin dokumen yang sudah ada |
+| 6.4 | Wrapping teks, alignment, tabel, dan objek columns | NOT STARTED | Pertahankan alignment per sel/kolom dari model Fase 5 |
+| 6.5 | Pemetaan gambar, QR, barcode, separator/rule, spacer/feed, dan cut ke encoder | NOT STARTED | Gunakan hanya API encoder yang benar-benar tersedia; dokumentasikan batasan |
+| 6.6 | Fixture/golden tests untuk layout 58/80 mm dan output encoder | NOT STARTED | Tes dijalankan sebelum status TESTED diberikan |
+| 6.7 | Evaluasi kompatibilitas `SystemReceiptPrinter` | NOT STARTED | Evaluasi sesuai rencana; keputusan raw-vs-driver dan pengiriman job tetap pada Fase 7 |
+| 6.8 | Dokumentasikan hasil, batasan, hasil tes, dan status akhir Fase 6 | NOT STARTED | Selaraskan TASKLIST.md, PROGRESS.md, dan dokumentasi arsitektur yang relevan |
 
-**Kriteria:** output layout & encoder teruji · fixture & tes · batasan kompatibilitas terdokumentasi · tanpa klaim tanpa bukti.
+**Kriteria penerimaan:** output layout & encoder teruji · fixture & tes · batasan kompatibilitas terdokumentasi · tanpa klaim tanpa bukti. Tidak memasuki Fase 7 tanpa konfirmasi eksplisit pengguna.
 
 ---
 
