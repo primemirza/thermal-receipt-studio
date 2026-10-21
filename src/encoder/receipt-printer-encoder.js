@@ -4,6 +4,10 @@ function setTextStyle(encoder, operation) {
   if (typeof encoder.bold === 'function') encoder.bold(operation.bold === true);
   if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
   if (typeof encoder.underline === 'function') encoder.underline(operation.underline === true);
+  if (typeof encoder.size === 'function') {
+    const size = operation.size === 'large' || operation.size === 'double' ? 2 : 1;
+    encoder.size(size);
+  }
   const align = ALIGNMENTS.has(operation.align) ? operation.align : 'left';
   if (typeof encoder.align === 'function') encoder.align(align);
 }
