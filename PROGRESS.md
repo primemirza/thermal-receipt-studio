@@ -300,23 +300,13 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — PERBAIKAN AKAR MASALAH DOUBLE-CLICK EDIT (2026-10-21)
+## FASE 5 — PERBAIKAN COMMIT MODE EDIT INLINE (2026-10-21)
 
-Pengguna telah merge PR #18, tetapi klik ganda masih gagal. Audit runtime melalui Electron smoke test mengidentifikasi akar masalah:
-- `paperButtons` awalnya diisi dengan `document.querySelectorAll('[data-paper]')`, yang ikut mengambil elemen kanvas `#design-paper` karena elemen itu juga mempunyai atribut `data-paper`.
-- Ketika pengguna mengklik teks pada kanvas, listener pemilihan ukuran kertas ikut memanggil `setPaper()` → `mutate()` → `renderAll()` → `renderCanvas()`. Target teks diganti setelah klik pertama; sehingga double-click tidak pernah dapat menyelesaikan edit. Ini dibuktikan oleh stack trace runtime dari smoke test.
+Uji pengguna setelah PR #19 dan workflow run #39476402809 menunjukkan double-click dapat membuat elemen fokus/editable, tetapi perubahan tidak muncul di preview (`committed=false`). Jadi kriteria keberhasilan bukan hanya membuka mode edit; teks yang diganti harus diterapkan ke model dokumen saat fokus keluar.
 
-Perbaikan pada branch `fix/phase-5-dblclick-edit-reliable` / PR #19:
-- Selector diperketat menjadi `button[data-paper]`; hanya tombol lebar kertas dapat memicu `setPaper`.
-- `selectBlock()` hanya mengubah kelas selection dan inspector, tidak merender ulang kanvas ketika blok dipilih.
-- Double-click ditangkap pada capture phase di `editor-surface`, dengan resolver untuk span teks, sel tabel/header, sel kolom, section, dan field utama blok.
-- Fungsi smoke mode Electron diperluas untuk dispatch klik pertama/kedua dan `dblclick`, memverifikasi target tidak terlepas, `contenteditable=true`, fokus, serta perubahan teks yang tersimpan pada preview.
-- Perbaikan tambahan dari temuan smoke test: window-open handler dipindahkan ke API yang tepat, `mainWindow.webContents.setWindowOpenHandler`, agar jendela dapat diinisialisasi pada Electron CI.
+Perubahan pada branch `fix/phase-5-inline-edit-commit-path`:
+- Delegasi penyimpanan inline edit dipindahkan dari `focusout` bubbling ke listener `blur` pada capture phase di `designPaper`; ini memastikan blur dari elemen contenteditable ditangani oleh kanvas.
+- Smoke Electron menambahkan diagnostik status model dan cuplikan preview agar kegagalan commit jelas terlihat.
+- Tes regresi mewajibkan listener blur capture dan menolak fallback lama yang hanya mengandalkan event focusout bubbling.
 
-### Verifikasi otomatis
-- GitHub Actions run #76 hijau: unit test **53/53 Ubuntu**, **53/53 Windows**, Electron smoke test Ubuntu **lulus**.
-- Smoke test melaporkan `attachedAfterFirstClick=true`, `attachedAfterSecondClick=true`, `editable=true`, `focused=true`, `committed=true`, dan `canvasReplacementsAfterFirstClick=0`.
-
-### Masih menunggu
-- PR #19 belum di-merge. Pengguna masih perlu memverifikasi artifact portable Windows dengan klik ganda pada teks biasa, sel tabel/header, dan sel kolom.
-- Fase 5 tetap `IN PROGRESS` sampai uji manual artifact diterima.
+Gerbang verifikasi: GitHub Actions unit test Ubuntu/Windows dan Electron smoke test harus lulus. PR masih menunggu CI; belum siap untuk merge sebelum smoke test membuktikan teks muncul di preview.
