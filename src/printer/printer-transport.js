@@ -6,7 +6,7 @@ export const MAX_RAW_JOB_BYTES = 8 * 1024 * 1024;
 
 export function validateRawPrinterTarget(host, port = DEFAULT_RAW_PRINTER_PORT) {
   if (typeof host !== 'string' || host.trim() !== host || host.length < 1 || host.length > 253 ||
-      /[\s/\\]/.test(host) || host.includes('://')) {
+      /[\s\/\\]/.test(host) || host.includes('://')) {
     throw new TypeError('Alamat printer harus berupa hostname atau alamat IP, tanpa protokol.');
   }
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
