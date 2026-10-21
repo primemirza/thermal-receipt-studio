@@ -300,21 +300,21 @@ Status implementasi: **IN PROGRESS**, menunggu CI dan uji manual Windows.
 - Status implementasi Fase 5 masih `IN PROGRESS`. Belum ada klaim tes atau build Fase 5 lulus sebelum dijalankan dan diverifikasi.
 
 
-## FASE 5 — DOUBLE-CLICK EDITING DAN COMMIT LANGSUNG (2026-10-21)
+## FASE 5 — INLINE EDIT PERSISTEN SAAT WINDOW FOCUS HILANG (2026-10-21)
 
-Hasil uji setelah PR #19: Electron smoke run #79 menemukan mode editor dapat aktif (`editable=true`, `focused=true`) tetapi teks tidak tersimpan ke preview (`committed=false`). Run #80 tetap gagal karena blur sintetis tidak memicu jalur commit dalam harness. Karena itu mekanisme simpan tidak boleh hanya bergantung pada blur.
+Perubahan follow-up pada `fix/phase-5-persist-inline-edit-window-focus`, setelah PR #20 membuat inline edit + commit tersimpan dengan CI hijau:
 
-Implementasi di branch `fix/phase-5-inline-edit-commit-path` / PR #20:
-- Double-click langsung pada blok di kanvas tetap mengaktifkan `contenteditable` pada field utama; tabel/kolom mengaktifkan sel yang terkena.
-- Listener `input` pada kanvas kini menerapkan teks ke model dokumen ketika pengguna mengetik dan me-render ulang preview saja (kanvas tidak diganti, sehingga fokus tetap ada).
-- Undo snapshot dibuat sekali pada perubahan pertama dalam satu sesi edit, bukan untuk setiap karakter.
-- Saat blur, handler menutup `contenteditable`; fallback commit tetap menangani perubahan yang tidak memicu event input.
-- Escape mengembalikan teks asli, model, status dirty, dan stack undo/redo sebelum sesi edit.
-- Smoke Electron menguji alur klik ganda, aktivasi editor, event input, dan teks yang benar-benar muncul di preview. Diagnostik juga memeriksa bahwa kanvas tidak di-render ulang setelah klik pertama.
+- Title bar masih menggunakan nama file dengan ekstensi; perbaikan menghapus akhiran `.trstudio` saja, tanpa mengubah path file yang disimpan.
+- Mode inline tidak lagi dimatikan oleh event blur/focusout. Sesi edit dibuat sejak masuk mode, dan teks tetap `contenteditable=true` ketika pengguna berpindah ke aplikasi lain.
+- Mode edit berakhir dan menyimpan hasil ketika pengguna menekan Enter atau melakukan pointer action di luar elemen editor. Klik pada elemen edit yang sedang aktif tidak mengakhirinya; pointerdown di aplikasi lain tidak terjadi saat aplikasi kehilangan fokus.
+- Escape tidak menjadi pemicu keluar karena kriteria yang diminta hanya Enter atau klik luar. Input tetap langsung disinkronkan ke model/preview dan undo tetap satu langkah per sesi.
+- Smoke Electron sekarang menguji dua siklus: editor tetap aktif setelah window/element blur, Enter mengakhiri sesi, lalu pointerdown di tombol luar mengakhiri sesi kedua dan hasilnya tetap di preview.
+- CSS menyamakan font/ukuran/line-height label untuk kelompok toolbar utama dan subgroup sisipkan; tombol paling kanan dan tombol layout global diratakan pada baseline baris ikon.
+- Test regresi ditambahkan untuk title tanpa ekstensi, mode edit persisten, dua cara keluar yang diizinkan, serta toolbar.
 
-### Verifikasi — GitHub Actions run #81
-- Unit test Ubuntu: **53/53 lulus**.
-- Unit test Windows: **53/53 lulus**.
-- Electron smoke: **lulus**, dengan `editable=true`, `focused=true`, `committed=true`, status `Isi elemen diperbarui.`, dan `canvasReplacementsAfterFirstClick=0`.
+### Verifikasi — GitHub Actions run #85
+- Unit test Ubuntu: **55/55 lulus**.
+- Unit test Windows: **55/55 lulus**.
+- Electron smoke: **lulus**. Hasil menunjukkan `staysActiveAfterWindowBlur=true`, `exitsOnEnter=true`, `exitsOnOutsideClick=true`, `committedAfterOutsideClick=true`, dan kanvas tidak diganti sepanjang rangkaian klik.
 
-PR #20 masih terbuka dan belum di-merge. Uji manual pada artifact portable Windows tetap menjadi verifikasi penerimaan karena smoke berjalan pada Electron/Xvfb, bukan perangkat pengguna.
+Artifact portable Windows tetap perlu diuji manual oleh pengguna. Fase 5 tetap `IN PROGRESS` sampai uji artifact diterima.

@@ -114,7 +114,7 @@ Status fase: **ACCEPTED** (pengguna telah menguji build Fase 4 dan menyatakan fa
 
 ## FASE 5 — OBJEK STRUK DAN FITUR LAYOUT
 
-Status fase: **IN PROGRESS**. Perbaikan lanjutan pasca-merge PR #19 ada di branch `fix/phase-5-inline-edit-commit-path`: gunakan `blur` event pada capture phase agar perubahan teks tersimpan saat keluar dari mode edit; CI run #81 lulus setelah perbaikan sinkronisasi input ke model/preview: 53/53 tes Ubuntu, 53/53 Windows, dan Electron smoke edit/commit lulus. Prioritas kritis berikutnya: memastikan double-click benar-benar masuk mode edit tanpa render ulang target klik. Follow-up prioritas terbaru dikembangkan di branch `fix/phase-5-inline-edit-and-canvas-zoom`: perbaikan mode edit double-click dan sinkronisasi zoom area kerja + preview. PR #14, #15, dan #16 telah di-merge dan diuji pengguna. Follow-up berikutnya dikembangkan di branch `feature/phase-5-inline-edit-align-controls` dari temuan screenshot uji terakhir.
+Status fase: **IN PROGRESS**. Follow-up terkini pada branch `fix/phase-5-persist-inline-edit-window-focus` setelah PR #20: hilangkan ekstensi `.trstudio` dari title bar; pertahankan mode inline saat aplikasi kehilangan fokus dan tutup hanya ketika pointer ditekan di luar elemen edit atau Enter; seragamkan gaya label toolbar dan selaraskan tombol panduan di ujung kanan.
 
 **Cakupan follow-up terbaru:**
 - Toolbar dirapikan dengan baseline label dan tombol sejajar; tiga ikon perataan (kiri/tengah/kanan) tersedia di toolbar, dengan indikator pilihan dan shortcut Ctrl+Shift+L/E/R. Aturan perataan di inspector dihapus.
@@ -124,7 +124,7 @@ Status fase: **IN PROGRESS**. Perbaikan lanjutan pasca-merge PR #19 ada di branc
 - Bold/italic/underline dipaksakan secara eksplisit sesuai nilai model agar default `<th>` browser tidak membuat teks tebal ketika properti tidak aktif; gaya berlaku pada kanvas dan preview.
 - Tambah/hapus baris/kolom tabel turut menjaga alignment setiap sel konsisten.
 
-**Status verifikasi PR #19:** GitHub Actions run #76 lulus: `npm test` 53/53 pada Ubuntu dan Windows. Electron smoke test menjalankan alur double-click, fokus, edit, blur, dan memastikan teks ter-commit ke preview; hasil: `TRS_SMOKE_INLINE_EDIT_OK`, target tetap connected dan kanvas tidak dirender ulang pada klik pertama. Portable artifact Windows dan uji manual pengguna tetap diperlukan sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
+**Status verifikasi PR #21: GitHub Actions run #85 lulus; unit test 55/55 Ubuntu dan Windows, Electron smoke lulus untuk persistence saat blur, exit via Enter, exit via pointer luar, dan hasil edit yang tetap tersimpan. Artifact portable Windows tetap perlu diuji pengguna sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** toolbar rata; double-click header/body tabel dan kolom; klik kanan saat cursor berada pada teks; perataan blok, perataan satu sel/kolom dan seluruh tabel/columns; bold on/off; section bersarang; save/open `.trstudio` dengan alignment per-sel.
 

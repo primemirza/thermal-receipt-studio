@@ -213,15 +213,43 @@ if (process.env.TRS_SMOKE === '1') {
               bubbles: true, inputType: 'insertText', data: '__TRS_INLINE_EDIT_SMOKE__'
             }));
           }
-          const preview = document.querySelector('#receipt-preview');
-          const committed = preview?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          let preview = document.querySelector('#receipt-preview');
+          const committedWhileEditing = preview?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          // Simulate switching to another desktop window: blur alone must not exit edit mode.
+          window.dispatchEvent(new Event('blur'));
           target.blur();
+          const staysActiveAfterWindowBlur = target.getAttribute('contenteditable') === 'true';
+          target.focus();
+          target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          const exitsOnEnter = target.getAttribute('contenteditable') === 'false';
+          // Begin a second edit session and verify that an outside pointer action ends it.
+          dispatch('click', 1);
+          dispatch('click', 2);
+          dispatch('dblclick', 2);
+          const secondEditable = target.getAttribute('contenteditable') === 'true';
+          if (secondEditable) {
+            target.textContent = '__TRS_OUTSIDE_CLICK_SMOKE__';
+            target.dispatchEvent(new InputEvent('input', {
+              bubbles: true, inputType: 'insertText', data: '__TRS_OUTSIDE_CLICK_SMOKE__'
+            }));
+          }
+          const outsideButton = document.querySelector('#toggle-guides');
+          outsideButton?.dispatchEvent(new PointerEvent('pointerdown', {
+            bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse'
+          }));
+          const exitsOnOutsideClick = target.getAttribute('contenteditable') === 'false';
+          preview = document.querySelector('#receipt-preview');
+          const committedAfterOutsideClick = preview?.textContent.includes('__TRS_OUTSIDE_CLICK_SMOKE__') === true;
           const modelStatus = document.querySelector('#status-text')?.textContent || '';
           const previewText = (preview?.textContent || '').slice(0, 500);
           document.removeEventListener('click', captureClick, true);
           return {
-            ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed && canvasReplacementCount === 0,
-            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed, modelStatus, previewText, ...diagnostics
+            ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused &&
+              committedWhileEditing && staysActiveAfterWindowBlur && exitsOnEnter &&
+              secondEditable && exitsOnOutsideClick && committedAfterOutsideClick && canvasReplacementCount === 0,
+            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committedWhileEditing,
+            staysActiveAfterWindowBlur, exitsOnEnter, secondEditable, exitsOnOutsideClick,
+            committedAfterOutsideClick, modelStatus, previewText, ...diagnostics
           };
         })()`);
         if (!result?.ok) {

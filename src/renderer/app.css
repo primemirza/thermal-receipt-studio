@@ -748,3 +748,32 @@ body .toolbar .toolbar-spacer { min-width: 8px; }
 }
 .column-cell [data-inline-edit] { font-weight: inherit; font-style: inherit; text-decoration: inherit; }
 .design-block [data-inline-edit][contenteditable="true"] { user-select: text; -webkit-user-select: text; }
+
+
+/* Phase 5 polish: uniform toolbar group labels and align the far-right guide action with button rows. */
+body .toolbar .tool-section > .tool-label,
+body .toolbar .tool-subsection > .tool-label {
+  font-family: var(--ui);
+  font-size: 10px !important;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 13px !important;
+  height: 13px !important;
+  min-height: 13px !important;
+  margin: 0 0 4px !important;
+  text-transform: none;
+}
+body .toolbar > #toggle-guides {
+  flex: 0 0 32px;
+  align-self: flex-end;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  transform: none;
+}
+body .toolbar .toolbar-global-layout > #global-layout-button {
+  flex: 0 0 32px;
+  align-self: flex-end;
+  margin: 0;
+}
