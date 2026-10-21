@@ -311,9 +311,12 @@ test('Electron smoke mode executes an actual renderer double-click/edit/commit p
   assert.ok(renderer.includes("designPaper.addEventListener('input', event => {"));
   assert.ok(renderer.includes("if (!session.undoSaved)"), 'one undo snapshot is created per inline editing session');
   assert.ok(renderer.includes("renderPreview();"), 'typed text updates the preview without replacing the canvas');
-  assert.ok(renderer.includes("designPaper.addEventListener('blur', event => {"));
-  assert.ok(renderer.includes("}, true);"), 'blur must be captured at the design surface so direct edits commit reliably');
-  assert.ok(!renderer.includes("designPaper.addEventListener('focusout', event => {"), 'avoid relying on bubbling focusout to save inline edits');
+  assert.ok(renderer.includes('function finishInlineEdit(cell)'));
+  assert.ok(renderer.includes("document.addEventListener('pointerdown', event => {"));
+  assert.ok(renderer.includes("if (event.key === 'Enter')"));
+  assert.ok(!renderer.includes("designPaper.addEventListener('blur', event => {"), 'window blur must not disable inline mode');
+  assert.ok(!renderer.includes("designPaper.addEventListener('focusout', event => {"), 'focusout must not disable inline mode');
+  for (const marker of ['staysActiveAfterWindowBlur','exitsOnEnter','exitsOnOutsideClick','committedAfterOutsideClick']) assert.ok(main.includes(marker), marker);
   assert.ok(main.includes("const modelStatus = document.querySelector('#status-text')?.textContent || ''"));
 
   assert.ok(main.includes("TRS_SMOKE_INLINE_EDIT_OK"));
@@ -482,6 +485,40 @@ test('every block supports independent margin and padding values on all four sid
   assert.throws(() => validateDocument(invalidSectionPadding), /Padding blok/);
 });
 
+test('inline editing stays active when the window loses focus and exits only on Enter or outside pointer input', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const renderer = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
+  const main = fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf8');
+  assert.ok(renderer.includes('ensureInlineEditSession(editor, blockId);'));
+  assert.ok(renderer.includes('function finishInlineEdit(cell)'));
+  assert.ok(renderer.includes('document.addEventListener(\'pointerdown\', event => {'));
+  assert.ok(renderer.includes("if (event.key === 'Enter')"));
+  assert.ok(!renderer.includes("designPaper.addEventListener('blur', event => {"));
+  assert.ok(!renderer.includes("designPaper.addEventListener('focusout', event => {"));
+  assert.ok(main.includes("window.dispatchEvent(new Event('blur'))"));
+  assert.ok(main.includes("const staysActiveAfterWindowBlur = target.getAttribute('contenteditable') === 'true'"));
+  assert.ok(main.includes("const exitsOnEnter = target.getAttribute('contenteditable') === 'false'"));
+  assert.ok(main.includes("const exitsOnOutsideClick = target.getAttribute('contenteditable') === 'false'"));
+});
+
+test('toolbar category labels use one font style and the right-side guide button shares the icon baseline', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
+  const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
+  assert.match(css, /body \.toolbar \.tool-section > \.tool-label,[\s\S]*?body \.toolbar \.tool-subsection > \.tool-label/);
+  assert.match(css, /font-size: 10px !important;[\s\S]*?line-height: 13px !important;/);
+  assert.match(css, /body \.toolbar > #toggle-guides[\s\S]*?align-self: flex-end/);
+  assert.match(css, /body \.toolbar \.toolbar-global-layout > #global-layout-button[\s\S]*?align-self: flex-end/);
+  assert.ok(html.includes('id="toggle-guides"'));
+  assert.ok(html.includes('id="global-layout-button"'));
+});
+
 test('saving and opening a document synchronize the real Electron title with its file name', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -492,6 +529,7 @@ test('saving and opening a document synchronize the real Electron title with its
   const main = fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf8');
   assert.ok(js.includes("document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio'"));
   assert.ok(js.includes('window.trs.setWindowTitle(document.title)'));
+  assert.ok(js.includes("savedName.replace(/\\.trstudio$/i, '')"), 'remove .trstudio extension from visible title');
   assert.ok(preload.includes("setWindowTitle: (title) => invoke('window:setTitle', [title])"));
   assert.ok(main.includes("'window:setTitle'"));
   assert.ok(main.includes('mainWindow?.setTitle(title)'));
