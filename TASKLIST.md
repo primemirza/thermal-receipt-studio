@@ -124,7 +124,7 @@ Status fase: **IN PROGRESS**. Follow-up terkini pada branch `fix/phase-5-persist
 - Bold/italic/underline dipaksakan secara eksplisit sesuai nilai model agar default `<th>` browser tidak membuat teks tebal ketika properti tidak aktif; gaya berlaku pada kanvas dan preview.
 - Tambah/hapus baris/kolom tabel turut menjaga alignment setiap sel konsisten.
 
-**Status verifikasi PR #20: GitHub Actions run #83 lulus; unit test 53/53 Ubuntu dan Windows serta Electron smoke edit/commit lulus. Follow-up title/focus/toolbar menunggu CI baru. Fase tidak dinyatakan `TESTED`/`ACCEPTED` sampai smoke untuk kehilangan fokus, Enter, klik luar, title, dan toolbar lulus serta artifact Windows diuji pengguna.
+**Status verifikasi PR #21: GitHub Actions run #85 lulus; unit test 55/55 Ubuntu dan Windows, Electron smoke lulus untuk persistence saat blur, exit via Enter, exit via pointer luar, dan hasil edit yang tetap tersimpan. Artifact portable Windows tetap perlu diuji pengguna sebelum fase dinyatakan `TESTED`/`ACCEPTED`.
 
 **Uji manual minimum:** toolbar rata; double-click header/body tabel dan kolom; klik kanan saat cursor berada pada teks; perataan blok, perataan satu sel/kolom dan seluruh tabel/columns; bold on/off; section bersarang; save/open `.trstudio` dengan alignment per-sel.
 
