@@ -915,12 +915,13 @@ function finishInlineEdit(cell) {
     const oldValue = String(getInlineModelValue(block, cell) ?? '');
     // Input events sync normal typing. This is a safeguard for edits applied by
     // assistive technology or scripts that changed text without dispatching input.
-    if (oldValue !== value && setInlineModelValue(block, cell, value)) {
+    if (oldValue !== value) {
       const before = cloneDocument(documentModel);
       const undoBefore = [...state.undo];
       const redoBefore = [...state.redo];
       if (!session?.undoSaved) saveUndoPoint();
       try {
+        if (!setInlineModelValue(block, cell, value)) throw new Error('Field teks tidak dapat disimpan.');
         validateDocument(documentModel);
         isDirty = true;
         renderPreview();
@@ -1297,7 +1298,7 @@ async function saveCurrent(mode = 'save') {
 }
 function updateWindowTitle() {
   const savedName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
-  const fileName = savedName.replace(/\\.trstudio$/i, '');
+  const fileName = savedName.replace(/\.trstudio$/i, '');
   document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
   window.trs.setWindowTitle(document.title).catch(() => {});
 }
