@@ -167,7 +167,7 @@ Status fase: **IN PROGRESS** (branch `feature/phase-7-printer-detection-printing
 | 7.5 | Cetak ulang job terakhir | IMPLEMENTED | Job terakhir disimpan dalam memori proses aplikasi. Tidak persisten setelah aplikasi ditutup; itu bukan klaim recovery. |
 | 7.6 | UI pemilihan jalur, printer, alamat dan port | IMPLEMENTED | Dialog printer menyediakan driver Windows atau raw TCP. Profil jaringan saat ini diisi per job dan belum disimpan sebagai preferensi. |
 | 7.7 | Error handling dan validasi IPC | IMPLEMENTED | Whitelist channel IPC, validasi payload transport, timeout dan pesan error. Perlu uji manual offline/perangkat terputus. |
-| 7.8 | Tes otomatis transport dan dokumen driver | IMPLEMENTED | Tes baru mencakup validasi host/port/byte, pemetaan error, transport TCP terinjeksi, dan sanitasi dokumen driver. Status TESTED menunggu CI aktual. |
+| 7.8 | Tes otomatis transport dan dokumen driver | TESTED | GitHub Actions run #110 lulus: 72/72 tes pada Ubuntu dan Windows; Electron smoke Ubuntu lulus. Belum mencakup cetak fisik atau build portable khusus branch. |
 | 7.9 | Evaluasi `SystemReceiptPrinter` / native addon | BLOCKED | Belum diintegrasikan. Dependensi native perlu diuji ABI Electron Windows terlebih dahulu. Jalur driver memakai API Electron; raw jaringan memakai `node:net`. |
 
 **Batasan penting:** belum ada klaim cetak fisik yang berhasil. Printer yang bukan ESC/POS tidak boleh dipilih pada jalur raw. Port TCP 9100 merupakan default umum, bukan jaminan untuk setiap printer. Reprint hanya menyimpan job terakhir selama proses aplikasi aktif. Profil printer persisten belum ada; preferensi disimpan pada fase berikutnya.
