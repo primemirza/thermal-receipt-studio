@@ -787,3 +787,10 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 }
 .thermal-layout-media { display: flex; justify-content: center; align-items: flex-start; white-space: normal; }
 .thermal-layout-media img { display: block; height: auto; }
+
+
+/* Phase 7 printer dialog */
+.printer-warning { display: flex !important; align-items: flex-start; gap: 8px; padding: 10px; border: 1px solid #d6a23d; border-radius: 5px; background: #fff7e0; color: #684b10 !important; line-height: 1.4; }
+.printer-warning input[type="checkbox"] { flex: 0 0 auto; width: auto !important; margin: 2px 0 0; }
+#printer-dialog .table-dialog-actions { flex-wrap: wrap; }
+#printer-device:disabled { opacity: .6; }
