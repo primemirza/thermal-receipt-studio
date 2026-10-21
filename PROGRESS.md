@@ -342,3 +342,24 @@ Status: **TESTED** pada branch `feature/phase-6-thermal-layout-encoder`; belum d
 - Evaluasi `SystemReceiptPrinter`: dokumentasi upstream menjelaskan bahwa paket mencetak bytes encoder melalui system printer driver, tetapi dependensi `@grandchef/node-printer` adalah native addon. Integrasi ditunda ke Fase 7 agar ABI Electron dan perilaku Windows diuji terpisah; `webContents.print` tetap opsi driver tanpa native addon.
 - Integrasi preview dilakukan secara opt-in: simulasi thermal memakai layout engine; preview visual lama tetap menjadi tampilan default. Tes regresi dan smoke CI lulus.
 - Batasan yang belum diklaim: belum ada build portable Windows khusus PR ini, uji printer fisik, atau integrasi transport/cetak. Fase 7 tidak dimulai.
+
+
+## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN (2026-10-21)
+
+Status: **IN PROGRESS** pada branch `feature/phase-7-printer-detection-printing`. Implementasi awal dibuat terpisah dari `main`; CI dan uji perangkat belum diklaim lulus.
+
+### Implementasi awal
+- `src/printer/printer-transport.js`: validasi hostname/IP dan port, batas ukuran job 8 MiB, pengiriman raw ESC/POS melalui TCP, timeout, dan pesan error terarah untuk koneksi ditolak, timeout, jaringan tak terjangkau, serta koneksi terputus.
+- `src/printer/driver-print.js`: pembuat dokumen HTML cetak terisolasi untuk jendela cetak tersembunyi. Menolak markup executable dan URL resource remote/file.
+- `src/main/main.js`: IPC untuk deteksi printer Windows, cetak driver, pengiriman raw TCP, dan reprint job terakhir. Job terakhir hanya disimpan di memori.
+- `src/preload/preload.cjs`: API printer sempit melalui contextBridge, tanpa mengekspos ipcRenderer atau Node API ke renderer.
+- `src/renderer/index.html`, `renderer.js`, `app.css`: dialog pemilihan jalur cetak, daftar printer Windows, alamat/port raw TCP, konfirmasi kompatibilitas ESC/POS, cetak, dan cetak ulang. Jalur raw memakai layout thermal dan ReceiptPrinterEncoder dari Fase 6.
+- `tests/phase-7-printer-transport.test.js` dan `tests/phase-7-driver-print.test.js`: tes validasi transport, pemetaan error, byte send dengan socket terinjeksi, dan pembentukan HTML driver yang menolak markup berbahaya.
+
+### Keputusan dan batasan
+- Jalur driver memakai `webContents.print()` pada jendela tersembunyi yang berisi markup preview struk, bukan mencetak seluruh UI editor.
+- Jalur raw mengirim byte ESC/POS ke host/port yang dimasukkan pengguna. Default port 9100 bukan standar universal.
+- Tidak memakai `@point-of-sale/system-receipt-printer` dulu karena native addon `@grandchef/node-printer` memerlukan verifikasi ABI Electron Windows. Tidak mengklaim native printing teruji.
+- Tidak ada perangkat printer yang tersedia untuk pengujian fisik di workspace. Status job sukses dari socket hanya berarti data berhasil diserahkan ke koneksi TCP, bukan bukti kertas benar-benar keluar.
+- Profil jaringan belum persisten; host/port dimasukkan per job. Reprint hanya tersedia selama proses aplikasi masih hidup.
+- Belum ada hasil CI untuk commit fase ini. Jangan tandai sub-tugas sebagai TESTED sampai workflow aktual lulus. Jangan merge PR sebelum pengguna meninjau hasil dan keterbatasannya.
