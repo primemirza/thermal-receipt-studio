@@ -207,10 +207,15 @@ if (process.env.TRS_SMOKE === '1') {
           dispatch('dblclick', 2);
           const editable = target.getAttribute('contenteditable') === 'true';
           const focused = document.activeElement === target;
-          if (editable) target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
-          target.blur();
+          if (editable) {
+            target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
+            target.dispatchEvent(new InputEvent('input', {
+              bubbles: true, inputType: 'insertText', data: '__TRS_INLINE_EDIT_SMOKE__'
+            }));
+          }
           const preview = document.querySelector('#receipt-preview');
           const committed = preview?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          target.blur();
           const modelStatus = document.querySelector('#status-text')?.textContent || '';
           const previewText = (preview?.textContent || '').slice(0, 500);
           document.removeEventListener('click', captureClick, true);
