@@ -209,11 +209,14 @@ if (process.env.TRS_SMOKE === '1') {
           const focused = document.activeElement === target;
           if (editable) target.textContent = '__TRS_INLINE_EDIT_SMOKE__';
           target.blur();
-          const committed = document.querySelector('#receipt-preview')?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          const preview = document.querySelector('#receipt-preview');
+          const committed = preview?.textContent.includes('__TRS_INLINE_EDIT_SMOKE__') === true;
+          const modelStatus = document.querySelector('#status-text')?.textContent || '';
+          const previewText = (preview?.textContent || '').slice(0, 500);
           document.removeEventListener('click', captureClick, true);
           return {
             ok: attachedAfterFirstClick && attachedAfterSecondClick && editable && focused && committed && canvasReplacementCount === 0,
-            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed, ...diagnostics
+            attachedAfterFirstClick, attachedAfterSecondClick, editable, focused, committed, modelStatus, previewText, ...diagnostics
           };
         })()`);
         if (!result?.ok) {
