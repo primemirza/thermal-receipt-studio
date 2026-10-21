@@ -312,4 +312,9 @@ Perubahan follow-up pada `fix/phase-5-persist-inline-edit-window-focus`, setelah
 - CSS menyamakan font/ukuran/line-height label untuk kelompok toolbar utama dan subgroup sisipkan; tombol paling kanan dan tombol layout global diratakan pada baseline baris ikon.
 - Test regresi ditambahkan untuk title tanpa ekstensi, mode edit persisten, dua cara keluar yang diizinkan, serta toolbar.
 
-Status: menunggu GitHub Actions untuk branch ini. Setelah CI lulus, artifact portable Windows perlu diuji manual untuk konfirmasi akhir. Fase 5 tetap `IN PROGRESS`.
+### Verifikasi — GitHub Actions run #85
+- Unit test Ubuntu: **55/55 lulus**.
+- Unit test Windows: **55/55 lulus**.
+- Electron smoke: **lulus**. Hasil menunjukkan `staysActiveAfterWindowBlur=true`, `exitsOnEnter=true`, `exitsOnOutsideClick=true`, `committedAfterOutsideClick=true`, dan kanvas tidak diganti sepanjang rangkaian klik.
+
+Artifact portable Windows tetap perlu diuji manual oleh pengguna. Fase 5 tetap `IN PROGRESS` sampai uji artifact diterima.
