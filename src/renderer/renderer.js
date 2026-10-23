@@ -1395,9 +1395,15 @@ $('printer-print-button').addEventListener('click', async () => {
   button.disabled = true;
   try {
     if (printerMode.value === 'driver') {
-      const result = await window.trs.printViaDriver(receiptPreview.innerHTML, documentModel.paperWidthMm, printerDevice.value);
+      // Gunakan thermal layout yang sama dengan jalur raw TCP/ESC-POS agar output identik.
+      // Layout plain object dikirim via IPC; main process mengubahnya ke HTML monospace <pre>.
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
+      const layoutPlain = JSON.parse(JSON.stringify(layout));
+      const result = await window.trs.printViaDriver(layoutPlain, documentModel.paperWidthMm, printerDevice.value);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
       setStatus('Job dikirim ke driver Windows: ' + (printerDevice.value || 'printer default') + '.');
+
     } else {
       if (!$('raw-escpos-confirm').checked) throw new Error('Konfirmasi dukungan ESC/POS diperlukan sebelum mengirim data raw.');
       const host = $('raw-printer-host').value.trim();

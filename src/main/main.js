@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { validateDocument } from '../renderer/document-model.js';
 import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
 import { sendRawTcp } from '../printer/printer-transport.js';
-import { buildDriverPrintHtml } from '../printer/driver-print.js';
+import { buildThermalDriverHtml } from '../printer/driver-print.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,8 +31,10 @@ const currentFiles = new Map();
 const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
 let lastPrintJob = null;
 
-async function printViaDriver(receiptMarkup, paperWidthMm, printerName) {
-  const html = buildDriverPrintHtml(receiptMarkup, paperWidthMm);
+async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
+  // thermalLayout adalah objek plain { profile, operations } yang telah di-serialize di renderer.
+  // Dirender menjadi HTML monospace agar output identik dengan jalur raw ESC/POS TCP.
+  const html = buildThermalDriverHtml(thermalLayout, paperWidthMm);
   if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
   const printWindow = new BrowserWindow({
     width: 480, height: 800, show: false, autoHideMenuBar: true,
@@ -65,7 +67,7 @@ async function printViaDriver(receiptMarkup, paperWidthMm, printerName) {
         else reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
       });
     });
-    lastPrintJob = { mode: 'driver', receiptMarkup, paperWidthMm, printerName };
+    lastPrintJob = { mode: 'driver', thermalLayout, paperWidthMm, printerName };
     return result;
   } finally {
     if (!printWindow.isDestroyed()) printWindow.close();
