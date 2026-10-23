@@ -8,6 +8,7 @@ import { validateDocument } from '../renderer/document-model.js';
 import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
 import { sendRawTcp } from '../printer/printer-transport.js';
 import { buildThermalDriverHtml } from '../printer/driver-print.js';
+import { openDatabase } from './db/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +31,17 @@ let mainWindow = null;
 const currentFiles = new Map();
 const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
 let lastPrintJob = null;
+let dbInstance = null;
+
+export function getDb() {
+  if (!dbInstance) {
+    const dir = userDataDir();
+    try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+    const dbPath = path.join(dir, 'studio.db');
+    dbInstance = openDatabase(dbPath);
+  }
+  return dbInstance;
+}
 
 async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
   // thermalLayout adalah objek plain { profile, operations } yang telah di-serialize di renderer.
@@ -124,8 +136,13 @@ if (!gotLock) {
     }
   });
 
-  // --- IPC tervalidasi (API sangat terbatas pada Fase 1) ---
-  const ALLOWED_CHANNELS = new Set(['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle', 'printer:list', 'printer:driver', 'printer:raw', 'printer:reprint']);
+  // --- IPC tervalidasi (API sangat terbatas pada Fase 1 & 8) ---
+  const ALLOWED_CHANNELS = new Set([
+    'app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle',
+    'printer:list', 'printer:driver', 'printer:raw', 'printer:reprint',
+    'prefs:getAll', 'prefs:set', 'printerProfile:get', 'printerProfile:save',
+    'recentFiles:list', 'recovery:save', 'recovery:get', 'recovery:clear'
+  ]);
 
   ipcMain.handle('trs:invoke', async (event, payload) => {
     // Payload divalidasi ketat; renderer tidak pernah memanggil channel secara bebas.
@@ -136,7 +153,15 @@ if (!gotLock) {
     if (typeof channel !== 'string' || !ALLOWED_CHANNELS.has(channel)) {
       return { ok: false, error: 'CHANNEL_NOT_ALLOWED' };
     }
-    const expectedArgs = ({ 'document:save': 2, 'window:setTitle': 1, 'printer:driver': 3, 'printer:raw': 3 })[channel] ?? 0;
+    const expectedArgs = ({
+      'document:save': 2,
+      'window:setTitle': 1,
+      'printer:driver': 3,
+      'printer:raw': 3,
+      'prefs:set': 2,
+      'printerProfile:save': 1,
+      'recovery:save': 2,
+    })[channel] ?? 0;
     if (!Array.isArray(args) || args.length !== expectedArgs) {
       return { ok: false, error: 'INVALID_ARGS' };
     }
@@ -197,6 +222,9 @@ if (!gotLock) {
           const filePath = picked.filePaths[0];
           const parsed = parseTrstudio(fs.readFileSync(filePath), validateDocument);
           currentFiles.set(event.sender.id, filePath);
+          try {
+            getDb().addRecentFile(filePath, parsed.document.title || 'Tanpa Judul', parsed.document.paperWidthMm || 58);
+          } catch {}
           return { ok: true, value: { document: parsed.document, path: filePath } };
         } catch (err) { return { ok: false, error: 'FILE_INVALID', message: String(err?.message || err) }; }
       }
@@ -217,8 +245,59 @@ if (!gotLock) {
           try { fs.writeFileSync(tempPath, bytes, { flag: 'wx' }); fs.renameSync(tempPath, filePath); }
           catch (err) { try { fs.rmSync(tempPath, { force: true }); } catch {} throw err; }
           currentFiles.set(event.sender.id, filePath);
+          try {
+            getDb().addRecentFile(filePath, document.title || 'Tanpa Judul', document.paperWidthMm || 58);
+            getDb().clearRecoverySnapshot();
+          } catch {}
           return { ok: true, value: { path: filePath } };
         } catch (err) { return { ok: false, error: 'SAVE_FAILED', message: String(err?.message || err) }; }
+      }
+      case 'prefs:getAll': {
+        try {
+          return { ok: true, value: getDb().getAllPreferences() };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'prefs:set': {
+        const [key, value] = args;
+        try {
+          getDb().setPreference(key, value);
+          return { ok: true, value: true };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'printerProfile:get': {
+        try {
+          return { ok: true, value: getDb().getPrinterProfile('default') };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'printerProfile:save': {
+        const [profile] = args;
+        try {
+          getDb().savePrinterProfile(profile);
+          return { ok: true, value: true };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'recentFiles:list': {
+        try {
+          return { ok: true, value: getDb().getRecentFiles(10) };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'recovery:save': {
+        const [doc, filePath] = args;
+        try {
+          getDb().saveRecoverySnapshot(doc, filePath);
+          return { ok: true, value: true };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'recovery:get': {
+        try {
+          return { ok: true, value: getDb().getRecoverySnapshot() };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
+      }
+      case 'recovery:clear': {
+        try {
+          getDb().clearRecoverySnapshot();
+          return { ok: true, value: true };
+        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
       }
       default:
         return { ok: false, error: 'UNHANDLED' };

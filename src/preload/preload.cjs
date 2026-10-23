@@ -22,4 +22,12 @@ contextBridge.exposeInMainWorld('trs', {
   printViaDriver: (receiptMarkup, paperWidthMm, printerName = '') => invoke('printer:driver', [receiptMarkup, paperWidthMm, printerName]),
   printRawTcp: (bytes, host, port = 9100) => invoke('printer:raw', [Array.from(bytes), host, port]),
   reprintLastJob: () => invoke('printer:reprint'),
+  getPreferences: () => invoke('prefs:getAll'),
+  setPreference: (key, value) => invoke('prefs:set', [key, value]),
+  getPrinterProfile: () => invoke('printerProfile:get'),
+  savePrinterProfile: (profile) => invoke('printerProfile:save', [profile]),
+  getRecentFiles: () => invoke('recentFiles:list'),
+  saveRecoverySnapshot: (document, filePath = null) => invoke('recovery:save', [document, filePath]),
+  getRecoverySnapshot: () => invoke('recovery:get'),
+  clearRecoverySnapshot: () => invoke('recovery:clear'),
 });

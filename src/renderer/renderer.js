@@ -627,9 +627,22 @@ function renderAll() {
   const countLabel = $('element-count'); if (countLabel) countLabel.textContent = countAllBlocks() + ' elemen';
   updateHistoryButtons();
 }
+let recoveryTimer = null;
+function scheduleRecoverySnapshot() {
+  if (recoveryTimer) clearTimeout(recoveryTimer);
+  recoveryTimer = setTimeout(async () => {
+    try {
+      if (window.trs?.saveRecoverySnapshot && isDirty) {
+        await window.trs.saveRecoverySnapshot(cloneDocument(documentModel), currentFilePath);
+      }
+    } catch {}
+  }, 1000);
+}
+
 function setPaper(width) {
   if (![58, 80].includes(width)) return;
   mutate(() => { documentModel.paperWidthMm = width; }, 'Lebar kertas diubah ke ' + width + ' mm.');
+  window.trs?.setPreference?.('defaultPaperWidth', width).catch(() => {});
 }
 function setZoom(value) {
   state.zoom = Math.min(150, Math.max(60, value));
@@ -638,6 +651,7 @@ function setZoom(value) {
   zoomValue.textContent = state.zoom + '%';
   zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
   setStatus('Zoom area kerja dan preview ' + state.zoom + '%.');
+  window.trs?.setPreference?.('zoom', state.zoom).catch(() => {});
 }
 function selectBlock(id) {
   selectedBlockId = id;
