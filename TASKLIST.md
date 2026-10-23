@@ -156,33 +156,40 @@ Status fase: **TESTED** (GitHub Actions PR #22 run #104 lulus; menunggu pemeriks
 
 ## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN
 
-Status fase: **IN PROGRESS** (branch `feature/phase-7-printer-detection-printing`; implementasi awal sedang diuji CI).
+Status fase: **ACCEPTED** (pengguna memverifikasi hasil cetak fisik pada Windows, disetujui setelah perbaikan PR #24, PR #25, dan PR #26 pada 2026-10-23).
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
-| 7.1 | Deteksi printer terpasang melalui Electron | IMPLEMENTED | IPC `printer:list` memakai `webContents.getPrintersAsync()`; menampilkan nama, default, dan status printer. Perlu verifikasi di Windows nyata. |
-| 7.2 | Jalur driver Windows | IMPLEMENTED | Jendela cetak tersembunyi memuat markup preview lokal dan memanggil `webContents.print()` ke printer terpilih. Belum diuji pada perangkat fisik. |
-| 7.3 | Jalur raw ESC/POS melalui TCP | IMPLEMENTED | Transport TCP dengan port default 9100, batas byte job, validasi target, timeout, dan pesan error terarah. Hanya untuk printer yang mendukung ESC/POS. |
-| 7.4 | Integrasi layout/encoder ke jalur raw | IMPLEMENTED | Renderer membentuk layout, meng-encode byte ESC/POS, lalu mengirim byte melalui API preload terbatas. Gambar dikonversi ke ImageData di renderer. Perlu verifikasi hasil nyata pada printer. |
-| 7.5 | Cetak ulang job terakhir | IMPLEMENTED | Job terakhir disimpan dalam memori proses aplikasi. Tidak persisten setelah aplikasi ditutup; itu bukan klaim recovery. |
-| 7.6 | UI pemilihan jalur, printer, alamat dan port | IMPLEMENTED | Dialog printer menyediakan driver Windows atau raw TCP. Profil jaringan saat ini diisi per job dan belum disimpan sebagai preferensi. |
-| 7.7 | Error handling dan validasi IPC | IMPLEMENTED | Whitelist channel IPC, validasi payload transport, timeout dan pesan error. Perlu uji manual offline/perangkat terputus. |
-| 7.8 | Tes otomatis transport dan dokumen driver | TESTED | GitHub Actions run #110 lulus: 72/72 tes pada Ubuntu dan Windows; Electron smoke Ubuntu lulus. Belum mencakup cetak fisik atau build portable khusus branch. |
-| 7.9 | Evaluasi `SystemReceiptPrinter` / native addon | BLOCKED | Belum diintegrasikan. Dependensi native perlu diuji ABI Electron Windows terlebih dahulu. Jalur driver memakai API Electron; raw jaringan memakai `node:net`. |
+| 7.1 | Deteksi printer terpasang melalui Electron | ACCEPTED | IPC `printer:list` memakai `webContents.getPrintersAsync()`; menampilkan nama, default, dan status printer. |
+| 7.2 | Jalur driver Windows | ACCEPTED | Jendela cetak tersembunyi memuat HTML monospace pre-formatted terpusat (`buildThermalDriverHtml`) dengan pengukuran tinggi elemen kontainer presisi. Teruji pada printer thermal fisik. |
+| 7.3 | Jalur raw ESC/POS melalui TCP | ACCEPTED | Transport TCP port 9100, batas byte job, timeout, dan pesan error terarah. Teruji pada printer fisik. |
+| 7.4 | Integrasi layout/encoder ke jalur raw | ACCEPTED | Renderer membentuk layout, meng-encode byte ESC/POS, dan mengirim via IPC preload. Gambar, QR code, dan barcode terintegrasi. |
+| 7.5 | Cetak ulang job terakhir | ACCEPTED | Job terakhir disimpan dalam memori proses aplikasi untuk cetak ulang instan (driver & raw TCP). |
+| 7.6 | UI pemilihan jalur, printer, alamat dan port | ACCEPTED | Dialog printer menyediakan opsi driver Windows atau raw TCP, konfirmasi ESC/POS, dan indikator status. |
+| 7.7 | Error handling dan validasi IPC | ACCEPTED | Whitelist channel IPC, validasi payload, penanganan error driver dan socket TCP dengan pesan ramah pengguna. |
+| 7.8 | Tes otomatis transport dan dokumen driver | TESTED | 78/78 tes otomatis lulus (`node --test`), mencakup validasi transport, driver HTML, alignment, QR/barcode/image render, dan smoke test. |
+| 7.9 | Evaluasi `SystemReceiptPrinter` / native addon | DEFERRED | Jalur driver via `webContents.print` dan raw via `node:net` terbukti memadai dan stabil tanpa dependensi native addon berisiko ABI Electron. |
 
-**Batasan penting:** belum ada klaim cetak fisik yang berhasil. Printer yang bukan ESC/POS tidak boleh dipilih pada jalur raw. Port TCP 9100 merupakan default umum, bukan jaminan untuk setiap printer. Reprint hanya menyimpan job terakhir selama proses aplikasi aktif. Profil printer persisten belum ada; preferensi disimpan pada fase berikutnya.
-
-**Kriteria fase:** deteksi dan pemilihan printer · kedua jalur dipisahkan dengan jelas · validasi dan error handling · tes otomatis lulus · batasan serta kebutuhan uji fisik terdokumentasi. Fase tetap IN PROGRESS sampai CI dan pemeriksaan pengguna selesai.
+**Kriteria penerimaan Fase 7:** terpenuhi ✔ · deteksi printer jalan ✔ · kedua jalur cetak terpisah & teruji fisik ✔ · layout monospace presisi & anti-wrap ✔ · media QR/barcode/gambar tercetak ✔ · tes otomatis 78/78 lulus ✔ · disetujui pengguna.
 
 ---
  
 ## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY
 
-Status fase: **NOT STARTED**
+Status fase: **IN PROGRESS** (perencanaan dan inisialisasi persistensi database lokal)
 
-`better-sqlite3` (native, direbuild saat dist): preferensi, profil printer, metadata, recovery autosave. Migrasi, penanganan DB rusak/gagal tulis, lokasi data user (bukan dir aplikasi). `.trstudio` tetap sumber utama desain.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 8.1 | Integrasi modul SQLite lokal di direktori data pengguna (`userDataDir`) | NOT STARTED | Penyimpanan terisolasi di AppData/userData, bukan di direktori aplikasi portable. |
+| 8.2 | Skema database dan migrasi versi atomik | NOT STARTED | Tabel `preferences`, `printer_profiles`, `recent_files`, dan `recovery_snapshots`. |
+| 8.3 | Layanan preferensi persisten | NOT STARTED | Menyimpan lebar kertas default (58/80 mm), tingkat zoom terakhir, dan status panduan visual. |
+| 8.4 | Layanan profil printer persisten | NOT STARTED | Menyimpan pilihan mode (driver/raw), nama printer driver terpilih, serta alamat host dan port TCP default. |
+| 8.5 | Daftar dokumen terkini (recent files) | NOT STARTED | Riwayat file `.trstudio` yang pernah dibuka/disimpan beserta timestamp. |
+| 8.6 | Autosave recovery untuk dokumen aktif | NOT STARTED | Snapshot berkala dokumen yang sedang diedit untuk mencegah kehilangan data jika crash/mati listrik. |
+| 8.7 | Penanganan error database & recovery fallback | NOT STARTED | Penanganan file DB terkunci/rusak (*corrupt*) dengan fallback bersih tanpa membuat aplikasi crash. |
+| 8.8 | Pengujian otomatis modul database & migrasi | NOT STARTED | Pengujian unit untuk migrasi, operasi CRUD preferensi, profil printer, dan recovery snapshot. |
 
-**Kriteria:** DB dibuat & dimigrasikan · preferensi persisten · error ditangani · desain tetap portabel.
+**Kriteria Fase 8:** DB dibuat & dimigrasikan · preferensi persisten tersinkronisasi ke UI · profil printer tersimpan otomatis · recovery snapshot berfungsi · error database ditangani tanpa crash · `.trstudio` tetap format utama desain.
 
 ---
 
