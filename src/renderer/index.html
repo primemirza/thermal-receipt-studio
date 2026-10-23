@@ -228,7 +228,7 @@
       <div class="table-dialog-actions"><button type="button" id="global-layout-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Terapkan</button></div>
     </form>
   </dialog>
-  <dialog id="printer-dialog" class="table-dialog">
+  <dialog id="printer-dialog" class="table-dialog printer-dialog-wide">
     <form id="printer-dialog-form" method="dialog">
       <h2>Printer dan pencetakan</h2>
       <p>Pilih driver Windows untuk printer terpasang, atau raw ESC/POS melalui jaringan. Raw ESC/POS hanya untuk printer yang memang mendukung protokol tersebut.</p>
@@ -241,10 +241,26 @@
         </div>
         <label class="printer-warning"><input id="raw-escpos-confirm" type="checkbox" /> Saya memastikan printer ini mendukung ESC/POS raw. Mengirim data raw ke printer yang tidak kompatibel dapat menghasilkan karakter acak atau tidak mencetak.</label>
       </div>
+      <div id="recent-files-section" class="recent-files-section" hidden>
+        <div class="recent-files-heading">Dokumen terkini</div>
+        <ul id="recent-files-list" class="recent-files-list" role="list" aria-label="Daftar dokumen terkini"></ul>
+      </div>
       <div class="table-dialog-actions">
         <button type="button" id="printer-dialog-cancel" class="text-button">Tutup</button>
         <button type="button" id="printer-reprint-button" class="text-button">Cetak ulang job terakhir</button>
         <button type="button" id="printer-print-button" class="text-button primary-action">Cetak sekarang</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="recovery-dialog" class="table-dialog">
+    <form id="recovery-dialog-form" method="dialog">
+      <h2>Pulihkan dokumen</h2>
+      <p id="recovery-dialog-message">Ditemukan dokumen yang belum disimpan dari sesi sebelumnya. Apakah Anda ingin memulihkannya?</p>
+      <div class="recovery-meta" id="recovery-meta"></div>
+      <div class="table-dialog-actions">
+        <button type="button" id="recovery-discard" class="text-button">Abaikan &amp; mulai baru</button>
+        <button type="button" id="recovery-restore" class="text-button primary-action">Pulihkan dokumen</button>
       </div>
     </form>
   </dialog>

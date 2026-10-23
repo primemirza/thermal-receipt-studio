@@ -794,3 +794,24 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 .printer-warning input[type="checkbox"] { flex: 0 0 auto; width: auto !important; margin: 2px 0 0; }
 #printer-dialog .table-dialog-actions { flex-wrap: wrap; }
 #printer-device:disabled { opacity: .6; }
+
+/* Phase 8 — Recent Files panel (dentro del printer-dialog) */
+.printer-dialog-wide { width: min(600px, 95vw) !important; }
+.recent-files-section { margin: 14px 0 0; border-top: 1px solid var(--border); padding-top: 12px; }
+.recent-files-heading { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.recent-files-list { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.recent-file-item { display: block; }
+.recent-file-btn {
+  width: 100%; text-align: left; background: none; border: 1px solid transparent;
+  border-radius: 5px; padding: 6px 10px; cursor: pointer; display: flex;
+  flex-direction: column; gap: 2px; transition: background .12s, border-color .12s;
+}
+.recent-file-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.recent-file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-file-meta { font-size: 11px; color: var(--muted); }
+
+/* Phase 8 — Recovery dialog */
+#recovery-dialog h2 { color: #9a5e00; }
+#recovery-dialog { border: 1px solid #d6a23d; border-radius: var(--radius); }
+.recovery-meta { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 5px; padding: 8px 10px; margin: 8px 0 0; border: 1px solid var(--border); }
+

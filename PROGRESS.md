@@ -368,18 +368,41 @@ Status: **ACCEPTED** (pengguna telah menguji cetak fisik pada Windows dan menyat
 
 ---
 
-## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY (2026-10-23)
+## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY (2026-10-23 — 2026-10-24)
 
-Status: **IN PROGRESS**
+Status: **TESTED** (103/103 unit test lulus; menunggu verifikasi pengguna)
 
-### Sasaran dan Rencana Arsitektur
-- **Penyimpanan Lokal Terisolasi:** Menggunakan direktori `userDataDir()` (`%APPDATA%/ThermalReceiptStudio`), mematuhi prinsip aplikasi portable agar tidak menulis file ke folder instalasi aplikasi.
-- **Skema Database SQLite:**
-  - `preferences`: pasangan key-value untuk pengaturan default pengguna (lebar kertas default 58/80 mm, zoom default, outline/panduan visual).
-  - `printer_profiles`: preferensi printer (mode terpilih: driver vs raw, nama printer driver default, host & port TCP raw default).
-  - `recent_files`: riwayat dokumen `.trstudio` yang baru-baru ini dibuka atau disimpan.
-  - `recovery_snapshots`: auto-save snapshot dokumen aktif secara berkala untuk pemulihan data pasca-crash.
-- **Strategi Ketahanan:**
-  - Migrasi skema versi atomik.
-  - Penanganan berkas database korup/terkunci secara mulus tanpa menghentikan atau merusak fungsionalitas utama aplikasi.
-  - Model file `.trstudio` tetap menjadi *single source of truth* untuk desain struk; SQLite hanya untuk preferensi dan recovery.
+### Implementasi
+
+#### Backend (PR #28 — merged)
+- **`src/main/db/database.js`** (baru): Modul SQLite menggunakan `node:sqlite` (`DatabaseSync`) bawaan Node.js 22+. Schema v1 dengan 4 tabel (`preferences`, `printer_profiles`, `recent_files`, `recovery_snapshots`). Penanganan DB korup: otomatis rename ke `.corrupt.{timestamp}` dan buat ulang. API lengkap CRUD untuk semua entitas.
+- **`src/main/main.js`**: Singleton `getDb()`, registrasi 8 channel IPC baru (prefs, printerProfile, recentFiles, recovery). Integrasi `addRecentFile` saat `document:open/save`, `clearRecoverySnapshot` saat `document:save` berhasil.
+- **`src/preload/preload.cjs`**: Ekspos 8 method baru ke renderer: `getPreferences`, `setPreference`, `getPrinterProfile`, `savePrinterProfile`, `getRecentFiles`, `saveRecoverySnapshot`, `getRecoverySnapshot`, `clearRecoverySnapshot`.
+- **`tests/phase-8-database.test.js`** (baru): 25 unit test in-memory.
+
+#### Integrasi UI Renderer (PR #29)
+- **`src/renderer/renderer.js`**:
+  - `boot()` diperluas: muat preferensi (zoom, paperWidth, guides) dari DB → terapkan ke UI; muat profil printer → pre-fill dialog; periksa recovery snapshot → tampilkan dialog pemulihan jika ada.
+  - `mutate()` memanggil `scheduleRecoverySnapshot()` (debounce 1 detik) setelah setiap perubahan dokumen.
+  - `setPaper()` & `setZoom()`: simpan ke `prefs.defaultPaperWidth` dan `prefs.zoom` saat diubah.
+  - `guideButton`: simpan `prefs.guides` saat ditoggle.
+  - `saveCurrent()`: hapus recovery snapshot saat dokumen berhasil disimpan.
+  - `loadRecentFilesPanel()`: tampil daftar dokumen terkini di panel dialog printer; klik membuka file.
+  - `printer-print-button`: simpan profil printer setelah cetak berhasil (driver & raw TCP).
+- **`src/renderer/index.html`**:
+  - Panel "Dokumen terkini" (`#recent-files-section`) di dalam dialog printer.
+  - Dialog recovery (`#recovery-dialog`) untuk penawaran pemulihan saat boot.
+- **`src/renderer/app.css`**: Gaya untuk panel recent files dan dialog recovery.
+
+### Hasil Pengujian
+- 103/103 unit test lulus (`node --test`)
+- Tidak ada regresi pada fase sebelumnya
+
+### Kriteria terpenuhi
+- DB dibuat & dimigrasikan ✔
+- Preferensi persisten tersinkronisasi ke UI ✔
+- Profil printer tersimpan otomatis ✔
+- Recovery snapshot berfungsi (autosave + dialog pemulihan boot) ✔
+- Error database ditangani tanpa crash ✔
+- `.trstudio` tetap format utama desain ✔
+
