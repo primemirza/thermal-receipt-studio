@@ -344,22 +344,42 @@ Status: **TESTED** pada branch `feature/phase-6-thermal-layout-encoder`; belum d
 - Batasan yang belum diklaim: belum ada build portable Windows khusus PR ini, uji printer fisik, atau integrasi transport/cetak. Fase 7 tidak dimulai.
 
 
-## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN (2026-10-21)
+## FASE 7 — DETEKSI PRINTER DAN PENCETAKAN (2026-10-21 s.d. 2026-10-23)
 
-Status: **IN PROGRESS** pada branch `feature/phase-7-printer-detection-printing`. Implementasi awal dibuat terpisah dari `main`; CI dan uji perangkat belum diklaim lulus.
+Status: **ACCEPTED** (pengguna telah menguji cetak fisik pada Windows dan menyatakan fase selesai pada 2026-10-23 setelah rangkaian perbaikan PR #24, PR #25, dan PR #26).
 
-### Implementasi awal
-- `src/printer/printer-transport.js`: validasi hostname/IP dan port, batas ukuran job 8 MiB, pengiriman raw ESC/POS melalui TCP, timeout, dan pesan error terarah untuk koneksi ditolak, timeout, jaringan tak terjangkau, serta koneksi terputus.
-- `src/printer/driver-print.js`: pembuat dokumen HTML cetak terisolasi untuk jendela cetak tersembunyi. Menolak markup executable dan URL resource remote/file.
-- `src/main/main.js`: IPC untuk deteksi printer Windows, cetak driver, pengiriman raw TCP, dan reprint job terakhir. Job terakhir hanya disimpan di memori.
-- `src/preload/preload.cjs`: API printer sempit melalui contextBridge, tanpa mengekspos ipcRenderer atau Node API ke renderer.
-- `src/renderer/index.html`, `renderer.js`, `app.css`: dialog pemilihan jalur cetak, daftar printer Windows, alamat/port raw TCP, konfirmasi kompatibilitas ESC/POS, cetak, dan cetak ulang. Jalur raw memakai layout thermal dan ReceiptPrinterEncoder dari Fase 6.
-- `tests/phase-7-printer-transport.test.js` dan `tests/phase-7-driver-print.test.js`: tes validasi transport, pemetaan error, byte send dengan socket terinjeksi, dan pembentukan HTML driver yang menolak markup berbahaya.
+### Implementasi dan Riwayat Perbaikan
+1. **Implementasi Awal (PR #23):**
+   - Transport TCP untuk raw ESC/POS (`printer-transport.js`), dialog printer modal, enumerasi printer Windows (`getPrintersAsync()`), serta wiring cetak driver dan raw via IPC terisolasi.
+2. **Koreksi Dimensi Cetak Driver (PR #24):**
+   - Menghitung ukuran micron untuk `pageSize` Electron agar driver Windows tidak fallback ke ukuran kertas default oversized.
+3. **Penyelarasan Jalur Driver ke Thermal Layout (PR #25):**
+   - Mengubah jalur driver Windows agar tidak lagi mengirim HTML preview visual proporsional, melainkan menggunakan `createThermalLayout` yang sama dengan jalur raw ESC/POS via fungsi baru `buildThermalDriverHtml`.
+4. **Penyempurnaan Akhir Format Monospace, Margin, Media, dan Feed (PR #26):**
+   - **Monospace Font & Anti-Wrap:** Memperbaiki styling ke `font: 2.45mm/1.3 Consolas, "Courier New", monospace; white-space: pre; overflow: hidden;` sehingga 32 kolom (lebar ~1.5mm/kolom) muat pas dalam 48mm dan tidak wrap di tengah baris.
+   - **Margin Print Head:** Mengatur `body` 58mm dengan padding samping 5mm (dan 4mm pada 80mm) untuk mencegah karakter paling kiri terpotong akibat margin fisik unprintable print head.
+   - **Media Terintegrasi:** Menambahkan render `<img>` untuk logo/gambar data URL, `<img>` untuk QR code, dan `<svg>` untuk barcode CODE128.
+   - **Eliminasi Feed Berlebih:** Mengukur tinggi aktual elemen `#receipt-container` (bukan window viewport 800px) sehingga roll kertas dipotong pas di akhir struk dengan buffer aman ~4mm tanpa membuang kertas kosong 20–30 cm.
 
-### Keputusan dan batasan
-- Jalur driver memakai `webContents.print()` pada jendela tersembunyi yang berisi markup preview struk, bukan mencetak seluruh UI editor.
-- Jalur raw mengirim byte ESC/POS ke host/port yang dimasukkan pengguna. Default port 9100 bukan standar universal.
-- Tidak memakai `@point-of-sale/system-receipt-printer` dulu karena native addon `@grandchef/node-printer` memerlukan verifikasi ABI Electron Windows. Tidak mengklaim native printing teruji.
-- Tidak ada perangkat printer yang tersedia untuk pengujian fisik di workspace. Status job sukses dari socket hanya berarti data berhasil diserahkan ke koneksi TCP, bukan bukti kertas benar-benar keluar.
-- Profil jaringan belum persisten; host/port dimasukkan per job. Reprint hanya tersedia selama proses aplikasi masih hidup.
-- GitHub Actions run #110 lulus pada commit `dc147a4d259ab7d60f637ed20ff9d12a8add8d08`: unit test 72/72 pada Ubuntu dan Windows; Electron smoke Ubuntu lulus. Run: https://github.com/primemirza/thermal-receipt-studio/actions/runs/39637757476. Build portable Windows khusus branch belum dijalankan karena workflow build hanya berjalan saat push ke main/master atau dispatch manual. Jangan klaim cetak fisik teruji. Jangan merge PR sebelum pengguna meninjau hasil dan keterbatasannya.
+### Verifikasi dan Hasil
+- Unit test otomatis: **78/78 lulus** pada Node test runner (`node --test`).
+- CI GitHub Actions untuk seluruh PR perbaikan lulus (Ubuntu & Windows).
+- Pengguna memverifikasi hasil cetak fisik pada printer thermal dan menyetujui penyelesaian fase: *"untuk sementara hasil cetak sudah lumayan, kita bisa berpindah ke fase 8 tanpa menyentuh apapun yang sudah stabil pada fase 7 dan fase-fase sebelumnya."*
+
+---
+
+## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY (2026-10-23)
+
+Status: **IN PROGRESS**
+
+### Sasaran dan Rencana Arsitektur
+- **Penyimpanan Lokal Terisolasi:** Menggunakan direktori `userDataDir()` (`%APPDATA%/ThermalReceiptStudio`), mematuhi prinsip aplikasi portable agar tidak menulis file ke folder instalasi aplikasi.
+- **Skema Database SQLite:**
+  - `preferences`: pasangan key-value untuk pengaturan default pengguna (lebar kertas default 58/80 mm, zoom default, outline/panduan visual).
+  - `printer_profiles`: preferensi printer (mode terpilih: driver vs raw, nama printer driver default, host & port TCP raw default).
+  - `recent_files`: riwayat dokumen `.trstudio` yang baru-baru ini dibuka atau disimpan.
+  - `recovery_snapshots`: auto-save snapshot dokumen aktif secara berkala untuk pemulihan data pasca-crash.
+- **Strategi Ketahanan:**
+  - Migrasi skema versi atomik.
+  - Penanganan berkas database korup/terkunci secara mulus tanpa menghentikan atau merusak fungsionalitas utama aplikasi.
+  - Model file `.trstudio` tetap menjadi *single source of truth* untuk desain struk; SQLite hanya untuk preferensi dan recovery.
