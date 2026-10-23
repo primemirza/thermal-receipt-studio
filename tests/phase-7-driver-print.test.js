@@ -83,3 +83,20 @@ test('buildThermalDriverHtml produces wider body for 80mm paper', () => {
   assert.match(html, /72mm/, 'lebar body harus 72mm untuk kertas 80mm');
 });
 
+test('buildThermalDriverHtml renders image, qrcode, and barcode elements', () => {
+  const layout = {
+    profile: { effectiveColumns: 32 },
+    operations: [
+      { type: 'image', dataUrl: 'data:image/png;base64,iVBORw0KGgo=', width: 120, alt: 'Logo toko' },
+      { type: 'qrcode', dataUrl: 'data:image/png;base64,iVBORw0KGqr=', width: 96, value: 'INV-123' },
+      { type: 'barcode', svg: '<svg class="barcode-test"></svg>', value: '123456' }
+    ]
+  };
+  const html = buildThermalDriverHtml(layout, 58);
+  assert.match(html, /<div id="receipt-container"/, 'harus memiliki #receipt-container');
+  assert.match(html, /data:image\/png;base64,iVBORw0KGgo=/, 'dataUrl gambar harus ada di img src');
+  assert.match(html, /data:image\/png;base64,iVBORw0KGqr=/, 'dataUrl QR harus ada di img src');
+  assert.match(html, /<svg class="barcode-test"><\/svg>/, 'SVG barcode harus ter-render');
+  assert.match(html, /white-space:\s*pre;/, 'harus menggunakan white-space: pre agar baris monospace tidak wrap');
+});
+

@@ -42,19 +42,22 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
   });
   try {
     await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-    // Ensure layout and local images settle before measuring the receipt. Electron's
-    // print API accepts custom paper dimensions in microns; CSS "58mm auto" is not
-    // reliably honored by Windows thermal drivers and can fall back to an oversized page.
+    // Ensure layout and local images settle before measuring the receipt.
+    // Ukur elemen #receipt-container yang sebenarnya (bukan scrollHeight jendela 800px).
     const measured = await printWindow.webContents.executeJavaScript(`
       (async () => {
         if (document.fonts?.ready) await document.fonts.ready;
         await Promise.all(Array.from(document.images, image => image.decode().catch(() => {})));
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        return { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight };
+        const container = document.getElementById('receipt-container') || document.body;
+        const rect = container.getBoundingClientRect();
+        const heightPx = Math.ceil(Math.max(rect.height, container.offsetHeight));
+        return { width: Math.ceil(rect.width), height: heightPx };
       })()
     `);
     const widthMicrons = paperWidthMm * 1000;
-    const heightMicrons = Math.max(30000, Math.ceil((measured.height + 4) * 25400 / 96));
+    // Buffer feed kecil ~4mm (16px) untuk memastikan footer struk tidak terpotong pisau cutter.
+    const heightMicrons = Math.max(20000, Math.ceil((measured.height + 16) * 25400 / 96));
     const result = await new Promise((resolve, reject) => {
       printWindow.webContents.print({
         silent: true, printBackground: true,

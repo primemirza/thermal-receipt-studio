@@ -1400,6 +1400,32 @@ $('printer-print-button').addEventListener('click', async () => {
       const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
       // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
       const layoutPlain = JSON.parse(JSON.stringify(layout));
+      // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
+      for (const op of layoutPlain.operations) {
+        if (op.type === 'qrcode' && !op.dataUrl && typeof window.qrcode === 'function') {
+          try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(op.value, 'Byte');
+            qr.make();
+            op.dataUrl = qr.createDataURL(3, 4);
+          } catch {}
+        } else if (op.type === 'barcode' && !op.svg && typeof window.JsBarcode === 'function') {
+          try {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            window.JsBarcode(svg, op.value, {
+              format: 'CODE128',
+              lineColor: '#000000',
+              width: 1.4,
+              height: 48,
+              displayValue: true,
+              font: 'monospace',
+              fontSize: 12,
+              margin: 4
+            });
+            op.svg = svg.outerHTML;
+          } catch {}
+        }
+      }
       const result = await window.trs.printViaDriver(layoutPlain, documentModel.paperWidthMm, printerDevice.value);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
       setStatus('Job dikirim ke driver Windows: ' + (printerDevice.value || 'printer default') + '.');
