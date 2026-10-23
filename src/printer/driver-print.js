@@ -1,3 +1,84 @@
+/**
+ * Menghasilkan halaman HTML cetak dari operasi thermal layout (array baris monospace).
+ * Digunakan oleh jalur driver Windows agar output identik dengan jalur raw ESC/POS TCP.
+ *
+ * @param {import('../layout/thermal-layout.js').ThermalLayout} thermalLayout
+ *   Objek layout dari createThermalLayout: { profile, operations }.
+ * @param {number} [paperWidthMm=58] Lebar kertas: 58 atau 80.
+ * @returns {string} HTML siap cetak.
+ */
+export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
+  if (!thermalLayout || typeof thermalLayout !== 'object' || !Array.isArray(thermalLayout.operations)) {
+    throw new TypeError('thermalLayout harus berupa objek dengan properti operations.');
+  }
+  if (![58, 80].includes(paperWidthMm)) throw new TypeError('Lebar kertas harus 58 atau 80 mm.');
+
+  // Konversi operasi thermal ke baris teks monospace.
+  // Hasil ini identik secara konten dengan yang diproses encoder ESC/POS pada jalur TCP.
+  const lines = [];
+  const columns = thermalLayout.profile?.effectiveColumns ?? (paperWidthMm === 58 ? 32 : 48);
+
+  for (const op of thermalLayout.operations) {
+    if (op.type === 'text') {
+      let text = op.text ?? '';
+      // Terapkan alignment pada lebar kolom penuh.
+      const len = Array.from(text).length;
+      if (op.align === 'center' && len < columns) {
+        const pad = Math.floor((columns - len) / 2);
+        text = ' '.repeat(pad) + text;
+      } else if (op.align === 'right' && len < columns) {
+        text = ' '.repeat(columns - len) + text;
+      }
+      // Terapkan formatting inline dengan CSS span agar tidak bergantung pada tag TTY.
+      let style = '';
+      if (op.bold) style += 'font-weight:bold;';
+      if (op.italic) style += 'font-style:italic;';
+      if (op.underline) style += 'text-decoration:underline;';
+      // Ukuran double-height/double-width dirender dengan font-size lebih besar.
+      if (op.size === 'double-height' || op.size === 'double') style += 'font-size:2em;line-height:1;';
+      else if (op.size === 'double-width') style += 'letter-spacing:0.5em;';
+      if (style) {
+        lines.push('<span style="' + style + '">' + escapeHtml(text) + '</span>');
+      } else {
+        lines.push(escapeHtml(text));
+      }
+    } else if (op.type === 'rule') {
+      const char = op.character || '-';
+      const count = op.width ?? columns;
+      lines.push(escapeHtml(char.repeat(count)));
+    } else if (op.type === 'feed') {
+      const n = Math.max(1, Math.min(20, op.lines || 1));
+      for (let i = 0; i < n; i++) lines.push('');
+    } else if (op.type === 'cut') {
+      // Potong kertas direpresentasikan sebagai baris kosong tambahan pada jalur driver.
+      lines.push('');
+    }
+    // Tipe lain (image, qrcode, barcode) dilewati pada jalur driver;
+    // keterbatasan ini didokumentasikan dan konsisten dengan keterbatasan webContents.print.
+  }
+
+  const width = paperWidthMm === 58 ? '48mm' : '72mm';
+  // Gunakan <pre> agar whitespace dan lebar kolom dipertahankan persis.
+  // Font Courier New 10pt ≈ 12px per karakter → 32 karakter ≈ 48mm (58mm dengan margin).
+  return '<!doctype html><html lang="id"><head><meta charset="utf-8">' +
+    '<style>' +
+    '@page { margin: 0; size: ' + width + ' auto; }' +
+    '* { box-sizing: border-box; } html, body { margin: 0; padding: 0; background: white; color: black; }' +
+    'body { width: ' + width + '; padding: 1mm 1mm; }' +
+    'pre { margin: 0; padding: 0; font: 9.5pt/1.2 "Courier New", Courier, monospace; white-space: pre-wrap; word-break: break-all; }' +
+    '</style></head><body><pre>' +
+    lines.join('\n') +
+    '</pre></body></html>';
+}
+
+/** Escape karakter HTML dalam konten teks agar aman dimasukkan ke tag HTML. */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export function buildDriverPrintHtml(receiptMarkup, paperWidthMm = 58) {
   if (typeof receiptMarkup !== 'string' || receiptMarkup.length < 1 || receiptMarkup.length > 2_000_000) {
     throw new TypeError('Konten struk untuk driver tidak valid atau terlalu besar.');
