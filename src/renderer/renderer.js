@@ -119,6 +119,7 @@ function mutate(mutator, message) {
   isDirty = true;
   renderAll();
   setStatus(message);
+  scheduleRecoverySnapshot();
   return true;
 }
 function restoreHistory(from, to, message) {
@@ -689,6 +690,7 @@ guideButton.addEventListener('click', () => {
   renderPreview();
   renderCanvas();
   setStatus(state.guides ? 'Panduan ukuran ditampilkan.' : 'Panduan ukuran disembunyikan.');
+  window.trs?.setPreference?.('guides', state.guides).catch(() => {});
 });
 let draggedBlockId = null;
 designPaper.addEventListener('dragstart', event => {
@@ -1401,9 +1403,53 @@ $('printer-button').addEventListener('click', async () => {
   updatePrinterMode();
   printerDialog.showModal();
   await refreshPrinterList();
+  loadRecentFilesPanel();
 });
 $('printer-dialog-cancel').addEventListener('click', () => printerDialog.close());
 printerMode.addEventListener('change', updatePrinterMode);
+
+// --- Recent Files Panel ---
+async function loadRecentFilesPanel() {
+  const section = $('recent-files-section');
+  const list = $('recent-files-list');
+  if (!section || !list) return;
+  try {
+    const result = await window.trs.getRecentFiles();
+    if (!result?.ok || !result.value?.length) { section.hidden = true; return; }
+    list.replaceChildren();
+    for (const file of result.value) {
+      const li = document.createElement('li');
+      li.className = 'recent-file-item';
+      const name = String(file.path).split(/[\\/]/).pop().replace(/\.trstudio$/i, '');
+      const date = file.lastOpenedAt ? new Date(file.lastOpenedAt).toLocaleString('id-ID') : '';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'recent-file-btn';
+      btn.innerHTML = '<span class="recent-file-name">' + name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+        '<span class="recent-file-meta">' + file.paperWidth + ' mm · ' + date + '</span>';
+      btn.title = file.path;
+      btn.addEventListener('click', () => {
+        printerDialog.close();
+        openRecentFile(file.path);
+      });
+      li.append(btn);
+      list.append(li);
+    }
+    section.hidden = false;
+  } catch { section.hidden = true; }
+}
+async function openRecentFile(filePath) {
+  if (!confirmDiscard()) return;
+  try {
+    const result = await window.trs.openDocument();
+    if (!result?.ok || !result.value) { setStatus('Gagal membuka file terkini.'); return; }
+    const openedDocument = migrateLegacyDocument(result.value.document);
+    validateDocument(openedDocument);
+    documentModel = cloneDocument(openedDocument);
+    selectedBlockId = null; currentFilePath = result.value.path; updateWindowTitle(); isDirty = false;
+    state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
+  } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
+}
 $('printer-print-button').addEventListener('click', async () => {
   const button = $('printer-print-button');
   button.disabled = true;
@@ -1442,6 +1488,8 @@ $('printer-print-button').addEventListener('click', async () => {
       }
       const result = await window.trs.printViaDriver(layoutPlain, documentModel.paperWidthMm, printerDevice.value);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
+      // Simpan profil printer yang berhasil digunakan
+      window.trs.savePrinterProfile({ id: 'default', mode: 'driver', driverName: printerDevice.value }).catch(() => {});
       setStatus('Job dikirim ke driver Windows: ' + (printerDevice.value || 'printer default') + '.');
 
     } else {
@@ -1452,6 +1500,8 @@ $('printer-print-button').addEventListener('click', async () => {
       const bytes = await encodeThermalLayout(layout, ReceiptPrinterEncoder, { resolveImage: resolvePrinterImage });
       const result = await window.trs.printRawTcp(bytes, host, port);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Pengiriman ESC/POS gagal.');
+      // Simpan profil printer TCP yang berhasil digunakan
+      window.trs.savePrinterProfile({ id: 'default', mode: 'raw', rawHost: host, rawPort: port }).catch(() => {});
       setStatus('Job ESC/POS dikirim: ' + result.value.bytesSent + ' byte ke ' + host + ':' + port + '.');
     }
     printerDialog.close();
@@ -1485,6 +1535,8 @@ async function saveCurrent(mode = 'save') {
   updateWindowTitle();
   isDirty = false;
   setStatus('Dokumen tersimpan: ' + currentFilePath);
+  // Hapus recovery snapshot karena dokumen sudah tersimpan
+  window.trs.clearRecoverySnapshot().catch(() => {});
   return true;
 }
 function updateWindowTitle() {
@@ -1523,6 +1575,95 @@ async function boot() {
     if (ver.ok) { const label = 'v' + ver.value; statusVersion.textContent = label; appMeta.textContent = label; }
     const dir = await window.trs.getUserDataDir();
     if (dir.ok) console.info('User data dir:', dir.value);
+
+    // --- Fase 8: Muat preferensi dari database ---
+    try {
+      const prefsResult = await window.trs.getPreferences();
+      if (prefsResult?.ok && prefsResult.value) {
+        const prefs = prefsResult.value;
+        // Pulihkan zoom terakhir
+        if (typeof prefs.zoom === 'number' && prefs.zoom >= 60 && prefs.zoom <= 150) {
+          state.zoom = prefs.zoom;
+          designPaper.style.zoom = String(state.zoom / 100);
+          zoomValue.textContent = state.zoom + '%';
+          zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
+        }
+        // Pulihkan status panduan
+        if (typeof prefs.guides === 'boolean' && prefs.guides) {
+          state.guides = true;
+          guideButton.setAttribute('aria-pressed', 'true');
+          guideButton.title = 'Sembunyikan panduan';
+        }
+        // Pulihkan lebar kertas default jika dokumen baru (sample)
+        if ((prefs.defaultPaperWidth === 80 || prefs.defaultPaperWidth === 58) &&
+            documentModel.paperWidthMm !== prefs.defaultPaperWidth) {
+          documentModel.paperWidthMm = prefs.defaultPaperWidth;
+          paperButtons.forEach(b => {
+            const active = Number(b.dataset.paper) === prefs.defaultPaperWidth;
+            b.classList.toggle('is-active', active);
+            b.setAttribute('aria-pressed', String(active));
+          });
+        }
+        renderAll();
+      }
+    } catch (e) { console.warn('Gagal memuat preferensi:', e); }
+
+    // --- Fase 8: Muat profil printer ---
+    try {
+      const profileResult = await window.trs.getPrinterProfile();
+      if (profileResult?.ok && profileResult.value) {
+        const profile = profileResult.value;
+        if (profile.mode === 'raw' || profile.mode === 'driver') {
+          printerMode.value = profile.mode;
+          updatePrinterMode();
+        }
+        if (profile.mode === 'raw') {
+          if (profile.rawHost) $('raw-printer-host').value = profile.rawHost;
+          if (profile.rawPort) $('raw-printer-port').value = String(profile.rawPort);
+        }
+      }
+    } catch (e) { console.warn('Gagal memuat profil printer:', e); }
+
+    // --- Fase 8: Periksa recovery snapshot ---
+    try {
+      const snapResult = await window.trs.getRecoverySnapshot();
+      if (snapResult?.ok && snapResult.value) {
+        const snap = snapResult.value;
+        const recoveryDialog = $('recovery-dialog');
+        const recoveryMeta = $('recovery-meta');
+        if (recoveryDialog) {
+          if (recoveryMeta) {
+            const date = snap.updatedAt ? new Date(snap.updatedAt).toLocaleString('id-ID') : 'tidak diketahui';
+            const filePart = snap.filePath ? ' (file: ' + String(snap.filePath).split(/[\\/]/).pop() + ')' : ' (dokumen baru)';
+            recoveryMeta.textContent = 'Terakhir disimpan otomatis: ' + date + filePart;
+          }
+          recoveryDialog.showModal();
+          // Tombol pulihkan
+          $('recovery-restore').onclick = () => {
+            try {
+              validateDocument(snap.document);
+              documentModel = cloneDocument(snap.document);
+              currentFilePath = snap.filePath || null;
+              isDirty = true;
+              state.undo = []; state.redo = [];
+              renderAll();
+              updateWindowTitle();
+              setStatus('Dokumen dipulihkan dari autosave terakhir.');
+            } catch (err) {
+              setStatus('Pemulihan gagal: ' + String(err?.message || err));
+            }
+            recoveryDialog.close();
+          };
+          // Tombol abaikan
+          $('recovery-discard').onclick = () => {
+            window.trs.clearRecoverySnapshot().catch(() => {});
+            setStatus('Sesi sebelumnya diabaikan. Dokumen baru disiapkan.');
+            recoveryDialog.close();
+          };
+        }
+      }
+    } catch (e) { console.warn('Gagal memeriksa recovery snapshot:', e); }
+
     setStatus('Dokumen siap · perubahan belum disimpan');
   } catch (err) {
     console.error(err);

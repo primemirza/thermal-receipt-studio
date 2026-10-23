@@ -176,20 +176,21 @@ Status fase: **ACCEPTED** (pengguna memverifikasi hasil cetak fisik pada Windows
  
 ## FASE 8 — SQLITE, PREFERENSI, DAN RECOVERY
 
-Status fase: **IN PROGRESS** (perencanaan dan inisialisasi persistensi database lokal)
+Status fase: **TESTED** (103/103 unit test lulus; menunggu verifikasi pengguna pada build portable)
 
 | # | Tugas | Status | Catatan |
 |---|-------|--------|---------|
-| 8.1 | Integrasi modul SQLite lokal di direktori data pengguna (`userDataDir`) | NOT STARTED | Penyimpanan terisolasi di AppData/userData, bukan di direktori aplikasi portable. |
-| 8.2 | Skema database dan migrasi versi atomik | NOT STARTED | Tabel `preferences`, `printer_profiles`, `recent_files`, dan `recovery_snapshots`. |
-| 8.3 | Layanan preferensi persisten | NOT STARTED | Menyimpan lebar kertas default (58/80 mm), tingkat zoom terakhir, dan status panduan visual. |
-| 8.4 | Layanan profil printer persisten | NOT STARTED | Menyimpan pilihan mode (driver/raw), nama printer driver terpilih, serta alamat host dan port TCP default. |
-| 8.5 | Daftar dokumen terkini (recent files) | NOT STARTED | Riwayat file `.trstudio` yang pernah dibuka/disimpan beserta timestamp. |
-| 8.6 | Autosave recovery untuk dokumen aktif | NOT STARTED | Snapshot berkala dokumen yang sedang diedit untuk mencegah kehilangan data jika crash/mati listrik. |
-| 8.7 | Penanganan error database & recovery fallback | NOT STARTED | Penanganan file DB terkunci/rusak (*corrupt*) dengan fallback bersih tanpa membuat aplikasi crash. |
-| 8.8 | Pengujian otomatis modul database & migrasi | NOT STARTED | Pengujian unit untuk migrasi, operasi CRUD preferensi, profil printer, dan recovery snapshot. |
+| 8.1 | Integrasi modul SQLite lokal di direktori data pengguna (`userDataDir`) | TESTED | `src/main/db/database.js` menggunakan `node:sqlite` (DatabaseSync) bawaan Node 22; DB disimpan di `AppData/ThermalReceiptStudio/studio.db` |
+| 8.2 | Skema database dan migrasi versi atomik | TESTED | Tabel `preferences`, `printer_profiles`, `recent_files`, `recovery_snapshots`; migrasi schema_migrations v1 idempoten |
+| 8.3 | Layanan preferensi persisten | TESTED | Preferensi zoom, lebar kertas default, dan status panduan dipulihkan saat boot; disimpan otomatis saat pengguna mengubah nilai |
+| 8.4 | Layanan profil printer persisten | TESTED | Mode (driver/raw), nama printer driver, host TCP, dan port disimpan otomatis setelah cetak berhasil; dipre-fill ke dialog printer saat boot |
+| 8.5 | Daftar dokumen terkini (recent files) | TESTED | Panel "Dokumen terkini" tampil di dialog printer; klik untuk membuka file; dicatat saat document:open dan document:save |
+| 8.6 | Autosave recovery untuk dokumen aktif | TESTED | `scheduleRecoverySnapshot()` dipanggil setiap `mutate()`; debounce 1 detik; dialog pemulihan muncul otomatis saat boot jika ada snapshot; dihapus saat save berhasil |
+| 8.7 | Penanganan error database & recovery fallback | TESTED | DB korup otomatis di-rename ke `.corrupt.{timestamp}` dan dibuat ulang; semua operasi DB di renderer dibungkus try/catch agar tidak crash |
+| 8.8 | Pengujian otomatis modul database & migrasi | TESTED | 25 unit test di `tests/phase-8-database.test.js` mencakup migrasi, preferences CRUD, printer profile upsert, recent files limit, dan recovery snapshot lifecycle |
 
-**Kriteria Fase 8:** DB dibuat & dimigrasikan · preferensi persisten tersinkronisasi ke UI · profil printer tersimpan otomatis · recovery snapshot berfungsi · error database ditangani tanpa crash · `.trstudio` tetap format utama desain.
+**Kriteria Fase 8:** DB dibuat & dimigrasikan ✔ · preferensi persisten tersinkronisasi ke UI ✔ · profil printer tersimpan otomatis ✔ · recovery snapshot berfungsi ✔ · error database ditangani tanpa crash ✔ · `.trstudio` tetap format utama desain ✔
+
 
 ---
 
