@@ -71,7 +71,7 @@
     </div>
     <div class="tool-section toolbar-global-layout" aria-label="Layout global"><span class="tool-label">Halaman</span><button type="button" class="icon-button" id="global-layout-button" title="Atur margin global" aria-label="Atur margin global"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h8M8 17h8M7 10v4M17 10v4"/></svg></button></div>
     <div class="toolbar-spacer"></div>
-    <button type="button" class="text-button" id="printer-button" title="Deteksi printer dan cetak">Printer / Cetak</button>
+    <button type="button" class="icon-button" id="printer-button" title="Deteksi printer dan cetak" aria-label="Deteksi printer dan cetak"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
     <button type="button" class="icon-button" id="toggle-guides" aria-pressed="false" title="Tampilkan/sembunyikan panduan" aria-label="Tampilkan/sembunyikan panduan"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/><path d="M8 3v5M13 3v3M18 3v5M3 8h5M3 13h3M3 18h5"/></svg></button>
   </nav>
 
@@ -133,10 +133,10 @@
         <div id="table-structure-actions" class="table-structure-actions" hidden>
           <span class="tool-label">Struktur tabel</span>
           <div class="table-action-group">
-            <button type="button" class="text-button" id="table-add-row">+ Baris</button>
-            <button type="button" class="text-button" id="table-remove-row">− Baris</button>
-            <button type="button" class="text-button" id="table-add-column">+ Kolom</button>
-            <button type="button" class="text-button" id="table-remove-column">− Kolom</button>
+            <button type="button" class="text-button btn-with-icon" id="table-add-row"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>+ Baris</span></button>
+            <button type="button" class="text-button btn-with-icon" id="table-remove-row"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg><span>− Baris</span></button>
+            <button type="button" class="text-button btn-with-icon" id="table-add-column"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>+ Kolom</span></button>
+            <button type="button" class="text-button btn-with-icon" id="table-remove-column"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14"/></svg><span>− Kolom</span></button>
           </div>
         </div>
         <div class="inspector-fields">
@@ -173,7 +173,7 @@
     <section class="panel preview-panel" aria-label="Preview struk">
       <div class="panel-heading">
         <div><h2>Preview</h2><p class="hint">Hasil render untuk kertas thermal</p></div>
-        <div class="preview-heading-actions"><button type="button" class="text-button" id="toggle-thermal-layout" aria-pressed="false">Simulasi thermal</button><span class="paper-chip" id="paper-chip">58 mm</span></div>
+        <div class="preview-heading-actions"><button type="button" class="text-button btn-with-icon" id="toggle-thermal-layout" aria-pressed="false"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h12"/></svg><span class="btn-text">Simulasi thermal</span></button><span class="paper-chip" id="paper-chip">58 mm</span></div>
       </div>
       <div class="preview-stage" id="preview-stage">
         <div class="preview-ruler"><span>PREVIEW CETAK</span><span id="preview-dimensions">58 mm · 32 kolom</span></div>
@@ -202,7 +202,7 @@
         <label for="table-rows-count">Jumlah baris (termasuk header)<input id="table-rows-count" type="number" min="1" max="50" value="2" required /></label>
       </div>
       <label for="table-insert-border">Border awal<select id="table-insert-border"><option value="all">Semua sisi</option><option value="horizontal">Horizontal</option><option value="vertical">Vertikal</option><option value="none">Tanpa border</option></select></label>
-      <div class="table-dialog-actions"><button type="button" id="table-dialog-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Sisipkan tabel</button></div>
+      <div class="table-dialog-actions"><button type="button" id="table-dialog-cancel" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Batal</span></button><button type="submit" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M9 4v16"/></svg><span>Sisipkan tabel</span></button></div>
     </form>
   </dialog>
 
@@ -211,7 +211,7 @@
       <h2>Sisipkan kolom teks</h2>
       <p>Pilih jumlah kolom. Isi setiap kolom dapat diedit langsung setelah disisipkan.</p>
       <label for="columns-count">Jumlah kolom<select id="columns-count"><option value="2">2 kolom</option><option value="3">3 kolom</option><option value="4">4 kolom</option></select></label>
-      <div class="table-dialog-actions"><button type="button" id="columns-dialog-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Sisipkan kolom</button></div>
+      <div class="table-dialog-actions"><button type="button" id="columns-dialog-cancel" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Batal</span></button><button type="submit" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16M15 4v16"/></svg><span>Sisipkan kolom</span></button></div>
     </form>
   </dialog>
 
@@ -225,7 +225,7 @@
         <label for="global-margin-bottom">Bawah (px)<input id="global-margin-bottom" type="number" min="0" max="60" value="0" /></label>
         <label for="global-margin-left">Kiri (px)<input id="global-margin-left" type="number" min="0" max="60" value="0" /></label>
       </div>
-      <div class="table-dialog-actions"><button type="button" id="global-layout-cancel" class="text-button">Batal</button><button type="submit" class="text-button primary-action">Terapkan</button></div>
+      <div class="table-dialog-actions"><button type="button" id="global-layout-cancel" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Batal</span></button><button type="submit" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="m5 13 4 4L19 7"/></svg><span>Terapkan</span></button></div>
     </form>
   </dialog>
   <dialog id="printer-dialog" class="table-dialog printer-dialog-wide">
@@ -246,9 +246,9 @@
         <ul id="recent-files-list" class="recent-files-list" role="list" aria-label="Daftar dokumen terkini"></ul>
       </div>
       <div class="table-dialog-actions">
-        <button type="button" id="printer-dialog-cancel" class="text-button">Tutup</button>
-        <button type="button" id="printer-reprint-button" class="text-button">Cetak ulang job terakhir</button>
-        <button type="button" id="printer-print-button" class="text-button primary-action">Cetak sekarang</button>
+        <button type="button" id="printer-dialog-cancel" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Tutup</span></button>
+        <button type="button" id="printer-reprint-button" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg><span>Cetak ulang job terakhir</span></button>
+        <button type="button" id="printer-print-button" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span>Cetak sekarang</span></button>
       </div>
     </form>
   </dialog>
@@ -259,8 +259,8 @@
       <p id="recovery-dialog-message">Ditemukan dokumen yang belum disimpan dari sesi sebelumnya. Apakah Anda ingin memulihkannya?</p>
       <div class="recovery-meta" id="recovery-meta"></div>
       <div class="table-dialog-actions">
-        <button type="button" id="recovery-discard" class="text-button">Abaikan &amp; mulai baru</button>
-        <button type="button" id="recovery-restore" class="text-button primary-action">Pulihkan dokumen</button>
+        <button type="button" id="recovery-discard" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>Abaikan &amp; mulai baru</span></button>
+        <button type="button" id="recovery-restore" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg><span>Pulihkan dokumen</span></button>
       </div>
     </form>
   </dialog>

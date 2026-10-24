@@ -29,3 +29,15 @@ test('printer UI warns and requires explicit ESC/POS confirmation before raw pri
   assert.match(html, /Raw ESC\/POS via TCP\/IP/);
   assert.match(html, /id="raw-escpos-confirm"/);
 });
+
+test('toolbar print button is an icon button and dialog buttons have icons with high-contrast hover', () => {
+  const html = read('src/renderer/index.html');
+  const css = read('src/renderer/app.css');
+  assert.match(html, /<button type="button" class="icon-button" id="printer-button"[^>]*>[\s\S]*?<svg[^>]*class="toolbar-icon"/);
+  assert.match(html, /id="printer-print-button"[^>]*class="[^"]*btn-with-icon/);
+  assert.match(html, /id="printer-reprint-button"[^>]*class="[^"]*btn-with-icon/);
+  assert.match(html, /id="printer-dialog-cancel"[^>]*class="[^"]*btn-with-icon/);
+  assert.match(css, /\.primary-action:hover[^{]*{[^}]*color:\s*#ffffff/);
+  assert.match(css, /\.text-button:hover[^{]*{[^}]*color:\s*#004f9e/);
+});
+

@@ -47,9 +47,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .segment.is-active { background: var(--surface); border-color: #d4d4d4; box-shadow: 0 1px 2px #0000000d; color: #004f9e; font-weight: 600; }
 .toolbar-divider { height: 27px; width: 1px; background: var(--border); }
 .icon-button { width: 29px; height: 29px; border-color: var(--border); background: var(--surface); font-size: 19px; line-height: 1; }
-.icon-button:hover, .text-button:hover, .segment:hover { background: var(--accent-soft); }
+.icon-button:hover, .segment:hover { background: var(--accent-soft); }
+.text-button:hover { background: var(--accent-soft); color: #004f9e; border-color: #bad8f8; }
 .zoom-value { min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; }
-.text-button { padding: 7px 9px; border-color: var(--border); background: var(--surface); font-size: 12px; }
+.text-button { padding: 7px 11px; border-color: var(--border); background: var(--surface); font-size: 12px; transition: background .12s, color .12s, border-color .12s; }
 .toolbar-spacer { flex: 1; }
 .toolbar-badge { color: #765b18; background: #fff4d6; padding: 5px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .5px; }
 .workspace {
@@ -209,7 +210,56 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .table-dialog input, .table-dialog select { width: 100%; margin-top: 5px; padding: 8px; border: 1px solid var(--border-strong); border-radius: 5px; background: white; color: var(--text); font: inherit; }
 .table-dialog-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .table-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.primary-action { color: white; background: var(--accent); border-color: var(--accent); }
+.primary-action {
+  color: #ffffff !important;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.primary-action:hover,
+.primary-action:focus-visible {
+  color: #ffffff !important;
+  background: #00539c !important;
+  border-color: #00539c !important;
+}
+.primary-action:active {
+  color: #ffffff !important;
+  background: #00417a !important;
+  border-color: #00417a !important;
+}
+.btn-with-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  flex: 0 0 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.context-item {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+}
+.context-item .btn-icon {
+  color: var(--muted);
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+}
+.context-item:hover .btn-icon {
+  color: var(--accent);
+}
 @media (max-width: 900px) { .toolbar { align-items: flex-start; } .tool-section { flex-direction: row; align-items: center; } .tool-section > .tool-label { margin: 0 4px 0 0; } }
 @media (max-width: 560px) { .tool-section { flex-wrap: wrap; } .canvas-table th, .canvas-table td { padding: 3px 2px; } }
 
@@ -763,6 +813,7 @@ body .toolbar .tool-subsection > .tool-label {
   margin: 0 0 4px !important;
   text-transform: none;
 }
+body .toolbar > #printer-button,
 body .toolbar > #toggle-guides {
   flex: 0 0 32px;
   align-self: flex-end;
@@ -804,9 +855,24 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 .recent-file-btn {
   width: 100%; text-align: left; background: none; border: 1px solid transparent;
   border-radius: 5px; padding: 6px 10px; cursor: pointer; display: flex;
-  flex-direction: column; gap: 2px; transition: background .12s, border-color .12s;
+  align-items: center; gap: 8px; transition: background .12s, border-color .12s;
 }
-.recent-file-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.recent-file-btn .btn-icon {
+  color: var(--muted);
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+.recent-file-btn:hover { background: var(--accent-soft); border-color: #bad8f8; }
+.recent-file-btn:hover .recent-file-name { color: #004f9e; }
+.recent-file-btn:hover .btn-icon { color: var(--accent); }
+.recent-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
 .recent-file-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-file-meta { font-size: 11px; color: var(--muted); }
 
