@@ -820,7 +820,7 @@ body .toolbar > #toggle-guides {
   width: 32px;
   min-width: 32px;
   height: 32px;
-  margin: 0;
+  margin: 0 0 4px;
   transform: none;
 }
 body .toolbar .toolbar-global-layout > #global-layout-button {
