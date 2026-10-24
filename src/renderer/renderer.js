@@ -553,7 +553,13 @@ function renderPreview() {
   previewDimensions.textContent = documentModel.paperWidthMm + ' mm · ' + (thermalLayout ? thermalLayout.profile.columns : columns) + ' kolom' + (thermalLayout ? ' · layout thermal' : '');
   previewStatus.textContent = thermalLayout ? 'Simulasi layout thermal diperbarui' : 'Preview diperbarui';
   if (thermalPreviewToggle) {
-    thermalPreviewToggle.textContent = state.previewMode === 'thermal' ? 'Preview visual' : 'Simulasi thermal';
+    const textSpan = thermalPreviewToggle.querySelector('.btn-text');
+    const label = state.previewMode === 'thermal' ? 'Preview visual' : 'Simulasi thermal';
+    if (textSpan) {
+      textSpan.textContent = label;
+    } else {
+      thermalPreviewToggle.textContent = label;
+    }
     thermalPreviewToggle.setAttribute('aria-pressed', String(state.previewMode === 'thermal'));
   }
 }
@@ -1425,8 +1431,9 @@ async function loadRecentFilesPanel() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'recent-file-btn';
-      btn.innerHTML = '<span class="recent-file-name">' + name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
-        '<span class="recent-file-meta">' + file.paperWidth + ' mm · ' + date + '</span>';
+      btn.innerHTML = '<svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
+        '<div class="recent-file-info"><span class="recent-file-name">' + name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>' +
+        '<span class="recent-file-meta">' + file.paperWidth + ' mm · ' + date + '</span></div>';
       btn.title = file.path;
       btn.addEventListener('click', () => {
         printerDialog.close();

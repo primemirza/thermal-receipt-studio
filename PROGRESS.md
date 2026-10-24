@@ -406,3 +406,10 @@ Status: **TESTED** (103/103 unit test lulus; menunggu verifikasi pengguna)
 - Error database ditangani tanpa crash ✔
 - `.trstudio` tetap format utama desain ✔
 
+### Polish Minor UI Sebelum Fase 9 (2026-10-24)
+- **Tombol cetak pada toolbar**: diubah dari tombol teks menjadi `.icon-button` dengan icon SVG printer yang seragam dengan tombol toolbar lainnya dan sejajar dengan kontrol panduan.
+- **Icon pada tombol teks**: tombol simulasi thermal, kontrol baris/kolom tabel di panel inspektor, serta tombol aksi di dialog printer, tabel, kolom, layout global, dan pemulihan recovery dilengkapi icon SVG penjelas (`.btn-with-icon`, `.btn-icon`).
+- **Perbaikan kontras hover area cetak & dialog**: `.primary-action:hover` dan fokusnya mempertahankan teks putih (`#ffffff`) dengan background biru tua (`#00539c`), serta tombol sekunder `.text-button:hover` mempertahankan teks biru tua berdaya baca tinggi (`#004f9e`) di atas latar lembut (`#e8f2fc`), menyelesaikan masalah teks tidak terbaca saat tombol dihover.
+- **Tes otomatis**: 104/104 unit test lulus (`node --test`).
+
+
