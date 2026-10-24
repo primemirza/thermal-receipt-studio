@@ -412,4 +412,31 @@ Status: **TESTED** (103/103 unit test lulus; menunggu verifikasi pengguna)
 - **Perbaikan kontras hover area cetak & dialog**: `.primary-action:hover` dan fokusnya mempertahankan teks putih (`#ffffff`) dengan background biru tua (`#00539c`), serta tombol sekunder `.text-button:hover` mempertahankan teks biru tua berdaya baca tinggi (`#004f9e`) di atas latar lembut (`#e8f2fc`), menyelesaikan masalah teks tidak terbaca saat tombol dihover.
 - **Tes otomatis**: 104/104 unit test lulus (`node --test`).
 
+## FASE 9 — INTEGRASI DAN PENGUJIAN END-TO-END (2026-10-24)
+
+Status: **TESTED** (111/111 unit & integration test lulus; seluruh skenario integrasi E2E terverifikasi)
+
+### Implementasi & Cakupan Uji
+- **`tests/phase-9-e2e-integration.test.js`** (baru): Suite uji E2E komprehensif menguji seluruh integrasi arsitektur:
+  1. **Siklus Hidup Dokumen Penuh & Storage E2E**: Menguji dokumen 15 blok (teks, item, total, garis, spacer, tabel per-sel, multi-kolom, section bersarang, gambar base64, QR code, barcode, margin) melalui `validateDocument` → `serializeTrstudio` → ZIP unpack → `parseTrstudio` dengan hasil 100% lossless roundtrip.
+  2. **Pipeline Render & Thermal Layout E2E (58mm & 80mm)**: Menguji kompilasi layout 32 kolom dan 48 kolom, feed baris, cut paper, dan verifikasi anti-overflow baris teks.
+  3. **Pipeline ESC/POS Binary Encoding E2E**: Menguji pemetaan layout ke byte stream ESC/POS biner dengan validasi sequence header init `[27, 64]` dan cut `[29, 86, 65, 0]`.
+  4. **Pipeline Driver Print Monospace HTML E2E**: Menguji pembuatan HTML monospace `<pre>` terpusat dengan sanitasi karakter HTML (anti-XSS) dan pemformatan teks tebal/miring/ukuran.
+  5. **Integrasi SQLite, Recent Files & Recovery E2E**: Menguji alur preferensi pengguna, profil printer driver/raw TCP, pencatatan dan pembatasan berkas terkini, serta siklus hidup autosave crash recovery snapshot.
+  6. **Ketahanan Error, Pemulihan Bencana & Keamanan E2E**: Menguji penolakan terhadap arsip ZIP korup, pencegahan path traversal (`../../`), validasi batas target raw TCP, batas ukuran payload job (1B–8MB), dan pemetaan pesan error socket ke bahasa Indonesia.
+  7. **Integritas Arsitektur Offline & CSP E2E**: Memastikan meta tag CSP ketat memblokir koneksi eksternal (`default-src 'none'`), library vendor lokal, dan modul inti bebas dari impor DOM/Electron untuk portabilitas pengujian.
+
+### Hasil Pengujian
+- 111/111 unit & integration test lulus (`node --test`)
+- Tidak ada regresi pada seluruh fase sebelumnya (Fase 1 s/d 8)
+
+### Kriteria Terpenuhi
+- Seluruh alur data terintegrasi ✔
+- Lossless .trstudio roundtrip ✔
+- Dual-width layout 58/80 mm ✔
+- ESC/POS binary & Driver HTML konsisten ✔
+- SQLite & recovery snapshot teruji ✔
+- Keamanan & offline murni ✔
+- 111/111 tes lulus ✔
+
 
