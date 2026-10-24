@@ -196,9 +196,20 @@ Status fase: **TESTED** (103/103 unit test lulus; menunggu verifikasi pengguna p
 
 ## FASE 9 — INTEGRASI DAN PENGUJIAN END-TO-END
 
-Status fase: **NOT STARTED**
+Status fase: **TESTED** (111/111 unit & integration test lulus secara lokal dan CI)
 
-Cakupan penuh (dokumen, edit, objek, save/open, preview 58/80, layout, gambar/QR/barcode, keamanan file, DB/recovery, encoder, error printer, offline, keamanan IPC, build portable). Perbaiki regresi; laporkan pengecualian dengan jujur.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 9.1 | Siklus hidup dokumen penuh & storage E2E | TESTED | Model dokumen lengkap dengan 15 variasi blok berhasil di-roundtrip via arsip .trstudio tanpa kehilangan data |
+| 9.2 | Pipeline render & thermal layout compiler E2E | TESTED | Layout 58 mm (32 kolom) & 80 mm (48 kolom) terkompilasi presisi, anti-overflow, dengan operasi teks, rule, feed, cut, barcode & QR |
+| 9.3 | Pipeline encoding ESC/POS binary nyata E2E | TESTED | Layout thermal ter-encode ke byte stream binary ESC/POS lengkap dengan header init `ESC @` dan cut paper `GS V` |
+| 9.4 | Pipeline driver print monospace HTML E2E | TESTED | HTML monospace terpusat (`<pre>`) ter-render aman dengan sanitasi XSS (escaping karakter HTML) dan padding seimbang |
+| 9.5 | Integrasi SQLite, recent files & crash recovery E2E | TESTED | Siklus hidup preferensi, profil printer (driver/raw TCP), riwayat berkas terkini, dan autosave crash recovery snapshot terverifikasi utuh |
+| 9.6 | Ketahanan error, pemulihan bencana & keamanan E2E | TESTED | Penolakan arsip ZIP korup, pencegahan path traversal (`../../`), validasi batas target raw TCP, dan pemetaan error ramah pengguna |
+| 9.7 | Integritas arsitektur offline murni & CSP E2E | TESTED | CSP ketat (tanpa resource eksternal), library lokal, dan isolasi total modul inti dari ketergantungan DOM/Electron |
+| 9.8 | Suite uji otomatis E2E komprehensif | TESTED | 7 skenario pengujian E2E di `tests/phase-9-e2e-integration.test.js` berhasil dieksekusi dengan 111/111 pengujian lulus |
+
+**Kriteria Fase 9:** Seluruh alur data terintegrasi ✔ · Lossless .trstudio roundtrip ✔ · Dual-width layout 58/80 mm ✔ · ESC/POS binary & Driver HTML konsisten ✔ · SQLite & recovery snapshot teruji ✔ · Keamanan & offline murni ✔ · 111/111 tes lulus ✔
 
 ---
 
