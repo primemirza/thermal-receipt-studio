@@ -1464,7 +1464,7 @@ $('printer-print-button').addEventListener('click', async () => {
     if (printerMode.value === 'driver') {
       // Gunakan thermal layout yang sama dengan jalur raw TCP/ESC-POS agar output identik.
       // Layout plain object dikirim via IPC; main process mengubahnya ke HTML monospace <pre>.
-      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
       // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
       const layoutPlain = JSON.parse(JSON.stringify(layout));
       // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
@@ -1503,7 +1503,7 @@ $('printer-print-button').addEventListener('click', async () => {
       if (!$('raw-escpos-confirm').checked) throw new Error('Konfirmasi dukungan ESC/POS diperlukan sebelum mengirim data raw.');
       const host = $('raw-printer-host').value.trim();
       const port = Number($('raw-printer-port').value);
-      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
       const bytes = await encodeThermalLayout(layout, ReceiptPrinterEncoder, { resolveImage: resolvePrinterImage });
       const result = await window.trs.printRawTcp(bytes, host, port);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Pengiriman ESC/POS gagal.');
