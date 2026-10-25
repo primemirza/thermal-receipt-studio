@@ -89,7 +89,21 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
   }
 }
 
+function getAppIconPath() {
+  const candidates = [
+    path.join(__dirname, 'assets', 'thermal_receipt_studio.ico'),
+    path.join(__dirname, 'assets', 'icon.ico'),
+    path.join(__dirname, 'assets', 'thermal_receipt_studio.png'),
+    path.join(__dirname, '../renderer/thermal_receipt_studio.png'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return candidates[0];
+}
+
 function createWindow() {
+  const iconPath = getAppIconPath();
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -97,7 +111,7 @@ function createWindow() {
     minHeight: 600,
     title: 'Thermal Receipt Studio',
     show: false,
-    icon: path.join(__dirname, 'assets', 'thermal_receipt_studio.ico'),
+    icon: iconPath,
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.cjs'),
@@ -115,7 +129,12 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    if (iconPath && fs.existsSync(iconPath)) {
+      try { mainWindow.setIcon(iconPath); } catch {}
+    }
+    mainWindow.show();
+  });
 
   // Blokir navigasi keluar & window baru (pertahanan berlapis).
   mainWindow.webContents.on('will-navigate', (e, url) => {

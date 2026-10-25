@@ -32,7 +32,8 @@
     ],
     "asar": true,
     "win": {
-      "target": ["portable"]
+      "target": ["portable"],
+      "icon": "build/icon.ico"
     },
     "portable": {
       "artifactName": "ThermalReceiptStudio-${version}-portable-x64.${ext}"

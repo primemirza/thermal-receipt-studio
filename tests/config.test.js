@@ -77,3 +77,17 @@ test('aset renderer tersedia lokal (offline-safe)', () => {
     assert.ok(fs.existsSync(path.join(root, f)), `${f} ada`);
   }
 });
+
+test('aset icon portable dan window terkonfigurasi dengan lengkap', () => {
+  const pkg = JSON.parse(read('package.json'));
+  assert.equal(pkg.build?.win?.icon, 'build/icon.ico', 'build.win.icon harus build/icon.ico');
+  assert.ok(fs.existsSync(path.join(root, 'build/icon.ico')), 'build/icon.ico harus ada');
+  assert.ok(fs.statSync(path.join(root, 'build/icon.ico')).size > 0, 'build/icon.ico tidak boleh kosong');
+  assert.ok(fs.existsSync(path.join(root, 'src/main/assets/thermal_receipt_studio.ico')), 'src/main/assets/thermal_receipt_studio.ico harus ada');
+  assert.ok(fs.statSync(path.join(root, 'src/main/assets/thermal_receipt_studio.ico')).size > 0, 'ICO tidak boleh kosong');
+  const html = read('src/renderer/index.html');
+  assert.match(html, /<link\s+rel="icon"/i, 'index.html harus menyertakan link rel icon');
+  const main = read('src/main/main.js');
+  assert.match(main, /getAppIconPath/, 'main.js harus menyertakan resolver icon aplikasi');
+});
+
