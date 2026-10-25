@@ -1,5 +1,5 @@
 // Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -97,6 +97,8 @@ function createWindow() {
     minHeight: 600,
     title: 'Thermal Receipt Studio',
     show: false,
+    icon: path.join(__dirname, 'assets', 'thermal_receipt_studio.ico'),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/preload.cjs'),
       contextIsolation: true,
@@ -305,6 +307,8 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    // Hapus menu bar bawaan Electron; hotkeys (Ctrl+S/Z/Y/Shift+L/E/R) ditangani di renderer.
+    Menu.setApplicationMenu(null);
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
