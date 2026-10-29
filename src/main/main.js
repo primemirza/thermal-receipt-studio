@@ -10,8 +10,6 @@ import { sendRawTcp } from '../printer/printer-transport.js';
 import { buildThermalDriverHtml } from '../printer/driver-print.js';
 import { openDatabase } from './db/database.js';
 import { printRawBuffer } from './rawPrint.js';
-import { encodeThermalLayout } from '../encoder/receipt-printer-encoder.js';
-import ReceiptPrinterEncoder from '../renderer/vendor/receipt-printer-encoder.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,57 +48,15 @@ export function getDb() {
   return dbInstance;
 }
 
-async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
-  // thermalLayout adalah objek plain { profile, operations } yang telah di-serialize di renderer.
-  // Encode layout menjadi ESC/POS bytes, lalu kirim via Windows API RAW (bukan webContents.print)
-  // untuk kompatibilitas dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
+async function printViaDriver(escposBytes, paperWidthMm, printerName) {
+  // escposBytes adalah Uint8Array ESC/POS yang sudah di-encode di renderer.
+  // Kirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
+  // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
   if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
-
-  // Resolve gambar data URL ke ImageData untuk encoder
-  const resolveImage = async (dataUrl, operation) => {
-    if (!dataUrl) return null;
-    // Buat hidden window sementara untuk decode data URL ke ImageData
-    const decodeWindow = new BrowserWindow({
-      show: false,
-      width: 1,
-      height: 1,
-      webPreferences: {
-        sandbox: false,
-        contextIsolation: false,
-        nodeIntegration: false,
-        backgroundThrottling: false,
-      },
-    });
-    try {
-      await decodeWindow.loadURL('data:text/html;charset=utf-8,<img id="img" src="' + dataUrl + '">');
-      await new Promise(r => setTimeout(r, 100)); // Tunggu image load
-      const imageData = await decodeWindow.webContents.executeJavaScript(`
-        (() => {
-          const img = document.getElementById('img');
-          if (!img) return null;
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          return ctx.getImageData(0, 0, canvas.width, canvas.height);
-        })()
-      `);
-      return imageData;
-    } finally {
-      if (!decodeWindow.isDestroyed()) decodeWindow.destroy();
-    }
-  };
-
-  const escposBytes = await encodeThermalLayout(thermalLayout, ReceiptPrinterEncoder, {
-    language: 'esc-pos',
-    columns: thermalLayout.profile.columns,
-    feedBeforeCut: 0,
-    resolveImage
-  });
+  if (!(escposBytes instanceof Uint8Array)) throw new TypeError('ESC/POS bytes harus Uint8Array.');
 
   await printRawBuffer({ printerName, buffer: Buffer.from(escposBytes) });
-  lastPrintJob = { mode: 'driver', thermalLayout, paperWidthMm, printerName };
+  lastPrintJob = { mode: 'driver', escposBytes: Array.from(escposBytes), paperWidthMm, printerName };
   return { success: true, printerName };
 }
 
@@ -212,8 +168,8 @@ if (!gotLock) {
       }
       case 'printer:driver': {
         try {
-          const [receiptMarkup, paperWidthMm, printerName] = args;
-          const result = await printViaDriver(receiptMarkup, paperWidthMm, printerName);
+          const [escposBytes, paperWidthMm, printerName] = args;
+          const result = await printViaDriver(new Uint8Array(escposBytes), paperWidthMm, printerName);
           return { ok: true, value: result };
         } catch (err) { return { ok: false, error: 'DRIVER_PRINT_FAILED', message: String(err?.message || err) }; }
       }
@@ -232,7 +188,7 @@ if (!gotLock) {
             const result = await sendRawTcp(lastPrintJob.host, lastPrintJob.port, lastPrintJob.bytes);
             return { ok: true, value: result };
           }
-          const result = await printViaDriver(lastPrintJob.receiptMarkup, lastPrintJob.paperWidthMm, lastPrintJob.printerName);
+          const result = await printViaDriver(new Uint8Array(lastPrintJob.escposBytes), lastPrintJob.paperWidthMm, lastPrintJob.printerName);
           return { ok: true, value: result };
         } catch (err) { return { ok: false, error: 'REPRINT_FAILED', message: String(err?.message || err) }; }
       }
