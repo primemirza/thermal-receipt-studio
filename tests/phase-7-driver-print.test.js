@@ -41,7 +41,8 @@ test('buildThermalDriverHtml renders text, rule, feed, and cut operations into p
   };
   const html = buildThermalDriverHtml(layout, 58);
   assert.match(html, /@page \{ margin: 0;/, 'harus menyertakan CSS @page dengan margin 0');
-  assert.match(html, /48mm/, 'lebar body harus 48mm untuk kertas 58mm');
+  assert.match(html, /57mm/, 'lebar body harus 57mm untuk kertas 58mm (dikurangi untuk kompatibilitas driver)');
+  assert.match(html, /49mm/, 'lebar printable container harus 49mm untuk kertas 58mm');
   assert.match(html, /<pre>/, 'harus menggunakan tag <pre>');
   assert.match(html, /Courier New/, 'harus menggunakan font monospace Courier New');
   assert.match(html, /Toko SAMPEAN/, 'konten teks harus ada');
@@ -80,7 +81,8 @@ test('buildThermalDriverHtml escapes HTML special characters in text content', (
 test('buildThermalDriverHtml produces wider body for 80mm paper', () => {
   const layout = { profile: { effectiveColumns: 48 }, operations: [] };
   const html = buildThermalDriverHtml(layout, 80);
-  assert.match(html, /72mm/, 'lebar body harus 72mm untuk kertas 80mm');
+  assert.match(html, /79mm/, 'lebar body harus 79mm untuk kertas 80mm (dikurangi untuk kompatibilitas driver)');
+  assert.match(html, /73mm/, 'lebar printable container harus 73mm untuk kertas 80mm');
 });
 
 test('buildThermalDriverHtml renders image, qrcode, and barcode elements', () => {

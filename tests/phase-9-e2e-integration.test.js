@@ -232,8 +232,8 @@ test('E2E: generator driver HTML menghasilkan dokumen monospace yang aman dan pr
   // Verifikasi struktur dokumen driver
   assert.ok(html58.toLowerCase().includes('<!doctype html>'));
   assert.ok(html58.includes('id="receipt-container"'));
-  assert.ok(html58.includes('width: 58mm'));
-  assert.ok(html80.includes('width: 80mm'));
+  assert.ok(html58.includes('width: 57mm'), 'body width 58mm dikurangi untuk kompatibilitas driver');
+  assert.ok(html80.includes('width: 79mm'), 'body width 80mm dikurangi untuk kompatibilitas driver');
 
   // Verifikasi karakter HTML di-escape untuk mencegah XSS
   const maliciousLayout = {
