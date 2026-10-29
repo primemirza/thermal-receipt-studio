@@ -68,10 +68,12 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
         sandbox: false,
         contextIsolation: false,
         nodeIntegration: false,
+        backgroundThrottling: false,
       },
     });
     try {
       await decodeWindow.loadURL('data:text/html;charset=utf-8,<img id="img" src="' + dataUrl + '">');
+      await new Promise(r => setTimeout(r, 100)); // Tunggu image load
       const imageData = await decodeWindow.webContents.executeJavaScript(`
         (() => {
           const img = document.getElementById('img');
