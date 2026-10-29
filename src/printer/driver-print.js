@@ -81,14 +81,15 @@ export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
 
   return '<!doctype html><html lang="id"><head><meta charset="utf-8">' +
     '<style>' +
-    '@page { margin: 0; size: ' + paperWidthMm + 'mm auto; }' +
+    '@page { margin: 0; }' +
     '* { box-sizing: border-box; }' +
-    'html, body { margin: 0; padding: 0; height: auto !important; min-height: 0 !important; background: white; color: black; }' +
-    'body { width: ' + paperWidthMm + 'mm; padding: 0 ' + marginSideMm + 'mm; overflow: hidden; }' +
+    'html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+    'body { width: ' + paperWidthMm + 'mm; padding: 0 ' + marginSideMm + 'mm; }' +
     '#receipt-container { width: ' + printableWidthMm + 'mm; margin: 0 auto; padding: 1mm 0; }' +
-    '#receipt-container pre { margin: 0; padding: 0; font: 2.45mm/1.3 Consolas, "Courier New", monospace; white-space: pre; overflow: hidden; }' +
+    '#receipt-container pre { margin: 0; padding: 0; font: 2.45mm/1.3 Consolas, "Courier New", monospace; white-space: pre; color: #000000; }' +
     '.thermal-media { margin: 1mm 0; text-align: center; }' +
     '.thermal-media svg { max-width: 100%; height: auto; }' +
+    '@media print { html, body { background: #ffffff !important; color: #000000 !important; } }' +
     '</style></head><body>' +
     '<div id="receipt-container">' +
     items.join('') +

@@ -91,3 +91,10 @@ test('aset icon portable dan window terkonfigurasi dengan lengkap', () => {
   assert.match(main, /getAppIconPath/, 'main.js harus menyertakan resolver icon aplikasi');
 });
 
+
+test('main process menonaktifkan background throttling untuk keandalan cetak driver fisik', () => {
+  const main = read('src/main/main.js');
+  assert.match(main, /disable-renderer-backgrounding/, 'harus menyertakan switch disable-renderer-backgrounding');
+  assert.match(main, /disable-backgrounding-occluded-windows/, 'harus menyertakan switch disable-backgrounding-occluded-windows');
+  assert.match(main, /backgroundThrottling:\s*false/, 'harus menyertakan backgroundThrottling: false pada printWindow');
+});
