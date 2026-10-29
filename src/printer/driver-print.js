@@ -14,8 +14,11 @@ export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
   if (![58, 80].includes(paperWidthMm)) throw new TypeError('Lebar kertas harus 58 atau 80 mm.');
 
   const columns = thermalLayout.profile?.effectiveColumns ?? (paperWidthMm === 58 ? 32 : 48);
-  const printableWidthMm = paperWidthMm === 58 ? 48 : 72;
-  const marginSideMm = paperWidthMm === 58 ? 5 : 4;
+  // Sesuaikan margin dan printable width untuk kompatibilitas XPrinter Driver
+  // Mengurangi body width dan margin untuk memberi ruang driver printer thermal
+  const bodyWidthMm = paperWidthMm === 58 ? 57 : 79;
+  const printableWidthMm = paperWidthMm === 58 ? 49 : 73;
+  const marginSideMm = paperWidthMm === 58 ? 4 : 3;
 
   const items = [];
   let currentPreLines = [];
@@ -84,9 +87,9 @@ export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
     '@page { margin: 0; }' +
     '* { box-sizing: border-box; }' +
     'html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
-    'body { width: ' + paperWidthMm + 'mm; padding: 0 ' + marginSideMm + 'mm; }' +
+    'body { width: ' + bodyWidthMm + 'mm; padding: 0 ' + marginSideMm + 'mm; }' +
     '#receipt-container { width: ' + printableWidthMm + 'mm; margin: 0 auto; padding: 1mm 0; }' +
-    '#receipt-container pre { margin: 0; padding: 0; font: 2.45mm/1.3 Consolas, "Courier New", monospace; white-space: pre; color: #000000; }' +
+    '#receipt-container pre { margin: 0; padding: 0; font: 2.45mm/1.3 "Courier New", monospace; white-space: pre; color: #000000; }' +
     '.thermal-media { margin: 1mm 0; text-align: center; }' +
     '.thermal-media svg { max-width: 100%; height: auto; }' +
     '@media print { html, body { background: #ffffff !important; color: #000000 !important; } }' +

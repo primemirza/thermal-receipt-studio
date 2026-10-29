@@ -53,21 +53,7 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
   const html = buildThermalDriverHtml(thermalLayout, paperWidthMm);
   if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
 
-  // --- Estimasi tinggi fallback berbasis jumlah operasi ---
-  // Setiap baris teks thermal ~3.5mm. Dipakai jika pengukuran DOM gagal (height=0).
-  const LINE_HEIGHT_MM = 3.5;
-  const textLineCount = (thermalLayout.operations || []).reduce((sum, op) => {
-    if (op.type === 'text' || op.type === 'rule') return sum + 1;
-    if (op.type === 'feed') return sum + Math.max(1, op.lines || 1);
-    if (op.type === 'image' || op.type === 'qrcode' || op.type === 'barcode') return sum + 8;
-    return sum;
-  }, 0);
-  const fallbackHeightMm = Math.max(30, textLineCount * LINE_HEIGHT_MM + 10);
-
-  // Tulis HTML ke file sementara sehingga Chromium dapat melakukan full layout.
-  // Penyebab blank print pada printer fisik: BrowserWindow dengan show:false tidak
-  // memicu layout Chromium secara penuh -> getBoundingClientRect() = 0 -> pageSize 20mm ->
-  // printer fisik mencetak 1-2cm kosong (printer virtual mengabaikan pageSize custom).
+  // Tulis HTML ke file sementara di folder temp agar Chromium dapat memuatnya secara utuh
   const tmpDir = path.join(app.getPath('temp'), 'trs-print');
   let tmpFile = null;
   try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
@@ -76,28 +62,22 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
     fs.writeFileSync(tmpFile, html, 'utf8');
   } catch { tmpFile = null; }
 
-  // Buat jendela cetak dengan ukuran realistis dan posisi offscreen.
-  // PENTING: jangan show:false saja - gunakan posisi di luar layar agar Chromium
-  // tetap melayout konten secara penuh seperti jendela aktif (tidak menggunakan offscreen renderer).
-  const winWidthPx = Math.round(paperWidthMm * 3.78);
-  const winHeightPx = Math.min(Math.round(fallbackHeightMm * 3.78), 4000);
+  // Jendela cetak tersembunyi (hidden).
+  // Catatan penting: JANGAN posisikan di luar batas desktop (seperti x:-99999) karena
+  // Windows DWM / Chromium compositor akan mengabaikan rendering raster untuk koordinat out-of-bounds.
   const printWindow = new BrowserWindow({
-    width: winWidthPx,
-    height: winHeightPx,
-    x: -99999, y: -99999,
+    width: 480,
+    height: 800,
     show: false,
-    skipTaskbar: true,
     autoHideMenuBar: true,
     webPreferences: {
-      sandbox: true,
+      sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
-      backgroundThrottling: false, // Wajib agar layout engine Chromium tidak dinonaktifkan
+      backgroundThrottling: false, // Mencegah Chromium menonaktifkan rendering saat jendela hidden
       webSecurity: false,
     },
   });
-  // Tampilkan offscreen agar Chromium melakukan full layout (show:false mencegah layout)
-  printWindow.showInactive();
 
   try {
     if (tmpFile) {
@@ -106,52 +86,53 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
       await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
     }
 
-    // Tunggu fonts, gambar, dan dua siklus rAF untuk memastikan layout selesai.
-    // scrollHeight lebih andal daripada getBoundingClientRect pada jendela offscreen.
-    const measured = await printWindow.webContents.executeJavaScript(`
+    // Tunggu font, gambar ter-decode, dan frame selesai di-render
+    await printWindow.webContents.executeJavaScript(`
       (async () => {
         if (document.fonts?.ready) await document.fonts.ready;
         await Promise.all(Array.from(document.images, img => img.decode().catch(() => {})));
         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-        const container = document.getElementById('receipt-container') || document.body;
-        const scrollH = container.scrollHeight || document.documentElement.scrollHeight || 0;
-        const clientH = container.clientHeight || document.documentElement.clientHeight || 0;
-        const offsetH = container.offsetHeight || document.documentElement.offsetHeight || 0;
-        const rectH = container.getBoundingClientRect().height || 0;
-        const heightPx = Math.max(scrollH, clientH, offsetH, rectH);
-        return { height: Math.ceil(heightPx), width: Math.ceil(Math.max(container.scrollWidth, container.clientWidth, 100)) };
       })()
     `);
 
-    const widthMicrons = paperWidthMm * 1000;
+    // Jeda singkat memastikan raster paint buffer siap dikirim ke Windows print spooler
+    await new Promise(r => setTimeout(r, 150));
 
-    // Jika pengukuran DOM menghasilkan tinggi < 5mm, pakai estimasi fallback berbasis operasi.
-    const MIN_REASONABLE_PX = Math.round(5 * 3.78);
-    const usedHeightPx = measured.height >= MIN_REASONABLE_PX
-      ? measured.height
-      : Math.round(fallbackHeightMm * 3.78);
-
-    // Tambah buffer 8mm agar baris terakhir tidak terpotong pisau cutter.
-    const bufferPx = Math.round(8 * 3.78);
-    const heightMicrons = Math.max(
-      30000, // minimum 30mm
-      Math.ceil((usedHeightPx + bufferPx) * 25400 / 96)
-    );
-
-    // Jeda singkat memastikan raster paint buffer Chromium siap dikirim ke Windows print spooler
-    await new Promise(r => setTimeout(r, 120));
-
+    // Kirim job cetak ke Windows Print Spooler.
+    // PENTING: Jangan mengirim custom pageSize mikron ke driver printer termal fisik Windows!
+    // Driver printer termal fisik (POS-58, POS-80, Epson, Xprinter, dsb.) menolak custom DEVMODE
+    // mikron yang tidak terdaftar di form printer, menyebabkan driver membuang konten dan hanya
+    // mengeksekusi cut/feed ~1 cm kosong. Tanpa custom pageSize, driver menggunakan ukuran form
+    // bawaan roll printer dan mencetak seluruh konten struk hingga selesai.
     const result = await new Promise((resolve, reject) => {
-      printWindow.webContents.print({
+      const printOptions = {
         silent: true,
         printBackground: true,
         ...(printerName ? { deviceName: printerName } : {}),
-        pageSize: { width: widthMicrons, height: heightMicrons },
+        color: false, // Monokrom murni untuk printer termal
         margins: { marginType: 'none' },
         scaleFactor: 100,
-      }, (success, failureReason) => {
-        if (success) resolve({ success: true, printerName: printerName || 'default', measuredPx: usedHeightPx, heightMm: Math.round(heightMicrons / 1000) });
-        else reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
+      };
+
+      printWindow.webContents.print(printOptions, (success, failureReason) => {
+        if (success) {
+          resolve({ success: true, printerName: printerName || 'default' });
+        } else {
+          // Fallback jika printerName spesifik tidak dapat diakses: coba ke default printer
+          if (printerName) {
+            const fallbackOptions = { ...printOptions };
+            delete fallbackOptions.deviceName;
+            printWindow.webContents.print(fallbackOptions, (fallbackSuccess, fallbackReason) => {
+              if (fallbackSuccess) {
+                resolve({ success: true, printerName: 'default' });
+              } else {
+                reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || fallbackReason || 'alasan tidak tersedia')));
+              }
+            });
+          } else {
+            reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
+          }
+        }
       });
     });
     lastPrintJob = { mode: 'driver', thermalLayout, paperWidthMm, printerName };
