@@ -1,4 +1,4 @@
-// Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
+﻿// Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -20,6 +20,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 if (typeof process.getuid === 'function' && process.getuid() === 0) {
   app.commandLine.appendSwitch('no-sandbox');
 }
+// Cegah Chromium background throttling agar jendela cetak melakukan full layout & painting
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 // Lokasi data pengguna terpisah dari lokasi aplikasi (aplikasi portable tidak boleh
 // menulis ke direktorinya sendiri). Dipakai kembali oleh Fase 8 (SQLite/recovery).
@@ -48,37 +52,105 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
   // Dirender menjadi HTML monospace agar output identik dengan jalur raw ESC/POS TCP.
   const html = buildThermalDriverHtml(thermalLayout, paperWidthMm);
   if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
-  const printWindow = new BrowserWindow({
-    width: 480, height: 800, show: false, autoHideMenuBar: true,
-    webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true }
-  });
+
+  // --- Estimasi tinggi fallback berbasis jumlah operasi ---
+  // Setiap baris teks thermal ~3.5mm. Dipakai jika pengukuran DOM gagal (height=0).
+  const LINE_HEIGHT_MM = 3.5;
+  const textLineCount = (thermalLayout.operations || []).reduce((sum, op) => {
+    if (op.type === 'text' || op.type === 'rule') return sum + 1;
+    if (op.type === 'feed') return sum + Math.max(1, op.lines || 1);
+    if (op.type === 'image' || op.type === 'qrcode' || op.type === 'barcode') return sum + 8;
+    return sum;
+  }, 0);
+  const fallbackHeightMm = Math.max(30, textLineCount * LINE_HEIGHT_MM + 10);
+
+  // Tulis HTML ke file sementara sehingga Chromium dapat melakukan full layout.
+  // Penyebab blank print pada printer fisik: BrowserWindow dengan show:false tidak
+  // memicu layout Chromium secara penuh -> getBoundingClientRect() = 0 -> pageSize 20mm ->
+  // printer fisik mencetak 1-2cm kosong (printer virtual mengabaikan pageSize custom).
+  const tmpDir = path.join(app.getPath('temp'), 'trs-print');
+  let tmpFile = null;
+  try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
   try {
-    await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-    // Ensure layout and local images settle before measuring the receipt.
-    // Ukur elemen #receipt-container yang sebenarnya (bukan scrollHeight jendela 800px).
+    tmpFile = path.join(tmpDir, 'receipt-' + randomUUID() + '.html');
+    fs.writeFileSync(tmpFile, html, 'utf8');
+  } catch { tmpFile = null; }
+
+  // Buat jendela cetak dengan ukuran realistis dan posisi offscreen.
+  // PENTING: jangan show:false saja - gunakan posisi di luar layar agar Chromium
+  // tetap melayout konten secara penuh seperti jendela aktif (tidak menggunakan offscreen renderer).
+  const winWidthPx = Math.round(paperWidthMm * 3.78);
+  const winHeightPx = Math.min(Math.round(fallbackHeightMm * 3.78), 4000);
+  const printWindow = new BrowserWindow({
+    width: winWidthPx,
+    height: winHeightPx,
+    x: -99999, y: -99999,
+    show: false,
+    skipTaskbar: true,
+    autoHideMenuBar: true,
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false, // Wajib agar layout engine Chromium tidak dinonaktifkan
+      webSecurity: false,
+    },
+  });
+  // Tampilkan offscreen agar Chromium melakukan full layout (show:false mencegah layout)
+  printWindow.showInactive();
+
+  try {
+    if (tmpFile) {
+      await printWindow.loadFile(tmpFile);
+    } else {
+      await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    }
+
+    // Tunggu fonts, gambar, dan dua siklus rAF untuk memastikan layout selesai.
+    // scrollHeight lebih andal daripada getBoundingClientRect pada jendela offscreen.
     const measured = await printWindow.webContents.executeJavaScript(`
       (async () => {
         if (document.fonts?.ready) await document.fonts.ready;
-        await Promise.all(Array.from(document.images, image => image.decode().catch(() => {})));
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        await Promise.all(Array.from(document.images, img => img.decode().catch(() => {})));
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
         const container = document.getElementById('receipt-container') || document.body;
-        const rect = container.getBoundingClientRect();
-        const heightPx = Math.ceil(Math.max(rect.height, container.offsetHeight));
-        return { width: Math.ceil(rect.width), height: heightPx };
+        const scrollH = container.scrollHeight || document.documentElement.scrollHeight || 0;
+        const clientH = container.clientHeight || document.documentElement.clientHeight || 0;
+        const offsetH = container.offsetHeight || document.documentElement.offsetHeight || 0;
+        const rectH = container.getBoundingClientRect().height || 0;
+        const heightPx = Math.max(scrollH, clientH, offsetH, rectH);
+        return { height: Math.ceil(heightPx), width: Math.ceil(Math.max(container.scrollWidth, container.clientWidth, 100)) };
       })()
     `);
+
     const widthMicrons = paperWidthMm * 1000;
-    // Buffer feed kecil ~4mm (16px) untuk memastikan footer struk tidak terpotong pisau cutter.
-    const heightMicrons = Math.max(20000, Math.ceil((measured.height + 16) * 25400 / 96));
+
+    // Jika pengukuran DOM menghasilkan tinggi < 5mm, pakai estimasi fallback berbasis operasi.
+    const MIN_REASONABLE_PX = Math.round(5 * 3.78);
+    const usedHeightPx = measured.height >= MIN_REASONABLE_PX
+      ? measured.height
+      : Math.round(fallbackHeightMm * 3.78);
+
+    // Tambah buffer 8mm agar baris terakhir tidak terpotong pisau cutter.
+    const bufferPx = Math.round(8 * 3.78);
+    const heightMicrons = Math.max(
+      30000, // minimum 30mm
+      Math.ceil((usedHeightPx + bufferPx) * 25400 / 96)
+    );
+
+    // Jeda singkat memastikan raster paint buffer Chromium siap dikirim ke Windows print spooler
+    await new Promise(r => setTimeout(r, 120));
+
     const result = await new Promise((resolve, reject) => {
       printWindow.webContents.print({
-        silent: true, printBackground: true,
+        silent: true,
+        printBackground: true,
         ...(printerName ? { deviceName: printerName } : {}),
         pageSize: { width: widthMicrons, height: heightMicrons },
         margins: { marginType: 'none' },
-        scaleFactor: 100
+        scaleFactor: 100,
       }, (success, failureReason) => {
-        if (success) resolve({ success: true, printerName: printerName || 'default' });
+        if (success) resolve({ success: true, printerName: printerName || 'default', measuredPx: usedHeightPx, heightMm: Math.round(heightMicrons / 1000) });
         else reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
       });
     });
@@ -86,6 +158,7 @@ async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
     return result;
   } finally {
     if (!printWindow.isDestroyed()) printWindow.close();
+    if (tmpFile) { try { fs.rmSync(tmpFile, { force: true }); } catch {} }
   }
 }
 

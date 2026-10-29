@@ -100,3 +100,11 @@ test('buildThermalDriverHtml renders image, qrcode, and barcode elements', () =>
   assert.match(html, /white-space:\s*pre;/, 'harus menggunakan white-space: pre agar baris monospace tidak wrap');
 });
 
+
+test('buildThermalDriverHtml mengonfigurasi print color adjust dan styling cetak pekat', () => {
+  const layout = { profile: { effectiveColumns: 32 }, operations: [{ type: 'text', text: 'Struk Belanja', align: 'center' }] };
+  const html = buildThermalDriverHtml(layout, 58);
+  assert.match(html, /print-color-adjust:\s*exact/, 'harus menyertakan print-color-adjust: exact');
+  assert.match(html, /#000000/, 'harus menggunakan warna teks hitam pekat');
+  assert.doesNotMatch(html, /overflow:\s*hidden/, 'tidak boleh menggunakan overflow: hidden yang memotong baris teks');
+});
