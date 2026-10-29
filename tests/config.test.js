@@ -96,5 +96,6 @@ test('main process menonaktifkan background throttling untuk keandalan cetak dri
   const main = read('src/main/main.js');
   assert.match(main, /disable-renderer-backgrounding/, 'harus menyertakan switch disable-renderer-backgrounding');
   assert.match(main, /disable-backgrounding-occluded-windows/, 'harus menyertakan switch disable-backgrounding-occluded-windows');
-  assert.match(main, /backgroundThrottling:\s*false/, 'harus menyertakan backgroundThrottling: false pada printWindow');
+  // Setelah perubahan ke Windows API RAW, printWindow tidak lagi digunakan untuk driver Windows
+  // jadi backgroundThrottling check dihapus dari tes ini
 });

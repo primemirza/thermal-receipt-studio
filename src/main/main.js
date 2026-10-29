@@ -9,6 +9,7 @@ import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
 import { sendRawTcp } from '../printer/printer-transport.js';
 import { buildThermalDriverHtml } from '../printer/driver-print.js';
 import { openDatabase } from './db/database.js';
+import { printRawBuffer } from './rawPrint.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,100 +48,16 @@ export function getDb() {
   return dbInstance;
 }
 
-async function printViaDriver(thermalLayout, paperWidthMm, printerName) {
-  // thermalLayout adalah objek plain { profile, operations } yang telah di-serialize di renderer.
-  // Dirender menjadi HTML monospace agar output identik dengan jalur raw ESC/POS TCP.
-  const html = buildThermalDriverHtml(thermalLayout, paperWidthMm);
+async function printViaDriver(escposBytes, paperWidthMm, printerName) {
+  // escposBytes adalah Uint8Array ESC/POS yang sudah di-encode di renderer.
+  // Kirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
+  // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
   if (typeof printerName !== 'string' || printerName.length > 512) throw new TypeError('Nama printer tidak valid.');
+  if (!(escposBytes instanceof Uint8Array)) throw new TypeError('ESC/POS bytes harus Uint8Array.');
 
-  // Tulis HTML ke file sementara di folder temp agar Chromium dapat memuatnya secara utuh
-  const tmpDir = path.join(app.getPath('temp'), 'trs-print');
-  let tmpFile = null;
-  try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {}
-  try {
-    tmpFile = path.join(tmpDir, 'receipt-' + randomUUID() + '.html');
-    fs.writeFileSync(tmpFile, html, 'utf8');
-  } catch { tmpFile = null; }
-
-  // Jendela cetak tersembunyi (hidden).
-  // Catatan penting: JANGAN posisikan di luar batas desktop (seperti x:-99999) karena
-  // Windows DWM / Chromium compositor akan mengabaikan rendering raster untuk koordinat out-of-bounds.
-  const printWindow = new BrowserWindow({
-    width: 480,
-    height: 800,
-    show: false,
-    autoHideMenuBar: true,
-    webPreferences: {
-      sandbox: false,
-      contextIsolation: true,
-      nodeIntegration: false,
-      backgroundThrottling: false, // Mencegah Chromium menonaktifkan rendering saat jendela hidden
-      webSecurity: false,
-    },
-  });
-
-  try {
-    if (tmpFile) {
-      await printWindow.loadFile(tmpFile);
-    } else {
-      await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
-    }
-
-    // Tunggu font, gambar ter-decode, dan frame selesai di-render
-    await printWindow.webContents.executeJavaScript(`
-      (async () => {
-        if (document.fonts?.ready) await document.fonts.ready;
-        await Promise.all(Array.from(document.images, img => img.decode().catch(() => {})));
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      })()
-    `);
-
-    // Jeda singkat memastikan raster paint buffer siap dikirim ke Windows print spooler
-    await new Promise(r => setTimeout(r, 150));
-
-    // Kirim job cetak ke Windows Print Spooler.
-    // PENTING: Jangan mengirim custom pageSize mikron ke driver printer termal fisik Windows!
-    // Driver printer termal fisik (POS-58, POS-80, Epson, Xprinter, dsb.) menolak custom DEVMODE
-    // mikron yang tidak terdaftar di form printer, menyebabkan driver membuang konten dan hanya
-    // mengeksekusi cut/feed ~1 cm kosong. Tanpa custom pageSize, driver menggunakan ukuran form
-    // bawaan roll printer dan mencetak seluruh konten struk hingga selesai.
-    const result = await new Promise((resolve, reject) => {
-      const printOptions = {
-        silent: true,
-        printBackground: true,
-        ...(printerName ? { deviceName: printerName } : {}),
-        color: false, // Monokrom murni untuk printer termal
-        margins: { marginType: 'none' },
-        scaleFactor: 100,
-      };
-
-      printWindow.webContents.print(printOptions, (success, failureReason) => {
-        if (success) {
-          resolve({ success: true, printerName: printerName || 'default' });
-        } else {
-          // Fallback jika printerName spesifik tidak dapat diakses: coba ke default printer
-          if (printerName) {
-            const fallbackOptions = { ...printOptions };
-            delete fallbackOptions.deviceName;
-            printWindow.webContents.print(fallbackOptions, (fallbackSuccess, fallbackReason) => {
-              if (fallbackSuccess) {
-                resolve({ success: true, printerName: 'default' });
-              } else {
-                reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || fallbackReason || 'alasan tidak tersedia')));
-              }
-            });
-          } else {
-            reject(new Error('Driver printer gagal mencetak: ' + String(failureReason || 'alasan tidak tersedia')));
-          }
-        }
-      });
-    });
-    lastPrintJob = { mode: 'driver', thermalLayout, paperWidthMm, printerName };
-    return result;
-  } finally {
-    if (!printWindow.isDestroyed()) printWindow.close();
-    if (tmpFile) { try { fs.rmSync(tmpFile, { force: true }); } catch {} }
-  }
+  await printRawBuffer({ printerName, buffer: Buffer.from(escposBytes) });
+  lastPrintJob = { mode: 'driver', escposBytes: Array.from(escposBytes), paperWidthMm, printerName };
+  return { success: true, printerName };
 }
 
 function getAppIconPath() {
@@ -251,8 +168,8 @@ if (!gotLock) {
       }
       case 'printer:driver': {
         try {
-          const [receiptMarkup, paperWidthMm, printerName] = args;
-          const result = await printViaDriver(receiptMarkup, paperWidthMm, printerName);
+          const [escposBytes, paperWidthMm, printerName] = args;
+          const result = await printViaDriver(new Uint8Array(escposBytes), paperWidthMm, printerName);
           return { ok: true, value: result };
         } catch (err) { return { ok: false, error: 'DRIVER_PRINT_FAILED', message: String(err?.message || err) }; }
       }
@@ -271,7 +188,7 @@ if (!gotLock) {
             const result = await sendRawTcp(lastPrintJob.host, lastPrintJob.port, lastPrintJob.bytes);
             return { ok: true, value: result };
           }
-          const result = await printViaDriver(lastPrintJob.receiptMarkup, lastPrintJob.paperWidthMm, lastPrintJob.printerName);
+          const result = await printViaDriver(new Uint8Array(lastPrintJob.escposBytes), lastPrintJob.paperWidthMm, lastPrintJob.printerName);
           return { ok: true, value: result };
         } catch (err) { return { ok: false, error: 'REPRINT_FAILED', message: String(err?.message || err) }; }
       }

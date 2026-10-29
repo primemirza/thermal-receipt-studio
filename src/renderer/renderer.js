@@ -1463,7 +1463,9 @@ $('printer-print-button').addEventListener('click', async () => {
   try {
     if (printerMode.value === 'driver') {
       // Gunakan thermal layout yang sama dengan jalur raw TCP/ESC-POS agar output identik.
-      // Layout plain object dikirim via IPC; main process mengubahnya ke HTML monospace <pre>.
+      // Encode layout ke ESC/POS bytes di renderer, lalu kirim raw bytes ke main process
+      // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
+      // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
       const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
       // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
       const layoutPlain = JSON.parse(JSON.stringify(layout));
@@ -1493,11 +1495,33 @@ $('printer-print-button').addEventListener('click', async () => {
           } catch {}
         }
       }
-      const result = await window.trs.printViaDriver(layoutPlain, documentModel.paperWidthMm, printerDevice.value);
+      // Encode layout ke ESC/POS bytes di renderer
+      const resolveImage = async (dataUrl, operation) => {
+        if (!dataUrl) return null;
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, canvas.width, canvas.height);
+      };
+      const escposBytes = await encodeThermalLayout(layoutPlain, ReceiptPrinterEncoder, {
+        language: 'esc-pos',
+        columns: layoutPlain.profile.columns,
+        feedBeforeCut: 0,
+        resolveImage
+      });
+      const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, printerDevice.value);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
       // Simpan profil printer yang berhasil digunakan
       window.trs.savePrinterProfile({ id: 'default', mode: 'driver', driverName: printerDevice.value }).catch(() => {});
-      setStatus('Job dikirim ke driver Windows: ' + (printerDevice.value || 'printer default') + '.');
+      setStatus('Job dikirim ke driver Windows (RAW API): ' + (printerDevice.value || 'printer default') + '.');
 
     } else {
       if (!$('raw-escpos-confirm').checked) throw new Error('Konfirmasi dukungan ESC/POS diperlukan sebelum mengirim data raw.');
