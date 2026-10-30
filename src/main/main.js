@@ -41,7 +41,12 @@ let dbInstance = null;
 export function getDb() {
   if (!dbInstance) {
     const dir = userDataDir();
-    try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (err) {
+      console.error('Gagal membuat direktori userData:', err);
+      // Tetap lanjut karena mungkin sudah ada
+    }
     const dbPath = path.join(dir, 'studio.db');
     dbInstance = openDatabase(dbPath);
   }

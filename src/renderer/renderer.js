@@ -405,6 +405,10 @@ function renderCanvasBlock(block) {
   return node;
 }
 function renderCanvas() {
+  // Cleanup active inline edit session jika elemen tidak lagi terhubung ke DOM
+  if (activeInlineEditSession?.element && !activeInlineEditSession.element.isConnected) {
+    activeInlineEditSession = null;
+  }
   const fragment = document.createDocumentFragment();
   documentModel.blocks.forEach(block => fragment.append(renderCanvasBlock(block)));
   designPaper.replaceChildren(fragment);
@@ -524,14 +528,14 @@ function renderPreviewBlocks(blocks, target, columns) {
   }
 }
 function renderPreview() {
-  const columns = documentModel.paperWidthMm === 58 ? 32 : 42;
+  const columns = documentModel.paperWidthMm === 58 ? 32 : 48;
   const fragment = document.createDocumentFragment();
   const thermalLayout = state.previewMode === 'thermal' ? createThermalLayout(documentModel) : null;
   if (thermalLayout) renderThermalLayoutPreview(thermalLayout, fragment);
   else renderPreviewBlocks(documentModel.blocks, fragment, columns);
   receiptPreview.replaceChildren(fragment);
   const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
-  const receiptWidth = documentModel.paperWidthMm === 58 ? 288 : 368;
+  const receiptWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
   receiptPreview.style.boxSizing = 'border-box';
   receiptPreview.style.width = receiptWidth + 'px';
   receiptPreview.style.paddingTop = (17 + margins.top) + 'px';
@@ -903,7 +907,7 @@ designPaper.addEventListener('click', event => {
       event.preventDefault();
       beginInlineEdit(editor, blockNode.dataset.blockId);
     }
-  } else if (target === designPaper || target?.closest('.section-children') && target.classList.contains('section-empty') === false && target.children.length === 0) {
+  } else if (target === designPaper || (target?.closest('.section-children') && (target.classList.contains('section-empty') || target.children.length === 0))) {
     activeInlineTarget = null;
     selectedBlockId = null;
     renderCanvas();
@@ -1466,7 +1470,7 @@ $('printer-print-button').addEventListener('click', async () => {
       // Encode layout ke ESC/POS bytes di renderer, lalu kirim raw bytes ke main process
       // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
       // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
-      const layout = createThermalLayout(documentModel, { feedBeforeCut: 4, cut: true });
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
       // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
       const layoutPlain = JSON.parse(JSON.stringify(layout));
       // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
@@ -1651,6 +1655,28 @@ async function boot() {
         if (profile.mode === 'raw') {
           if (profile.rawHost) $('raw-printer-host').value = profile.rawHost;
           if (profile.rawPort) $('raw-printer-port').value = String(profile.rawPort);
+        }
+        // Pulihkan nama printer Windows yang terakhir dipilih
+        if (profile.mode === 'driver' && profile.driverName) {
+          const printerDevice = $('printer-device');
+          if (printerDevice) {
+            // Tunggu daftar printer selesai dimuat sebelum memilih
+            const selectPrinter = () => {
+              const option = Array.from(printerDevice.options).find(opt => opt.value === profile.driverName);
+              if (option) {
+                printerDevice.value = profile.driverName;
+              }
+            };
+            if (printerDevice.options.length > 1) {
+              selectPrinter();
+            } else {
+              printerDevice.addEventListener('change', () => {
+                if (printerDevice.options.length > 1) {
+                  selectPrinter();
+                }
+              }, { once: true });
+            }
+          }
         }
       }
     } catch (e) { console.warn('Gagal memuat profil printer:', e); }
