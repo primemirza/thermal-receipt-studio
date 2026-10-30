@@ -185,6 +185,14 @@ export function createThermalLayout(document, options = {}) {
   });
   const operations = [];
   const width = profile.effectiveColumns;
+  
+  // Tambahkan margin top sebagai feed lines di awal (konversi px ke feed lines)
+  // 1 feed line ≈ 1 baris teks ≈ 12px
+  const margins = document.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+  const topFeedLines = Math.max(0, Math.min(20, Math.ceil((margins.top || 0) / 12)));
+  if (topFeedLines > 0) {
+    operations.push({ type: 'feed', lines: topFeedLines });
+  }
 
   function visit(blocks) {
     for (const block of blocks) {
@@ -241,6 +249,13 @@ export function createThermalLayout(document, options = {}) {
     }
   }
   visit(document.blocks);
+  
+  // Tambahkan margin bottom sebagai feed lines di akhir (sebelum cut)
+  const bottomFeedLines = Math.max(0, Math.min(20, Math.ceil((margins.bottom || 0) / 12)));
+  if (bottomFeedLines > 0) {
+    operations.push({ type: 'feed', lines: bottomFeedLines });
+  }
+  
   if (Number.isInteger(options.feedBeforeCut) && options.feedBeforeCut > 0) {
     operations.push({ type: 'feed', lines: Math.min(options.feedBeforeCut, 20) });
   }

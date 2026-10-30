@@ -1410,10 +1410,157 @@ async function resolvePrinterImage(dataUrl) {
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 $('printer-button').addEventListener('click', async () => {
-  updatePrinterMode();
-  printerDialog.showModal();
-  await refreshPrinterList();
-  loadRecentFilesPanel();
+  // Langsung cetak menggunakan printer yang tersimpan di profil tanpa dialog
+  const button = $('printer-button');
+  button.disabled = true;
+  try {
+    // Muat profil printer tersimpan
+    const profileResult = await window.trs.getPrinterProfile();
+    if (!profileResult?.ok || !profileResult.value) {
+      setStatus('Belum ada printer yang disimpan. Silakan atur printer melalui menu.');
+      printerDialog.showModal();
+      await refreshPrinterList();
+      loadRecentFilesPanel();
+      return;
+    }
+    
+    const profile = profileResult.value;
+    if (profile.mode === 'driver' && profile.driverName) {
+      // Cetak langsung dengan driver Windows menggunakan printer tersimpan
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      const layoutPlain = JSON.parse(JSON.stringify(layout));
+      
+      // Lengkapi grafik QR code dan Barcode
+      for (const op of layoutPlain.operations) {
+        if (op.type === 'qrcode' && !op.dataUrl && typeof window.qrcode === 'function') {
+          try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(op.value, 'Byte');
+            qr.make();
+            op.dataUrl = qr.createDataURL(3, 4);
+          } catch {}
+        } else if (op.type === 'barcode' && !op.svg && typeof window.JsBarcode === 'function') {
+          try {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            window.JsBarcode(svg, op.value, {
+              format: 'CODE128',
+              lineColor: '#000000',
+              width: 1.4,
+              height: 48,
+              displayValue: true,
+              font: 'monospace',
+              fontSize: 12,
+              margin: 4
+            });
+            op.svg = svg.outerHTML;
+          } catch {}
+        }
+      }
+      
+      const resolveImage = async (dataUrl, operation) => {
+        if (!dataUrl) return null;
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, canvas.width, canvas.height);
+      };
+      
+      const escposBytes = await encodeThermalLayout(layoutPlain, ReceiptPrinterEncoder, {
+        language: 'esc-pos',
+        columns: layoutPlain.profile.columns,
+        feedBeforeCut: 0,
+        resolveImage
+      });
+      
+      const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, profile.driverName);
+      if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
+      
+      setStatus('Job dikirim ke driver Windows (RAW API): ' + profile.driverName + '.');
+    } else if (profile.mode === 'raw' && profile.rawHost && profile.rawPort) {
+      // Cetak langsung dengan raw TCP
+      if (!$('raw-escpos-confirm').checked) {
+        setStatus('Konfirmasi dukungan ESC/POS diperlukan untuk raw TCP.');
+        printerDialog.showModal();
+        await refreshPrinterList();
+        loadRecentFilesPanel();
+        return;
+      }
+      
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+      const layoutPlain = JSON.parse(JSON.stringify(layout));
+      
+      for (const op of layoutPlain.operations) {
+        if (op.type === 'qrcode' && !op.dataUrl && typeof window.qrcode === 'function') {
+          try {
+            const qr = window.qrcode(0, 'M');
+            qr.addData(op.value, 'Byte');
+            qr.make();
+            op.dataUrl = qr.createDataURL(3, 4);
+          } catch {}
+        } else if (op.type === 'barcode' && !op.svg && typeof window.JsBarcode === 'function') {
+          try {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            window.JsBarcode(svg, op.value, {
+              format: 'CODE128',
+              lineColor: '#000000',
+              width: 1.4,
+              height: 48,
+              displayValue: true,
+              font: 'monospace',
+              fontSize: 12,
+              margin: 4
+            });
+            op.svg = svg.outerHTML;
+          } catch {}
+        }
+      }
+      
+      const resolveImage = async (dataUrl, operation) => {
+        if (!dataUrl) return null;
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return ctx.getImageData(0, 0, canvas.width, canvas.height);
+      };
+      
+      const escposBytes = await encodeThermalLayout(layoutPlain, ReceiptPrinterEncoder, {
+        language: 'esc-pos',
+        columns: layoutPlain.profile.columns,
+        feedBeforeCut: 0,
+        resolveImage
+      });
+      
+      const result = await window.trs.printRaw(Array.from(escposBytes), profile.rawHost, Number(profile.rawPort));
+      if (!result?.ok) throw new Error(result?.message || result?.error || 'Raw print gagal.');
+      
+      setStatus('Job dikirim ke printer TCP: ' + profile.rawHost + ':' + profile.rawPort + '.');
+    } else {
+      setStatus('Profil printer tidak lengkap. Silakan atur printer melalui menu.');
+      printerDialog.showModal();
+      await refreshPrinterList();
+      loadRecentFilesPanel();
+    }
+  } catch (err) {
+    setStatus('Cetak gagal: ' + String(err?.message || err));
+  } finally {
+    button.disabled = false;
+  }
 });
 $('printer-dialog-cancel').addEventListener('click', () => printerDialog.close());
 printerMode.addEventListener('change', updatePrinterMode);
