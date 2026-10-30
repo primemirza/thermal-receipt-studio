@@ -1466,7 +1466,7 @@ $('printer-print-button').addEventListener('click', async () => {
       // Encode layout ke ESC/POS bytes di renderer, lalu kirim raw bytes ke main process
       // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
       // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
-      const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
+      const layout = createThermalLayout(documentModel, { feedBeforeCut: 4, cut: true });
       // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
       const layoutPlain = JSON.parse(JSON.stringify(layout));
       // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
