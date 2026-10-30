@@ -1687,25 +1687,33 @@ $('printer-print-button').addEventListener('click', async () => {
         feedBeforeCut: 0,
         resolveImage
       });
-      const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, printerDevice.value);
+      // Gunakan printer yang dipilih dari dropdown toolbar atau fallback ke dialog
+      const toolbarPrinter = $('toolbar-printer-select').value;
+      const printerName = toolbarPrinter || printerDevice.value;
+      if (!printerName) {
+        // Jika tidak ada printer yang dipilih, tampilkan dialog
+        updatePrinterMode();
+        printerDialog.showModal();
+        await refreshPrinterList();
+        loadRecentFilesPanel();
+        button.disabled = false;
+        return;
+      }
+      const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, printerName);
       if (!result?.ok) throw new Error(result?.message || result?.error || 'Driver printer gagal.');
       // Simpan profil printer yang berhasil digunakan
-      window.trs.savePrinterProfile({ id: 'default', mode: 'driver', driverName: printerDevice.value }).catch(() => {});
-      setStatus('Job dikirim ke driver Windows (RAW API): ' + (printerDevice.value || 'printer default') + '.');
+      window.trs.savePrinterProfile({ id: 'default', mode: 'driver', driverName: printerName }).catch(() => {});
+      setStatus('Job dikirim ke driver Windows (RAW API): ' + printerName + '.');
 
     } else {
-      if (!$('raw-escpos-confirm').checked) throw new Error('Konfirmasi dukungan ESC/POS diperlukan sebelum mengirim data raw.');
-      const host = $('raw-printer-host').value.trim();
-      const port = Number($('raw-printer-port').value);
-      const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
-      const bytes = await encodeThermalLayout(layout, ReceiptPrinterEncoder, { resolveImage: resolvePrinterImage });
-      const result = await window.trs.printRawTcp(bytes, host, port);
-      if (!result?.ok) throw new Error(result?.message || result?.error || 'Pengiriman ESC/POS gagal.');
-      // Simpan profil printer TCP yang berhasil digunakan
-      window.trs.savePrinterProfile({ id: 'default', mode: 'raw', rawHost: host, rawPort: port }).catch(() => {});
-      setStatus('Job ESC/POS dikirim: ' + result.value.bytesSent + ' byte ke ' + host + ':' + port + '.');
+      // Mode raw TCP - tampilkan dialog untuk konfigurasi karena toolbar hanya untuk Windows driver
+      updatePrinterMode();
+      printerDialog.showModal();
+      await refreshPrinterList();
+      loadRecentFilesPanel();
+      button.disabled = false;
+      return;
     }
-    printerDialog.close();
   } catch (error) {
     setStatus('Cetak gagal: ' + String(error?.message || error));
   } finally {

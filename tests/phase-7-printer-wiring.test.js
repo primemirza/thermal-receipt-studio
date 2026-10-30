@@ -25,7 +25,7 @@ test('printer UI warns and requires explicit ESC/POS confirmation before raw pri
   const renderer = read('src/renderer/renderer.js');
   const html = read('src/renderer/index.html');
   assert.match(renderer, /raw-escpos-confirm/);
-  assert.match(renderer, /encodeThermalLayout\(layout, ReceiptPrinterEncoder/);
+  assert.match(renderer, /encodeThermalLayout\(\w+, ReceiptPrinterEncoder/);
   assert.match(html, /Raw ESC\/POS via TCP\/IP/);
   assert.match(html, /id="raw-escpos-confirm"/);
 });

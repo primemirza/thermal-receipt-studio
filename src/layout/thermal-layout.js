@@ -194,55 +194,124 @@ export function createThermalLayout(document, options = {}) {
     operations.push({ type: 'feed', lines: topFeedLines });
   }
 
+  // Helper untuk mengkonversi px ke feed lines (1 feed line ≈ 12px)
+  function pxToFeedLines(px) {
+    return Math.max(0, Math.min(20, Math.ceil((px || 0) / 12)));
+  }
+
+  // Terapkan margin/padding block sebagai feed lines
+  function applyBlockSpacing(block) {
+    const margin = block.margin || {};
+    const padding = block.blockPadding || block.padding || {};
+    // Margin top
+    const topFeed = pxToFeedLines(margin.top);
+    if (topFeed > 0) operations.push({ type: 'feed', lines: topFeed });
+    // Padding top
+    const paddingTopFeed = pxToFeedLines(padding.top);
+    if (paddingTopFeed > 0) operations.push({ type: 'feed', lines: paddingTopFeed });
+  }
+
+  function finishBlockSpacing(block) {
+    const margin = block.margin || {};
+    const padding = block.blockPadding || block.padding || {};
+    // Padding bottom
+    const paddingBottomFeed = pxToFeedLines(padding.bottom);
+    if (paddingBottomFeed > 0) operations.push({ type: 'feed', lines: paddingBottomFeed });
+    // Margin bottom
+    const bottomFeed = pxToFeedLines(margin.bottom);
+    if (bottomFeed > 0) operations.push({ type: 'feed', lines: bottomFeed });
+  }
+
   function visit(blocks) {
     for (const block of blocks) {
       switch (block.type) {
-        case 'section':
+        case 'section': {
+          const margin = block.margin || {};
+          const padding = block.padding || {};
+          // Margin top section
+          const topFeed = pxToFeedLines(margin.top);
+          if (topFeed > 0) operations.push({ type: 'feed', lines: topFeed });
+          // Padding top section
+          const paddingTopFeed = pxToFeedLines(padding.top);
+          if (paddingTopFeed > 0) operations.push({ type: 'feed', lines: paddingTopFeed });
+          // Visit children
           visit(block.children);
+          // Padding bottom section
+          const paddingBottomFeed = pxToFeedLines(padding.bottom);
+          if (paddingBottomFeed > 0) operations.push({ type: 'feed', lines: paddingBottomFeed });
+          // Margin bottom section
+          const bottomFeed = pxToFeedLines(margin.bottom);
+          if (bottomFeed > 0) operations.push({ type: 'feed', lines: bottomFeed });
           break;
+        }
         case 'text':
+          applyBlockSpacing(block);
           pushText(operations, block.text, block, width);
+          finishBlockSpacing(block);
           break;
         case 'dynamic':
+          applyBlockSpacing(block);
           pushText(operations, block.text || '', block, width);
+          finishBlockSpacing(block);
           break;
         case 'item': {
+          applyBlockSpacing(block);
           const price = formatAmount(block.price);
           const nameWidth = Math.max(1, width - Array.from(price).length - 1);
           const names = wrapText(block.name, nameWidth);
           operations.push({ type: 'text', text: padCell(names[0], nameWidth, 'left') + ' ' + price, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, size: block.size || 'normal', sourceType: 'item' });
           for (const line of names.slice(1)) operations.push({ type: 'text', text: line, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, sourceType: 'item' });
+          finishBlockSpacing(block);
           break;
         }
         case 'total': {
+          applyBlockSpacing(block);
           const value = formatAmount(block.amount);
           const labelWidth = Math.max(1, width - Array.from(value).length - 1);
           operations.push({ type: 'text', text: padCell(block.label, labelWidth, 'left') + ' ' + value, align: 'left', bold: block.bold === true, italic: block.italic === true, underline: block.underline === true, size: block.size || 'normal', sourceType: 'total' });
+          finishBlockSpacing(block);
           break;
         }
         case 'rule': {
+          applyBlockSpacing(block);
           const character = block.character || (block.style === 'double' ? '=' : '-');
           operations.push({ type: 'rule', style: block.style || 'solid', character, width });
+          finishBlockSpacing(block);
           break;
         }
         case 'spacer':
           operations.push({ type: 'feed', lines: block.height });
           break;
-        case 'table':
+        case 'table': {
+          applyBlockSpacing(block);
           layoutTable(block, width, operations);
+          finishBlockSpacing(block);
           break;
-        case 'columns':
+        }
+        case 'columns': {
+          applyBlockSpacing(block);
           layoutColumns(block, width, operations);
+          finishBlockSpacing(block);
           break;
-        case 'image':
+        }
+        case 'image': {
+          applyBlockSpacing(block);
           operations.push({ type: 'image', dataUrl: block.dataUrl, width: block.width, alt: block.alt || '' });
+          finishBlockSpacing(block);
           break;
-        case 'qrcode':
+        }
+        case 'qrcode': {
+          applyBlockSpacing(block);
           operations.push({ type: 'qrcode', value: block.value, width: block.width || 96 });
+          finishBlockSpacing(block);
           break;
-        case 'barcode':
+        }
+        case 'barcode': {
+          applyBlockSpacing(block);
           operations.push({ type: 'barcode', value: block.value, width: block.width || 128, symbology: block.symbology || 'code128' });
+          finishBlockSpacing(block);
           break;
+        }
         default:
           throw new TypeError('Jenis blok tidak didukung layout thermal: ' + block.type);
       }
