@@ -1562,6 +1562,25 @@ $('printer-button').addEventListener('click', async () => {
     button.disabled = false;
   }
 });
+$('printer-settings-button').addEventListener('click', async () => {
+  updatePrinterMode();
+  printerDialog.showModal();
+  await refreshPrinterList();
+  loadRecentFilesPanel();
+});
+$('toolbar-printer-select').addEventListener('change', async () => {
+  const select = $('toolbar-printer-select');
+  const printerName = select.value;
+  if (!printerName) return;
+  
+  // Simpan printer yang dipilih ke profil
+  try {
+    await window.trs.savePrinterProfile({ id: 'default', mode: 'driver', driverName: printerName });
+    setStatus('Printer disimpan: ' + printerName);
+  } catch (err) {
+    setStatus('Gagal menyimpan printer: ' + String(err?.message || err));
+  }
+});
 $('printer-dialog-cancel').addEventListener('click', () => printerDialog.close());
 printerMode.addEventListener('change', updatePrinterMode);
 
@@ -1803,30 +1822,43 @@ async function boot() {
           if (profile.rawHost) $('raw-printer-host').value = profile.rawHost;
           if (profile.rawPort) $('raw-printer-port').value = String(profile.rawPort);
         }
-        // Pulihkan nama printer Windows yang terakhir dipilih
+        // Pulihkan nama printer Windows yang terakhir dipilih ke dropdown toolbar
         if (profile.mode === 'driver' && profile.driverName) {
-          const printerDevice = $('printer-device');
-          if (printerDevice) {
-            // Tunggu daftar printer selesai dimuat sebelum memilih
-            const selectPrinter = () => {
-              const option = Array.from(printerDevice.options).find(opt => opt.value === profile.driverName);
-              if (option) {
-                printerDevice.value = profile.driverName;
+          const toolbarSelect = $('toolbar-printer-select');
+          if (toolbarSelect) {
+            // Load daftar printer dulu
+            const listResult = await window.trs.printersList();
+            if (listResult?.ok && listResult.value) {
+              toolbarSelect.innerHTML = '<option value="">Pilih printer...</option>';
+              for (const printer of listResult.value) {
+                const option = document.createElement('option');
+                option.value = printer.name;
+                option.textContent = printer.displayName || printer.name;
+                toolbarSelect.appendChild(option);
               }
-            };
-            if (printerDevice.options.length > 1) {
-              selectPrinter();
-            } else {
-              printerDevice.addEventListener('change', () => {
-                if (printerDevice.options.length > 1) {
-                  selectPrinter();
-                }
-              }, { once: true });
+              toolbarSelect.value = profile.driverName;
             }
           }
         }
       }
     } catch (e) { console.warn('Gagal memuat profil printer:', e); }
+    
+    // Load daftar printer ke dropdown toolbar (jika belum ada dari profil)
+    const toolbarSelect = $('toolbar-printer-select');
+    if (toolbarSelect && toolbarSelect.options.length <= 1) {
+      try {
+        const listResult = await window.trs.printersList();
+        if (listResult?.ok && listResult.value) {
+          toolbarSelect.innerHTML = '<option value="">Pilih printer...</option>';
+          for (const printer of listResult.value) {
+            const option = document.createElement('option');
+            option.value = printer.name;
+            option.textContent = printer.displayName || printer.name;
+            toolbarSelect.appendChild(option);
+          }
+        }
+      } catch (e) { console.warn('Gagal memuat daftar printer:', e); }
+    }
 
     // --- Fase 8: Periksa recovery snapshot ---
     try {

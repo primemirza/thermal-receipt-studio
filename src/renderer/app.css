@@ -47,6 +47,16 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .segment.is-active { background: var(--surface); border-color: #d4d4d4; box-shadow: 0 1px 2px #0000000d; color: #004f9e; font-weight: 600; }
 .toolbar-divider { height: 27px; width: 1px; background: var(--border); }
 .icon-button { width: 29px; height: 29px; border-color: var(--border); background: var(--surface); font-size: 19px; line-height: 1; }
+#toolbar-printer-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 150px;
+  max-width: 200px;
+}
 .icon-button:hover, .segment:hover { background: var(--accent-soft); }
 .text-button:hover { background: var(--accent-soft); color: #004f9e; border-color: #bad8f8; }
 .zoom-value { min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; }
