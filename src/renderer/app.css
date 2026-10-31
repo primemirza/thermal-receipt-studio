@@ -881,3 +881,26 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 #recovery-dialog { border: 1px solid #d6a23d; border-radius: var(--radius); }
 .recovery-meta { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 5px; padding: 8px 10px; margin: 8px 0 0; border: 1px solid var(--border); }
 
+/* Toolbar printer: dropdown + tombol cetak sejajar */
+.toolbar-printer-section { flex-shrink: 0; }
+.toolbar-printer-group { display: flex; align-items: center; gap: 3px; }
+.toolbar-printer-select {
+  height: 32px;
+  min-width: 160px;
+  max-width: 220px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-family: var(--ui);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  box-sizing: border-box;
+  vertical-align: middle;
+  appearance: auto;
+  line-height: 1;
+}
+.toolbar-printer-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+body .toolbar > .toolbar-printer-section { align-self: flex-end; margin-bottom: 4px; }
+
