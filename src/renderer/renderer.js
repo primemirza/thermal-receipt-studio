@@ -380,7 +380,7 @@ function renderCanvasBlock(block) {
     const rule = make('span', 'design-rule');
     rule.classList.add('rule-' + (block.style || 'solid'));
     const character = block.character || '-';
-    if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 42); }
+    if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 48); }
     node.append(rule);
   } else if (block.type === 'spacer') {
     node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
@@ -524,7 +524,7 @@ function renderPreviewBlocks(blocks, target, columns) {
   }
 }
 function renderPreview() {
-  const columns = documentModel.paperWidthMm === 58 ? 32 : 42;
+  const columns = documentModel.paperWidthMm === 58 ? 32 : 48;
   const fragment = document.createDocumentFragment();
   const thermalLayout = state.previewMode === 'thermal' ? createThermalLayout(documentModel) : null;
   if (thermalLayout) renderThermalLayoutPreview(thermalLayout, fragment);
