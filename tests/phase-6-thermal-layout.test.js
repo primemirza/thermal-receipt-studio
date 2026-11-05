@@ -142,7 +142,7 @@ test('vendored ReceiptPrinterEncoder v4 produces a real ESC/POS byte stream', as
 });
 
 
-test('renderer exposes an opt-in thermal simulation while preserving visual preview as default', async () => {
+test('renderer uses thermal simulation for preview (visual mode removed)', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const { fileURLToPath } = await import('node:url');
@@ -150,9 +150,9 @@ test('renderer exposes an opt-in thermal simulation while preserving visual prev
   const renderer = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'src/renderer/index.html'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'src/renderer/app.css'), 'utf8');
-  assert.ok(renderer.includes("previewMode: 'visual'"));
+  assert.ok(!renderer.includes("previewMode: 'visual'"));
   assert.ok(renderer.includes('createThermalLayout(documentModel)'));
   assert.ok(renderer.includes('renderThermalLayoutPreview(thermalLayout, fragment)'));
-  assert.ok(html.includes('id="toggle-thermal-layout"'));
+  assert.ok(!html.includes('id="toggle-thermal-layout"'));
   assert.ok(css.includes('.thermal-layout-preview'));
 });
