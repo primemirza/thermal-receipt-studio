@@ -1483,6 +1483,7 @@ async function doPrintViaDriver(triggerButton) {
       language: 'esc-pos',
       columns: layoutPlain.profile.columns,
       feedBeforeCut: 0,
+      printer: documentModel.paperWidthMm === 80 ? '80mm' : '58mm',
       resolveImage
     });
     const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, selectedPrinter);
