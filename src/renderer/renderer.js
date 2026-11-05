@@ -14,7 +14,6 @@ const previewStage = $('preview-stage');
 const zoomValue = $('zoom-value');
 const zoomStatus = $('zoom-status');
 const paperChip = $('paper-chip');
-const thermalPreviewToggle = $('toggle-thermal-layout');
 const canvasWidthLabel = $('canvas-width-label');
 const previewDimensions = $('preview-dimensions');
 const previewStatus = $('preview-status');
@@ -60,7 +59,7 @@ let activeInlineTarget = null;
 let activeInlineEditSession = null;
 let isDirty = false;
 let currentFilePath = null;
-const state = { zoom: 100, guides: false, previewMode: 'visual', undo: [], redo: [] };
+const state = { zoom: 100, guides: false, undo: [], redo: [] };
 const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 // Harga ditampilkan sebagai angka berkelompok; mata uang/prefix tidak dipaksakan oleh editor.
 const money = (amount) => currency.format(amount);
@@ -524,11 +523,9 @@ function renderPreviewBlocks(blocks, target, columns) {
   }
 }
 function renderPreview() {
-  const columns = documentModel.paperWidthMm === 58 ? 32 : 48;
+  const thermalLayout = createThermalLayout(documentModel);
   const fragment = document.createDocumentFragment();
-  const thermalLayout = state.previewMode === 'thermal' ? createThermalLayout(documentModel) : null;
-  if (thermalLayout) renderThermalLayoutPreview(thermalLayout, fragment);
-  else renderPreviewBlocks(documentModel.blocks, fragment, columns);
+  renderThermalLayoutPreview(thermalLayout, fragment);
   receiptPreview.replaceChildren(fragment);
   const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
   const receiptWidth = documentModel.paperWidthMm === 58 ? 288 : 368;
@@ -538,7 +535,7 @@ function renderPreview() {
   receiptPreview.style.paddingRight = (14 + margins.right) + 'px';
   receiptPreview.style.paddingBottom = (20 + margins.bottom) + 'px';
   receiptPreview.style.paddingLeft = (14 + margins.left) + 'px';
-  receiptPreview.className = 'receipt-preview zoom-' + state.zoom + (state.previewMode === 'thermal' ? ' thermal-layout-preview' : '');
+  receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
   previewStage.classList.toggle('show-guides', state.guides);
@@ -550,18 +547,8 @@ function renderPreview() {
   });
   zoomValue.textContent = state.zoom + '%'; zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
   paperChip.textContent = documentModel.paperWidthMm + ' mm'; canvasWidthLabel.textContent = documentModel.paperWidthMm + ' mm';
-  previewDimensions.textContent = documentModel.paperWidthMm + ' mm · ' + (thermalLayout ? thermalLayout.profile.columns : columns) + ' kolom' + (thermalLayout ? ' · layout thermal' : '');
-  previewStatus.textContent = thermalLayout ? 'Simulasi layout thermal diperbarui' : 'Preview diperbarui';
-  if (thermalPreviewToggle) {
-    const textSpan = thermalPreviewToggle.querySelector('.btn-text');
-    const label = state.previewMode === 'thermal' ? 'Preview visual' : 'Simulasi thermal';
-    if (textSpan) {
-      textSpan.textContent = label;
-    } else {
-      thermalPreviewToggle.textContent = label;
-    }
-    thermalPreviewToggle.setAttribute('aria-pressed', String(state.previewMode === 'thermal'));
-  }
+  previewDimensions.textContent = documentModel.paperWidthMm + ' mm · ' + thermalLayout.profile.columns + ' kolom · layout thermal';
+  previewStatus.textContent = 'Preview thermal diperbarui';
 }
 function renderInspector() {
   const block = selectedBlock();
@@ -1355,11 +1342,6 @@ document.addEventListener('keydown', event => {
   else if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }
   else if (key === 'y') { event.preventDefault(); restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'); }
 });
-thermalPreviewToggle?.addEventListener('click', () => {
-  state.previewMode = state.previewMode === 'thermal' ? 'visual' : 'thermal';
-  renderPreview();
-  setStatus(state.previewMode === 'thermal' ? 'Simulasi layout thermal aktif.' : 'Preview visual aktif.');
-});
 $('undo-button').addEventListener('click', () => restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'));
 $('redo-button').addEventListener('click', () => restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'));
 
@@ -1483,7 +1465,6 @@ async function doPrintViaDriver(triggerButton) {
       language: 'esc-pos',
       columns: layoutPlain.profile.columns,
       feedBeforeCut: 0,
-      printer: documentModel.paperWidthMm === 80 ? '80mm' : '58mm',
       resolveImage
     });
     const result = await window.trs.printViaDriver(Array.from(escposBytes), documentModel.paperWidthMm, selectedPrinter);
