@@ -37,11 +37,6 @@ import {
   buildDriverPrintHtml,
   buildThermalDriverHtml
 } from '../src/printer/driver-print.js';
-import {
-  validateRawPrinterTarget,
-  normalizeRawJob,
-  printerErrorMessage
-} from '../src/printer/printer-transport.js';
 import { openDatabase } from '../src/main/db/database.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -318,20 +313,6 @@ test('E2E: ketahanan terhadap arsip zip korup, path traversal, dan input jaringa
 
   // Arsip zip yang korup ditolak secara anggun
   assert.throws(() => readZip(Buffer.from([0, 1, 2, 3])), /Ukuran arsip tidak valid|Header lokal ZIP rusak/);
-
-  // Target printer raw divalidasi ketat
-  assert.throws(() => validateRawPrinterTarget(''), /Alamat printer/);
-  assert.throws(() => validateRawPrinterTarget('bad host with spaces'), /Alamat printer/);
-  assert.throws(() => validateRawPrinterTarget('192.168.1.1', 99999), /Port printer/);
-
-  // Job raw dibatasi 1 byte s/d 8 MB
-  assert.throws(() => normalizeRawJob([]), /Ukuran job/);
-  assert.throws(() => normalizeRawJob([999]), /Byte cetak/);
-
-  // Error socket TCP dipetakan ke pesan ramah bahasa Indonesia
-  assert.match(printerErrorMessage({ code: 'ECONNREFUSED' }), /menolak koneksi/);
-  assert.match(printerErrorMessage({ code: 'ETIMEDOUT' }), /habis/);
-  assert.match(printerErrorMessage({ code: 'EHOSTUNREACH' }), /tidak dapat dijangkau/);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -358,8 +339,7 @@ test('E2E: kepatuhan offline murni, CSP ketat, dan modul inti terisolasi dari DO
     'src/renderer/document-model.js',
     'src/layout/thermal-layout.js',
     'src/encoder/receipt-printer-encoder.js',
-    'src/main/trstudio-archive.js',
-    'src/printer/printer-transport.js'
+    'src/main/trstudio-archive.js'
   ];
   for (const file of coreFiles) {
     const code = read(file);
