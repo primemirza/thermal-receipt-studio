@@ -12,25 +12,22 @@ test('printer operations are whitelisted in main and exposed only through named 
   const preload = read('src/preload/preload.cjs');
   assert.match(main, /'printer:list'/);
   assert.match(main, /'printer:driver'/);
+  assert.match(main, /'printer:raw'/);
   assert.match(main, /'printer:reprint'/);
   assert.match(main, /getPrintersAsync/);
+  assert.match(main, /webContents\.print/);
   assert.match(preload, /listPrinters: \(\) => invoke\('printer:list'\)/);
+  assert.match(preload, /printRawTcp: \(bytes, host, port = 9100\)/);
   assert.doesNotMatch(preload, /exposeInMainWorld\([^)]*ipcRenderer/);
 });
 
-test('printer UI uses driver-only mode with toolbar dropdown (TCP mode removed)', () => {
+test('printer UI warns and requires explicit ESC/POS confirmation before raw printing', () => {
   const renderer = read('src/renderer/renderer.js');
   const html = read('src/renderer/index.html');
-  // Dropdown printer ada di toolbar
-  assert.match(html, /id="toolbar-printer-device"/);
-  assert.match(html, /toolbar-printer-select/);
-  // Jalur cetak driver tetap ada
-  assert.match(renderer, /encodeThermalLayout\(layoutPlain, ReceiptPrinterEncoder/);
-  assert.match(renderer, /printViaDriver/);
-  assert.match(renderer, /doPrintViaDriver/);
-  // TCP mode sudah dihapus
-  assert.doesNotMatch(html, /raw-escpos-confirm/);
-  assert.doesNotMatch(html, /Raw ESC\/POS via TCP\/IP/);
+  assert.match(renderer, /raw-escpos-confirm/);
+  assert.match(renderer, /encodeThermalLayout\(layout, ReceiptPrinterEncoder/);
+  assert.match(html, /Raw ESC\/POS via TCP\/IP/);
+  assert.match(html, /id="raw-escpos-confirm"/);
 });
 
 test('toolbar print button is an icon button and dialog buttons have icons with high-contrast hover', () => {
@@ -43,3 +40,4 @@ test('toolbar print button is an icon button and dialog buttons have icons with 
   assert.match(css, /\.primary-action:hover[^{]*{[^}]*color:\s*#ffffff/);
   assert.match(css, /\.text-button:hover[^{]*{[^}]*color:\s*#004f9e/);
 });
+
