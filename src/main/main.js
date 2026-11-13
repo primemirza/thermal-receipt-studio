@@ -6,8 +6,6 @@ import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { validateDocument } from '../renderer/document-model.js';
 import { parseTrstudio, serializeTrstudio } from './trstudio-archive.js';
-import { sendRawTcp } from '../printer/printer-transport.js';
-import { buildThermalDriverHtml } from '../printer/driver-print.js';
 import { openDatabase } from './db/database.js';
 import { printRawBuffer } from './rawPrint.js';
 
@@ -35,7 +33,6 @@ function userDataDir() {
 let mainWindow = null;
 const currentFiles = new Map();
 const MAX_DOCUMENT_JSON_BYTES = 10 * 1024 * 1024;
-let lastPrintJob = null;
 let dbInstance = null;
 
 export function getDb() {
@@ -56,7 +53,6 @@ async function printViaDriver(escposBytes, paperWidthMm, printerName) {
   if (!(escposBytes instanceof Uint8Array)) throw new TypeError('ESC/POS bytes harus Uint8Array.');
 
   await printRawBuffer({ printerName, buffer: Buffer.from(escposBytes) });
-  lastPrintJob = { mode: 'driver', escposBytes: Array.from(escposBytes), paperWidthMm, printerName };
   return { success: true, printerName };
 }
 
@@ -131,9 +127,9 @@ if (!gotLock) {
   // --- IPC tervalidasi (API sangat terbatas pada Fase 1 & 8) ---
   const ALLOWED_CHANNELS = new Set([
     'app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save', 'window:setTitle',
-    'printer:list', 'printer:driver', 'printer:raw', 'printer:reprint',
+    'printer:list', 'printer:driver',
     'prefs:getAll', 'prefs:set', 'printerProfile:get', 'printerProfile:save',
-    'recentFiles:list', 'recovery:save', 'recovery:get', 'recovery:clear'
+    'recovery:save', 'recovery:get', 'recovery:clear'
   ]);
 
   ipcMain.handle('trs:invoke', async (event, payload) => {
@@ -149,7 +145,6 @@ if (!gotLock) {
       'document:save': 2,
       'window:setTitle': 1,
       'printer:driver': 3,
-      'printer:raw': 3,
       'prefs:set': 2,
       'printerProfile:save': 1,
       'recovery:save': 2,
@@ -172,25 +167,6 @@ if (!gotLock) {
           const result = await printViaDriver(new Uint8Array(escposBytes), paperWidthMm, printerName);
           return { ok: true, value: result };
         } catch (err) { return { ok: false, error: 'DRIVER_PRINT_FAILED', message: String(err?.message || err) }; }
-      }
-      case 'printer:raw': {
-        try {
-          const [bytes, host, port] = args;
-          const result = await sendRawTcp(host, port, bytes);
-          lastPrintJob = { mode: 'raw', bytes: Array.from(bytes), host, port };
-          return { ok: true, value: result };
-        } catch (err) { return { ok: false, error: err?.code || 'RAW_PRINT_FAILED', message: String(err?.message || err) }; }
-      }
-      case 'printer:reprint': {
-        if (!lastPrintJob) return { ok: false, error: 'NO_PREVIOUS_PRINT', message: 'Belum ada job cetak untuk dicetak ulang.' };
-        try {
-          if (lastPrintJob.mode === 'raw') {
-            const result = await sendRawTcp(lastPrintJob.host, lastPrintJob.port, lastPrintJob.bytes);
-            return { ok: true, value: result };
-          }
-          const result = await printViaDriver(new Uint8Array(lastPrintJob.escposBytes), lastPrintJob.paperWidthMm, lastPrintJob.printerName);
-          return { ok: true, value: result };
-        } catch (err) { return { ok: false, error: 'REPRINT_FAILED', message: String(err?.message || err) }; }
       }
       case 'app:getUserDataDir': {
         const dir = userDataDir();
@@ -266,11 +242,6 @@ if (!gotLock) {
         try {
           getDb().savePrinterProfile(profile);
           return { ok: true, value: true };
-        } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
-      }
-      case 'recentFiles:list': {
-        try {
-          return { ok: true, value: getDb().getRecentFiles(10) };
         } catch (err) { return { ok: false, error: 'DB_ERROR', message: String(err?.message || err) }; }
       }
       case 'recovery:save': {

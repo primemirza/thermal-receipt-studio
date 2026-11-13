@@ -63,9 +63,9 @@ test('IPC membatasi channel terdaftar dan memvalidasi title window', async () =>
   const main = read('src/main/main.js');
   // Verifikasi semua channel core fase 1-7 masih terdaftar (fase 8 menambah channel baru setelahnya)
   for (const ch of ['app:getVersion', 'app:getUserDataDir', 'document:open', 'document:save',
-    'window:setTitle', 'printer:list', 'printer:driver', 'printer:raw', 'printer:reprint',
+    'window:setTitle', 'printer:list', 'printer:driver',
     'prefs:getAll', 'prefs:set', 'printerProfile:get', 'printerProfile:save',
-    'recentFiles:list', 'recovery:save', 'recovery:get', 'recovery:clear']) {
+    'recovery:save', 'recovery:get', 'recovery:clear']) {
     assert.ok(main.includes("'" + ch + "'"), `channel '${ch}' harus ada di ALLOWED_CHANNELS`);
   }
   assert.match(main, /ALLOWED_CHANNELS\s*=\s*new Set\(/);
