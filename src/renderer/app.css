@@ -48,7 +48,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .toolbar-divider { height: 27px; width: 1px; background: var(--border); }
 .icon-button { width: 29px; height: 29px; border-color: var(--border); background: var(--surface); font-size: 19px; line-height: 1; }
 .toolbar-printer-select {
-  height: 29px;
+  height: 32px;
   padding: 0 8px;
   font-size: 12px;
   border: 1px solid var(--border);
@@ -56,6 +56,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   background: var(--surface);
   color: var(--text);
   max-width: 180px;
+  align-self: center;
 }
 .icon-button:hover, .segment:hover { background: var(--accent-soft); }
 .text-button:hover { background: var(--accent-soft); color: #004f9e; border-color: #bad8f8; }
@@ -300,6 +301,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .design-block.code-block { gap: 3px; }
 .design-block.code-block .code-value { align-self: inherit; max-width: 100%; overflow-wrap: anywhere; }
+
+.thermal-layout-spacer { width: 100%; }
 
 
 /* Phase 5 follow-up: compact responsive toolbar and a scrollable inspector. */

@@ -186,8 +186,19 @@ export function createThermalLayout(document, options = {}) {
   const operations = [];
   const width = profile.effectiveColumns;
 
+  // Convert px to feed lines (approximately 4px per line for thermal printer)
+  function pxToFeedLines(px) {
+    return Math.max(0, Math.ceil((px || 0) / 4));
+  }
+
   function visit(blocks) {
     for (const block of blocks) {
+      // Apply block margin as feed lines before content
+      if (block.margin) {
+        const topLines = pxToFeedLines(block.margin.top);
+        if (topLines > 0) operations.push({ type: 'feed', lines: topLines });
+      }
+
       switch (block.type) {
         case 'section':
           visit(block.children);
@@ -238,9 +249,26 @@ export function createThermalLayout(document, options = {}) {
         default:
           throw new TypeError('Jenis blok tidak didukung layout thermal: ' + block.type);
       }
+
+      // Apply block margin as feed lines after content
+      if (block.margin) {
+        const bottomLines = pxToFeedLines(block.margin.bottom);
+        if (bottomLines > 0) operations.push({ type: 'feed', lines: bottomLines });
+      }
     }
   }
+
+  // Apply global top margin as feed lines at the start
+  const globalMargins = document.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+  const globalTopLines = pxToFeedLines(globalMargins.top);
+  if (globalTopLines > 0) operations.push({ type: 'feed', lines: globalTopLines });
+
   visit(document.blocks);
+
+  // Apply global bottom margin as feed lines at the end
+  const globalBottomLines = pxToFeedLines(globalMargins.bottom);
+  if (globalBottomLines > 0) operations.push({ type: 'feed', lines: globalBottomLines });
+
   if (Number.isInteger(options.feedBeforeCut) && options.feedBeforeCut > 0) {
     operations.push({ type: 'feed', lines: Math.min(options.feedBeforeCut, 20) });
   }
