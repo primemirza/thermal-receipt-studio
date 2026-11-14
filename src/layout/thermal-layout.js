@@ -186,9 +186,9 @@ export function createThermalLayout(document, options = {}) {
   const operations = [];
   const width = profile.effectiveColumns;
 
-  // Convert px to feed lines (approximately 4px per line for thermal printer)
+  // Convert px to feed lines (thermal printer line height ~3px at normal font size)
   function pxToFeedLines(px) {
-    return Math.max(0, Math.ceil((px || 0) / 4));
+    return Math.max(0, Math.ceil((px || 0) / 3));
   }
 
   function visit(blocks) {
