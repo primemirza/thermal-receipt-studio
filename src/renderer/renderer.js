@@ -470,10 +470,13 @@ function renderThermalLayoutPreview(layout, target) {
   for (const operation of layout.operations) {
     if (operation.type === 'cut') continue;
     if (operation.type === 'feed') {
-      for (let index = 0; index < Math.max(0, Math.min(20, operation.lines)); index += 1) {
-        const blank = make('div', 'thermal-layout-line', ' ');
-        blank.setAttribute('aria-hidden', 'true');
-        target.append(blank);
+      // Convert feed lines to visual spacing (4px per line)
+      const spacingPx = Math.max(0, Math.min(20, operation.lines)) * 4;
+      if (spacingPx > 0) {
+        const spacer = make('div', 'thermal-layout-spacer');
+        spacer.style.height = spacingPx + 'px';
+        spacer.setAttribute('aria-hidden', 'true');
+        target.append(spacer);
       }
       continue;
     }
