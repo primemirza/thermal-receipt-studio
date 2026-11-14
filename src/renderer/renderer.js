@@ -467,6 +467,14 @@ function createPreviewLeaf(block, columns) {
   return wrapper;
 }
 function renderThermalLayoutPreview(layout, target) {
+  // Add top margin spacing from profile
+  if (layout.profile.topFeedLines > 0) {
+    const spacer = make('div', 'thermal-layout-spacer');
+    spacer.style.height = (layout.profile.topFeedLines * 3) + 'px';
+    spacer.setAttribute('aria-hidden', 'true');
+    target.append(spacer);
+  }
+
   for (const operation of layout.operations) {
     if (operation.type === 'cut') continue;
     if (operation.type === 'feed') {
@@ -509,6 +517,14 @@ function renderThermalLayoutPreview(layout, target) {
     if (operation.type === 'rule' && operation.style === 'double') line.style.fontWeight = '700';
     target.append(line);
   }
+
+  // Add bottom margin spacing from profile
+  if (layout.profile.bottomFeedLines > 0) {
+    const spacer = make('div', 'thermal-layout-spacer');
+    spacer.style.height = (layout.profile.bottomFeedLines * 3) + 'px';
+    spacer.setAttribute('aria-hidden', 'true');
+    target.append(spacer);
+  }
 }
 function renderPreviewBlocks(blocks, target, columns) {
   for (const block of blocks) {
@@ -530,14 +546,14 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   renderThermalLayoutPreview(thermalLayout, fragment);
   receiptPreview.replaceChildren(fragment);
-  const receiptWidth = documentModel.paperWidthMm === 58 ? 288 : 368;
+  const receiptWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
   receiptPreview.style.boxSizing = 'border-box';
   receiptPreview.style.width = receiptWidth + 'px';
   // Global margins are now handled by thermal layout feed lines, not CSS padding
-  receiptPreview.style.paddingTop = '17px';
-  receiptPreview.style.paddingRight = '14px';
-  receiptPreview.style.paddingBottom = '20px';
-  receiptPreview.style.paddingLeft = '14px';
+  receiptPreview.style.paddingTop = '0px';
+  receiptPreview.style.paddingRight = '0px';
+  receiptPreview.style.paddingBottom = '0px';
+  receiptPreview.style.paddingLeft = '0px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
