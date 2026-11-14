@@ -55,7 +55,8 @@ export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
     } else if (op.type === 'rule') {
       const char = (op.character || '-').slice(0, 1);
       const count = op.width ?? columns;
-      currentPreLines.push(escapeHtml(char.repeat(count)));
+      const leftPad = op.marginLeft ? ' '.repeat(op.marginLeft) : '';
+      currentPreLines.push(leftPad + escapeHtml(char.repeat(count)));
     } else if (op.type === 'feed') {
       const n = Math.max(1, Math.min(20, op.lines || 1));
       for (let i = 0; i < n; i++) currentPreLines.push('');

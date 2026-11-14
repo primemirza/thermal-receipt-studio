@@ -235,7 +235,11 @@ export function createThermalLayout(document, options = {}) {
         }
         case 'rule': {
           const character = block.character || (block.style === 'double' ? '=' : '-');
-          operations.push({ type: 'rule', style: block.style || 'solid', character, width });
+          // Kurangi lebar rule sesuai margin kiri/kanan blok (konversi px → kolom karakter, ~12px/kolom).
+          const ruleLeftCols = block.margin ? Math.ceil((block.margin.left || 0) / 12) : 0;
+          const ruleRightCols = block.margin ? Math.ceil((block.margin.right || 0) / 12) : 0;
+          const ruleWidth = Math.max(1, width - ruleLeftCols - ruleRightCols);
+          operations.push({ type: 'rule', style: block.style || 'solid', character, width: ruleWidth, marginLeft: ruleLeftCols });
           break;
         }
         case 'spacer':
