@@ -506,7 +506,7 @@ function renderThermalLayoutPreview(layout, target) {
       continue;
     }
     const text = operation.type === 'rule'
-      ? (operation.character || '-').slice(0, 1).repeat(Math.max(1, Math.min(layout.profile.effectiveColumns, operation.width || layout.profile.effectiveColumns)))
+      ? ' '.repeat(operation.marginLeft || 0) + (operation.character || '-').slice(0, 1).repeat(Math.max(1, Math.min(layout.profile.effectiveColumns, operation.width || layout.profile.effectiveColumns)))
       : operation.text;
     const line = make('div', 'thermal-layout-line', text);
     line.style.textAlign = operation.align || 'left';
@@ -546,14 +546,19 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   renderThermalLayoutPreview(thermalLayout, fragment);
   receiptPreview.replaceChildren(fragment);
-  const receiptWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
+  // Hitung lebar preview dari jumlah kolom efektif × lebar karakter monospace (Courier New 10px ≈ 6px/karakter).
+  // Tambahkan padding visual kiri+kanan (masing-masing 10px) agar tampilan seperti kertas struk sungguhan.
+  const CHAR_WIDTH_PX = 6;
+  const PREVIEW_PADDING_X = 10;
+  const contentWidthPx = thermalLayout.profile.effectiveColumns * CHAR_WIDTH_PX;
+  const previewWidthPx = contentWidthPx + PREVIEW_PADDING_X * 2;
   receiptPreview.style.boxSizing = 'border-box';
-  receiptPreview.style.width = receiptWidth + 'px';
-  // Global margins are now handled by thermal layout feed lines, not CSS padding
-  receiptPreview.style.paddingTop = '0px';
-  receiptPreview.style.paddingRight = '0px';
-  receiptPreview.style.paddingBottom = '0px';
-  receiptPreview.style.paddingLeft = '0px';
+  receiptPreview.style.width = previewWidthPx + 'px';
+  // Padding sisi disesuaikan agar konten thermal pas di dalam border kertas struk.
+  receiptPreview.style.paddingTop = '12px';
+  receiptPreview.style.paddingRight = PREVIEW_PADDING_X + 'px';
+  receiptPreview.style.paddingBottom = '12px';
+  receiptPreview.style.paddingLeft = PREVIEW_PADDING_X + 'px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
