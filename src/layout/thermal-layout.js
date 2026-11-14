@@ -161,19 +161,26 @@ function layoutColumns(block, width, operations) {
 
 export function createThermalProfile(paperWidthMm, options = {}) {
   const columns = assertWidth(paperWidthMm, options.columns);
-  const margins = options.margins || { left: 0, right: 0 };
+  const margins = options.margins || { left: 0, right: 0, top: 0, bottom: 0 };
   const leftPx = Number.isFinite(margins.left) ? margins.left : 0;
   const rightPx = Number.isFinite(margins.right) ? margins.right : 0;
+  const topPx = Number.isFinite(margins.top) ? margins.top : 0;
+  const bottomPx = Number.isFinite(margins.bottom) ? margins.bottom : 0;
   // The document model stores margins in CSS pixels; Font A is approximately 12 px per character.
   const marginColumns = Math.ceil(leftPx / 12) + Math.ceil(rightPx / 12);
   const effectiveColumns = Math.max(1, columns - marginColumns);
+  // Convert vertical margins to feed lines (thermal printer line height ~3px at normal font size)
+  const topFeedLines = Math.max(0, Math.ceil(topPx / 3));
+  const bottomFeedLines = Math.max(0, Math.ceil(bottomPx / 3));
   return Object.freeze({
     paperWidthMm,
     columns,
     marginColumns,
     effectiveColumns,
     font: 'A',
-    characterWidthPx: 12
+    characterWidthPx: 12,
+    topFeedLines,
+    bottomFeedLines
   });
 }
 
@@ -190,6 +197,9 @@ export function createThermalLayout(document, options = {}) {
   function pxToFeedLines(px) {
     return Math.max(0, Math.ceil((px || 0) / 3));
   }
+
+  // Apply global top margin from profile
+  if (profile.topFeedLines > 0) operations.push({ type: 'feed', lines: profile.topFeedLines });
 
   function visit(blocks) {
     for (const block of blocks) {
@@ -258,16 +268,10 @@ export function createThermalLayout(document, options = {}) {
     }
   }
 
-  // Apply global top margin as feed lines at the start
-  const globalMargins = document.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
-  const globalTopLines = pxToFeedLines(globalMargins.top);
-  if (globalTopLines > 0) operations.push({ type: 'feed', lines: globalTopLines });
-
   visit(document.blocks);
 
-  // Apply global bottom margin as feed lines at the end
-  const globalBottomLines = pxToFeedLines(globalMargins.bottom);
-  if (globalBottomLines > 0) operations.push({ type: 'feed', lines: globalBottomLines });
+  // Apply global bottom margin from profile
+  if (profile.bottomFeedLines > 0) operations.push({ type: 'feed', lines: profile.bottomFeedLines });
 
   if (Number.isInteger(options.feedBeforeCut) && options.feedBeforeCut > 0) {
     operations.push({ type: 'feed', lines: Math.min(options.feedBeforeCut, 20) });
