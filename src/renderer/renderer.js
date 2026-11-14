@@ -470,8 +470,8 @@ function renderThermalLayoutPreview(layout, target) {
   for (const operation of layout.operations) {
     if (operation.type === 'cut') continue;
     if (operation.type === 'feed') {
-      // Convert feed lines to visual spacing (4px per line)
-      const spacingPx = Math.max(0, Math.min(20, operation.lines)) * 4;
+      // Convert feed lines to visual spacing (3px per line to match thermal printer)
+      const spacingPx = Math.max(0, Math.min(20, operation.lines)) * 3;
       if (spacingPx > 0) {
         const spacer = make('div', 'thermal-layout-spacer');
         spacer.style.height = spacingPx + 'px';
@@ -530,14 +530,14 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   renderThermalLayoutPreview(thermalLayout, fragment);
   receiptPreview.replaceChildren(fragment);
-  const margins = documentModel.layout?.margins || { top: 0, right: 0, bottom: 0, left: 0 };
   const receiptWidth = documentModel.paperWidthMm === 58 ? 288 : 368;
   receiptPreview.style.boxSizing = 'border-box';
   receiptPreview.style.width = receiptWidth + 'px';
-  receiptPreview.style.paddingTop = (17 + margins.top) + 'px';
-  receiptPreview.style.paddingRight = (14 + margins.right) + 'px';
-  receiptPreview.style.paddingBottom = (20 + margins.bottom) + 'px';
-  receiptPreview.style.paddingLeft = (14 + margins.left) + 'px';
+  // Global margins are now handled by thermal layout feed lines, not CSS padding
+  receiptPreview.style.paddingTop = '17px';
+  receiptPreview.style.paddingRight = '14px';
+  receiptPreview.style.paddingBottom = '20px';
+  receiptPreview.style.paddingLeft = '14px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
