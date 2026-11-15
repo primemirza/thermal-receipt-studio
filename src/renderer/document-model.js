@@ -1,5 +1,5 @@
 export const DOCUMENT_SCHEMA_VERSION = 1;
-const BLOCK_TYPES = ['text', 'rule', 'spacer', 'item', 'total', 'table', 'columns', 'image', 'qrcode', 'barcode', 'section'];
+const BLOCK_TYPES = ['text', 'paragraph', 'rule', 'spacer', 'item', 'total', 'table', 'columns', 'image', 'qrcode', 'barcode', 'section'];
 const ALIGNMENTS = ['left', 'center', 'right'];
 
 export function createSampleDocument() {
@@ -73,6 +73,7 @@ export function validateDocument(doc) {
         continue;
       }
       if (block.type === 'text') assertString(block.text, 'Teks elemen');
+      if (block.type === 'paragraph') assertString(block.text, 'Teks paragraf', 2000);
       if (block.type === 'dynamic') {
         if (block.field !== undefined && !['date', 'time', 'datetime', 'receiptNumber'].includes(block.field)) throw new TypeError('Placeholder lama tidak valid.');
         if (block.text !== undefined) assertString(block.text, 'Teks placeholder lama');
