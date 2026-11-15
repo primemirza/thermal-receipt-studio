@@ -6,17 +6,14 @@ import ReceiptPrinterEncoder from './vendor/receipt-printer-encoder.mjs';
 const $ = (id) => document.getElementById(id);
 const statusText = $('status-text');
 const statusVersion = $('status-version');
-const appMeta = $('app-meta');
 const paperButtons = [...document.querySelectorAll('button[data-paper]')];
 const designPaper = $('design-paper');
 const receiptPreview = $('receipt-preview');
 const previewStage = $('preview-stage');
 const zoomValue = $('zoom-value');
-const zoomStatus = $('zoom-status');
 const paperChip = $('paper-chip');
 const canvasWidthLabel = $('canvas-width-label');
 const previewDimensions = $('preview-dimensions');
-const previewStatus = $('preview-status');
 const guideButton = $('toggle-guides');
 const textInput = $('block-text-input');
 const priceInput = $('block-price-input');
@@ -592,10 +589,9 @@ function renderPreview() {
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-pressed', String(active));
   });
-  zoomValue.textContent = state.zoom + '%'; zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
+  zoomValue.textContent = state.zoom + '%';
   paperChip.textContent = documentModel.paperWidthMm + ' mm'; canvasWidthLabel.textContent = documentModel.paperWidthMm + ' mm';
   previewDimensions.textContent = documentModel.paperWidthMm + ' mm · ' + thermalLayout.profile.columns + ' kolom · layout thermal';
-  previewStatus.textContent = 'Preview thermal diperbarui';
 }
 function renderInspector() {
   const block = selectedBlock();
@@ -690,7 +686,6 @@ function setZoom(value) {
   designPaper.style.zoom = String(state.zoom / 100);
   renderPreview();
   zoomValue.textContent = state.zoom + '%';
-  zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
   setStatus('Zoom area kerja dan preview ' + state.zoom + '%.');
   window.trs?.setPreference?.('zoom', state.zoom).catch(() => {});
 }
@@ -1545,7 +1540,7 @@ async function boot() {
   renderAll();
   try {
     const ver = await window.trs.getVersion();
-    if (ver.ok) { const label = 'v' + ver.value; statusVersion.textContent = label; appMeta.textContent = label; }
+    if (ver.ok) statusVersion.textContent = 'v' + ver.value;
     const dir = await window.trs.getUserDataDir();
     if (dir.ok) console.info('User data dir:', dir.value);
 
@@ -1559,7 +1554,6 @@ async function boot() {
           state.zoom = prefs.zoom;
           designPaper.style.zoom = String(state.zoom / 100);
           zoomValue.textContent = state.zoom + '%';
-          zoomStatus.textContent = 'Zoom ' + state.zoom + '%';
         }
         // Pulihkan status panduan
         if (typeof prefs.guides === 'boolean' && prefs.guides) {
