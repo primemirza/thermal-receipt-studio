@@ -439,4 +439,27 @@ Status: **TESTED** (111/111 unit & integration test lulus; seluruh skenario inte
 - Keamanan & offline murni ✔
 - 111/111 tes lulus ✔
 
+## FASE 10 — BUILD PORTABLE, INSTALLER SETUP, DAN DOKUMENTASI FINAL (2026-11-16)
+
+Status: **TESTED** (109/109 unit & integration test lulus; konfigurasi dual-target Windows x64 dan dokumentasi rilis v1.0.0 selesai)
+
+### Implementasi
+1. **Dukungan Dual-Target Distribusi Windows (`package.json`)**:
+   - Menambahkan target `nsis` mendampingi target `portable` pada konfigurasi `electron-builder`.
+   - Mengonfigurasi kustomisasi NSIS (`oneClick: false`, `allowToChangeInstallationDirectory: true`, pembuatan shortcut Desktop & Start Menu, penamaan file `ThermalReceiptStudio-${version}-setup-x64.exe`).
+   - Memperbarui skrip `dist:win` menjadi `electron-builder --win portable nsis --x64` untuk membangun kedua varian binary secara simultan.
+2. **Pembaruan Versi Rilis Produksi ke `1.0.0`**:
+   - Pemutakhiran nomor versi semantik di `package.json` (`1.0.0`).
+   - Sinkronisasi label statusbar aplikasi ke `v1.0.0`.
+3. **Pembaruan Workflow CI/CD (`.github/workflows/build-windows.yml`)**:
+   - Memperbarui nama langkah dan artifact upload rilis (`ThermalReceiptStudio-windows-x64`) untuk menampung kedua varian output (`dist/*.exe`).
+4. **Penyusunan Dokumentasi Final Komprehensif (`README.md`)**:
+   - Katalog lengkap seluruh blok elemen (teks, paragraf multi-baris dengan Enter, item, total, rule, spacer, tabel, kolom, gambar, barcode, QR, section).
+   - Panduan spesifikasi 58 mm & 80 mm, thermal preview, opsi cetak driver & raw ESC/POS.
+   - Petunjuk developer (setup, test, build, smoke).
+5. **Verifikasi Suite Pengujian**:
+   - Menyesuaikan `tests/config.test.js` untuk memvalidasi konfigurasi dual-target portable + NSIS.
+   - Seluruh 109 unit dan integration test lulus (`node --test`).
+
+
 

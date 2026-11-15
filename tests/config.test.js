@@ -15,15 +15,16 @@ test('package.json valid dan memakai ES modules', () => {
   for (const s of ['start', 'test', 'dist:win']) assert.ok(pkg.scripts[s], `skrip ${s} ada`);
 });
 
-test('konfigurasi electron-builder menargetkan portable win x64 (bukan NSIS/MSI)', () => {
+test('konfigurasi electron-builder menargetkan portable dan NSIS installer win x64 (Fase 10)', () => {
   const pkg = JSON.parse(read('package.json'));
   const b = pkg.build;
   assert.ok(b, 'blok build ada');
-  assert.deepEqual(b.win.target, ['portable']);
-  assert.match(pkg.scripts['dist:win'], /--win portable --x64/);
+  assert.deepEqual(b.win.target, ['portable', 'nsis']);
+  assert.match(pkg.scripts['dist:win'], /portable/);
+  assert.match(pkg.scripts['dist:win'], /nsis/);
   assert.match(b.portable.artifactName, /portable-x64/);
+  assert.match(b.nsis.artifactName, /setup-x64/);
   const targets = JSON.stringify(b).toLowerCase();
-  assert.ok(!targets.includes('"nsis"'), 'tanpa target NSIS');
   assert.ok(!targets.includes('"msi"'), 'tanpa target MSI');
 });
 

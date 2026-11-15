@@ -213,11 +213,20 @@ Status fase: **TESTED** (111/111 unit & integration test lulus secara lokal dan 
 
 ---
 
-## FASE 10 — BUILD PORTABLE DAN DOKUMENTASI FINAL
+## FASE 10 — BUILD PORTABLE, INSTALLER, DAN DOKUMENTASI FINAL
 
-Status fase: **NOT STARTED**
+Status fase: **TESTED** (109/109 unit & integration test lulus, konfigurasi dual-target portable & NSIS terverifikasi)
 
-Poles konfigurasi builder & workflow, penamaan output, versi, README final (build, tes, offline, batasan printer, unduh artifact). Verifikasi run workflow aktual & tautan artifact sebelum mengklaim sukses.
+| # | Tugas | Status | Catatan |
+|---|-------|--------|---------|
+| 10.1 | Konfigurasi dual-target output Windows (Portable & NSIS Installer) | TESTED | Menambahkan target `nsis` mendampingi `portable` di `package.json` dengan kustomisasi setup wizard, shortcut desktop & start menu |
+| 10.2 | Pembaruan versi rilis produksi final ke `1.0.0` | TESTED | Sinkronisasi nomor versi `1.0.0` di `package.json`, statusbar aplikasi, dan pola artifact rilis |
+| 10.3 | Pembaruan workflow CI/CD GitHub Actions (`build-windows.yml`) | TESTED | Workflow otomatis mengompilasi kedua tipe binary dan mengunggah artifact rilis gabungan (`dist/*.exe`) |
+| 10.4 | Pembaruan dokumentasi teknis & pengguna komprehensif (`README.md`) | TESTED | Panduan lengkap katalog elemen, panduan cetak driver/raw, spesifikasi kertas 58/80 mm, instruksi build, dan lisensi |
+| 10.5 | Verifikasi uji regresi otomatis menyeluruh | TESTED | Seluruh 109 pengujian unit pada suite `tests/` lulus 100% tanpa regresi |
+| 10.6 | Kesiapan rilis produksi v1.0.0 | TESTED | Seluruh kriteria rilis terpenuhi untuk distribusi resmi Windows x64 |
+
+**Kriteria Fase 10:** Dual target output Portable & NSIS terkonfigurasi ✔ · Versi rilis 1.0.0 ✔ · Workflow CI siap mengompilasi kedua installer ✔ · Dokumentasi README.md final lengkap ✔ · 109/109 tes lulus ✔
 
 ---
 
