@@ -98,11 +98,12 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   position: relative; flex: 1; min-height: 250px; margin: 0 14px 14px; overflow: auto;
   border: 1px solid var(--border); border-radius: 7px; background: #f8f8f8;
 }
-.editor-surface { padding: 30px 16px 24px; }
+.editor-surface { padding: 0 16px 24px; }
 .canvas-ruler, .preview-ruler {
   position: sticky; z-index: 2; top: 0; display: flex; justify-content: space-between;
-  margin: -30px -16px 24px; padding: 8px 12px; border-bottom: 1px solid var(--border);
-  color: var(--muted); background: #f4f4f4; font-size: 10px; letter-spacing: .2px;
+  margin: 0 -16px 20px; padding: 9px 12px; border-bottom: 1px solid var(--border);
+  color: var(--muted); background: #f4f4f4; font-size: 10px; font-weight: 600; letter-spacing: .5px;
+  width: calc(100% + 32px); flex: none;
 }
 .design-paper {
   width: 260px; min-height: 270px; margin: 0 auto; padding: 15px 12px 20px;
@@ -115,16 +116,14 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .block-type { display: none; color: #0067c0; font: 9px var(--ui); background: #e8f2fc; padding: 2px 4px; border-radius: 3px; }
 .block-price { margin-left: auto; white-space: nowrap; }
 .design-rule { flex: 1; border-bottom: 1px dashed #555; }
+.design-block-paragraph { white-space: pre-wrap; word-break: break-word; }
+.design-block-paragraph [data-inline-edit] { white-space: pre-wrap; word-break: break-word; min-width: 60px; display: block; }
 .muted-block { color: #555; }
 .show-guides .design-block { outline: 1px dashed #9dc8f1; outline-offset: 1px; }
 .show-guides .block-type { display: inline-block; }
 .panel-footnote { display: flex; align-items: center; gap: 7px; padding: 0 16px 13px; color: var(--muted); font-size: 11px; }
 .status-dot { width: 7px; height: 7px; display: inline-block; flex: none; border-radius: 50%; background: #26935f; }
 .preview-stage { display: flex; flex-direction: column; align-items: center; padding: 0 16px 24px; }
-.preview-ruler {
-  position: sticky; top: 0; width: calc(100% + 32px); flex: none; margin: 0 -16px 20px;
-  padding: 9px 12px; font-weight: 600; letter-spacing: .5px;
-}
 .receipt-viewport { width: 100%; display: flex; justify-content: center; align-items: flex-start; padding: 2px 0 20px; }
 .receipt-preview {
   flex: none; width: 260px; padding: 17px 14px 20px; background: var(--receipt);

@@ -284,7 +284,7 @@ function updateAlignmentButtons() {
     const active = Boolean(block) && button.dataset.textAlign === selectedAlignment;
     button.setAttribute('aria-pressed', String(active));
     button.classList.toggle('is-active', active);
-    button.disabled = !block || !['text','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
+    button.disabled = !block || !['text','paragraph','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
   }
 }
 function applyAlignment(alignment) {
@@ -398,6 +398,14 @@ function renderCanvasBlock(block) {
     node.append(createEditableText(block.name, 'name')); node.append(make('span', 'block-price', money(block.price)));
   } else if (block.type === 'total') {
     node.append(createEditableText(block.label, 'label'), make('strong', 'block-price', money(block.amount)));
+  } else if (block.type === 'paragraph') {
+    node.classList.add('design-block-paragraph');
+    node.style.flexDirection = 'column';
+    node.style.alignItems = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+    const paraEl = createEditableText(block.text || '', 'text');
+    paraEl.style.whiteSpace = 'pre-wrap';
+    paraEl.style.wordBreak = 'break-word';
+    node.append(paraEl);
   } else {
     node.append(createEditableText(block.text, 'text'));
   }
@@ -440,6 +448,21 @@ function createPreviewLeaf(block, columns) {
   } else if (block.type === 'text' || block.type === 'dynamic') {
     const content = make(block.bold ? 'b' : 'span', '', block.type === 'dynamic' ? block.text || ({ date: 'Tanggal: ', time: 'Waktu: ', datetime: 'Tanggal/waktu: ', receiptNumber: 'No. struk: ' })[block.field] || '' : block.text);
     line = makeLine(block.align === 'center' ? 'center' : '', [content]);
+  } else if (block.type === 'paragraph') {
+    // Multi-line paragraph: each \n becomes its own thermal-layout-line
+    const paraLines = (block.text || '').split('\n');
+    const wrapper = make('div', 'receipt-block-preview preview-paragraph');
+    applyTextStyle(wrapper, block);
+    if (block.margin) applyBoxStyle(wrapper, block.margin, 'margin');
+    if (block.blockPadding) applyBoxStyle(wrapper, block.blockPadding, 'padding');
+    wrapper.style.fontSize = ({ small: '9px', normal: '12px', large: '15px', double: '18px' })[block.size || 'normal'];
+    for (const paraLine of paraLines) {
+      const content = make(block.bold ? 'b' : 'span', '', paraLine);
+      const lineEl = makeLine(block.align === 'center' ? 'center' : '', [content]);
+      lineEl.style.justifyContent = block.align === 'right' ? 'flex-end' : block.align === 'center' ? 'center' : 'flex-start';
+      wrapper.append(lineEl);
+    }
+    return wrapper;
   } else return null;
   const wrapper = make('div', 'receipt-block-preview preview-' + block.type);
   applyTextStyle(wrapper, block);
@@ -577,17 +600,17 @@ function renderPreview() {
 function renderInspector() {
   const block = selectedBlock();
   selectedLabel.textContent = block ? 'Elemen: ' + block.type : 'Pilih elemen di kanvas';
-  textInput.disabled = !block || !['text', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
+  textInput.disabled = !block || !['text', 'paragraph', 'dynamic', 'item', 'total', 'qrcode', 'barcode'].includes(block.type);
   priceInput.disabled = !block || block.type !== 'item';
-  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : ['text','dynamic'].includes(block.type) ? (block.text || '') : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
+  textInput.value = !block ? '' : block.type === 'item' ? block.name : block.type === 'total' ? block.label : ['text','paragraph','dynamic'].includes(block.type) ? (block.text || '') : ['qrcode', 'barcode'].includes(block.type) ? (block.value || '') : '';
   priceInput.value = block?.type === 'item' ? String(block.price) : '';
-  sizeInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  sizeInput.disabled = !block || !['text','paragraph','item','total','table','columns'].includes(block.type);
   sizeInput.value = block?.size || 'normal';
-  boldInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  boldInput.disabled = !block || !['text','paragraph','item','total','table','columns'].includes(block.type);
   boldInput.checked = Boolean(block?.bold);
-  italicInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  italicInput.disabled = !block || !['text','paragraph','item','total','table','columns'].includes(block.type);
   italicInput.checked = Boolean(block?.italic);
-  underlineInput.disabled = !block || !['text','item','total','table','columns'].includes(block.type);
+  underlineInput.disabled = !block || !['text','paragraph','item','total','table','columns'].includes(block.type);
   underlineInput.checked = Boolean(block?.underline);
   spacerHeightInput.disabled = !block || block.type !== 'spacer';
   spacerHeightInput.value = block?.type === 'spacer' ? String(block.height) : '';
@@ -691,7 +714,8 @@ function addBlock(type) {
       section: { id, type: 'section', name: 'Section baru', children: [], margin: { top: 0, right: 0, bottom: 0, left: 0 }, padding: { top: 8, right: 8, bottom: 8, left: 8 } },
       qrcode: { id, type: 'qrcode', value: 'https://example.invalid', width: 96, align: 'center' },
       barcode: { id, type: 'barcode', value: '1234567890', width: 220, align: 'center' },
-      text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' }
+      text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' },
+      paragraph: { id, type: 'paragraph', text: 'Paragraf baru\nBaris kedua', align: 'left', bold: false, italic: false, underline: false, size: 'normal' }
     };
     insertNewBlock(templates[type] || templates.text);
   }, 'Objek ' + type + ' ditambahkan.');
@@ -777,7 +801,7 @@ function resolveInlineEditor(event) {
   const block = findBlockEntry(blockNode.dataset.blockId)?.block;
   if (!block) return null;
   const fieldByType = {
-    text: 'text', dynamic: 'text', item: 'name', total: 'label',
+    text: 'text', paragraph: 'text', dynamic: 'text', item: 'name', total: 'label',
     section: 'name', qrcode: 'value', barcode: 'value'
   };
   const field = fieldByType[block.type];
@@ -828,8 +852,10 @@ function setInlineModelValue(block, cell, value) {
 }
 function inlineValueForCommit(cell, block) {
   const field = cell.dataset.field;
-  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : 200;
-  return cell.textContent.slice(0, max);
+  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : block.type === 'paragraph' ? 2000 : 200;
+  // For paragraph blocks, preserve newlines from contenteditable via innerText.
+  const raw = block.type === 'paragraph' ? (cell.innerText ?? cell.textContent) : cell.textContent;
+  return raw.slice(0, max);
 }
 function ensureInlineEditSession(cell, blockId) {
   if (activeInlineEditSession?.element === cell && activeInlineEditSession.blockId === blockId) return activeInlineEditSession;
@@ -956,6 +982,7 @@ blockContextMenu.addEventListener('click', event => {
   if (!action) return;
   blockContextMenu.hidden = true;
   if (action === 'insert-text') addBlock('text');
+  else if (action === 'insert-paragraph') addBlock('paragraph');
   else if (action === 'insert-section') addBlock('section');
   else if (action === 'duplicate') duplicateSelectedBlock();
   else if (action === 'delete') deleteSelectedBlock();
@@ -969,9 +996,9 @@ blockContextMenu.addEventListener('click', event => {
 });
 textInput.addEventListener('change', () => {
   const block = selectedBlock();
-  if (!block || !['text', 'item', 'total', 'qrcode', 'barcode'].includes(block.type)) return;
-  const value = textInput.value.slice(0, block.type === 'qrcode' ? 2000 : 200);
-  const key = ['text', 'dynamic'].includes(block.type) ? 'text' : block.type === 'item' ? 'name' : block.type === 'total' ? 'label' : 'value';
+  if (!block || !['text', 'paragraph', 'item', 'total', 'qrcode', 'barcode'].includes(block.type)) return;
+  const value = textInput.value.slice(0, block.type === 'qrcode' ? 2000 : block.type === 'paragraph' ? 2000 : 200);
+  const key = ['text', 'paragraph', 'dynamic'].includes(block.type) ? 'text' : block.type === 'item' ? 'name' : block.type === 'total' ? 'label' : 'value';
   if (block[key] === value) return;
   mutate(() => { block[key] = value; }, 'Isi elemen diperbarui.');
 });
@@ -1050,6 +1077,10 @@ designPaper.addEventListener('keydown', event => {
     : null;
   if (!cell) return;
   if (event.key === 'Enter') {
+    // Paragraph blocks allow Enter to insert newlines; other blocks commit on Enter.
+    const blockNode = cell.closest('[data-block-id]');
+    const block = findBlockEntry(blockNode?.dataset.blockId)?.block;
+    if (block?.type === 'paragraph') return; // let browser handle newline
     event.preventDefault();
     finishInlineEdit(cell);
     cell.blur();
@@ -1188,10 +1219,10 @@ designPaper.addEventListener('pointerdown', event => {
   document.addEventListener('pointermove', move);
   document.addEventListener('pointerup', finish, { once: true });
 });
-sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns','qrcode','barcode'].includes(block.type)) return; if (!['small','normal','large','double'].includes(sizeInput.value)) return; mutate(() => { block.size = sizeInput.value; }, 'Ukuran teks diperbarui.'); });
-boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
-italicInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.italic = italicInput.checked; }, 'Format miring diperbarui.'); });
-underlineInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.underline = underlineInput.checked; }, 'Garis bawah diperbarui.'); });
+sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns','qrcode','barcode'].includes(block.type)) return; if (!['small','normal','large','double'].includes(sizeInput.value)) return; mutate(() => { block.size = sizeInput.value; }, 'Ukuran teks diperbarui.'); });
+boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
+italicInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.italic = italicInput.checked; }, 'Format miring diperbarui.'); });
+underlineInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.underline = underlineInput.checked; }, 'Garis bawah diperbarui.'); });
 spacerHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'spacer') return; const value = Math.max(1, Math.min(20, Math.round(Number(spacerHeightInput.value) || 1))); mutate(() => { block.height = value; }, 'Tinggi spacer diperbarui.'); });
 imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['image','qrcode','barcode'].includes(block.type)) return; const min = block.type === 'qrcode' ? 32 : block.type === 'barcode' ? 64 : 1; const value = Math.max(min, Math.min(512, Math.round(Number(imageWidthInput.value) || min))); mutate(() => { block.width = value; }, 'Lebar ' + (block.type === 'image' ? 'gambar' : block.type === 'qrcode' ? 'QR code' : 'barcode') + ' diperbarui.'); });
 ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
@@ -1289,6 +1320,7 @@ priceInput.addEventListener('change', () => {
 });
 alignmentButtons.forEach(button => button.addEventListener('click', () => applyAlignment(button.dataset.textAlign)));
 $('add-text-button').addEventListener('click', () => addBlock('text'));
+$('add-paragraph-button')?.addEventListener('click', () => addBlock('paragraph'));
 $('add-item-button').addEventListener('click', () => addBlock('item'));
 $('add-image-button')?.addEventListener('click', () => $('image-file-input').click());
 $('image-file-input')?.addEventListener('change', async event => {

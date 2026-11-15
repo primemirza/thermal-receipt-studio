@@ -282,6 +282,15 @@ export function createThermalLayout(document, options = {}) {
           pushText(operations, block.text, block, blockWidth, blockLeftIndent);
           break;
 
+        case 'paragraph': {
+          // Split on explicit newlines; each line is wrapped independently.
+          const rawLines = (block.text || '').split('\n');
+          for (const rawLine of rawLines) {
+            pushText(operations, rawLine, block, blockWidth, blockLeftIndent);
+          }
+          break;
+        }
+
         case 'dynamic':
           pushText(operations, block.text || '', block, blockWidth, blockLeftIndent);
           break;
