@@ -1,6 +1,6 @@
 {
   "name": "thermal-receipt-studio",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Offline desktop designer for thermal receipt printing (58mm/80mm).",
   "type": "module",
   "main": "src/main/bootstrap.cjs",
@@ -11,7 +11,7 @@
     "start:test": "cross-env TRS_SMOKE=1 electron .",
     "test": "node --test",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
-    "dist:win": "electron-builder --win portable --x64"
+    "dist:win": "electron-builder --win portable nsis --x64"
   },
   "dependencies": {},
   "devDependencies": {
@@ -32,11 +32,22 @@
     ],
     "asar": true,
     "win": {
-      "target": ["portable"],
+      "target": [
+        "portable",
+        "nsis"
+      ],
       "icon": "build/icon.ico"
     },
     "portable": {
       "artifactName": "ThermalReceiptStudio-${version}-portable-x64.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Thermal Receipt Studio",
+      "artifactName": "ThermalReceiptStudio-${version}-setup-x64.${ext}"
     }
   }
 }
