@@ -2,6 +2,10 @@
 
 > **Aplikasi desktop offline** untuk mendesain, mempratinjau, dan mencetak struk termal (58mm / 80mm) tanpa koneksi internet.
 
+[![Release](https://img.shields.io/github/v/release/primemirza/thermal-receipt-studio?label=Versi%20Terbaru&color=blue)](https://github.com/primemirza/thermal-receipt-studio/releases/latest)
+[![License](https://img.shields.io/badge/Lisensi-MIT-green)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-informational)](https://github.com/primemirza/thermal-receipt-studio/releases/latest)
+
 ---
 
 ## 📋 System Requirements
@@ -95,27 +99,6 @@
 
 ---
 
-## 📦 Build Assets & Unduh
-
-### Versi 1.0.0
-
-| File | Tipe | Deskripsi |
-|------|------|-----------|
-| `ThermalReceiptStudio-1.0.0-portable-x64.exe` | Portable | Langsung jalankan tanpa instalasi |
-| `ThermalReceiptStudio-1.0.0-setup-x64.exe` | Installer (NSIS) | Installer dengan shortcut desktop & Start Menu |
-
-> **Unduh:** Kunjungi halaman [**Releases**](https://github.com/primemirza/thermal-receipt-studio/releases/tag/v1.0.0) untuk mengunduh file build versi 1.0.0.
->
-> Jika belum tersedia di Releases, file dapat diunduh sementara dari tab [**Actions**](https://github.com/primemirza/thermal-receipt-studio/actions) → pilih workflow run terbaru → bagian **Artifacts**.
-
-### Catatan Build
-
-- Build menggunakan `electron-builder 26.15.3` dengan target `portable` + `nsis` untuk Windows x64
-- CI otomatis berjalan melalui GitHub Actions (`build-windows.yml`) setiap push ke branch `main`
-- Unit test: 109 test case dijalankan dengan `node --test` sebelum setiap build
-
----
-
 ## 🧪 Development
 
 ### Menjalankan Aplikasi (Dev Mode)
@@ -139,9 +122,93 @@ npm test
 
 ```bash
 npm run dist:win
-# Output: dist/ThermalReceiptStudio-1.0.0-portable-x64.exe
-#         dist/ThermalReceiptStudio-1.0.0-setup-x64.exe
+# Output: dist/ThermalReceiptStudio-x.x.x-portable-x64.exe
+#         dist/ThermalReceiptStudio-x.x.x-setup-x64.exe
 ```
+
+---
+
+## 📦 Releases & Download
+
+Semua file rilis tersedia di halaman [**GitHub Releases**](https://github.com/primemirza/thermal-receipt-studio/releases).
+
+---
+
+### 🔖 v1.0.0 — Rilis Pertama
+
+> 📅 **16 November 2026** · [Lihat Rilis](https://github.com/primemirza/thermal-receipt-studio/releases/tag/v1.0.0)
+
+**Aset Build:**
+
+| File | Ukuran | Unduh |
+|------|--------|-------|
+| `ThermalReceiptStudio-1.0.0-portable-x64.exe` | ~97 MB | [⬇ Unduh Portable](https://github.com/primemirza/thermal-receipt-studio/releases/download/v1.0.0/ThermalReceiptStudio-1.0.0-portable-x64.exe) |
+| `ThermalReceiptStudio-1.0.0-setup-x64.exe` | ~97 MB | [⬇ Unduh Installer](https://github.com/primemirza/thermal-receipt-studio/releases/download/v1.0.0/ThermalReceiptStudio-1.0.0-setup-x64.exe) |
+
+> **Portable** — Jalankan langsung tanpa instalasi. Cocok untuk penggunaan dari USB drive.  
+> **Installer** — NSIS installer yang membuat shortcut di Desktop & Start Menu, dan mendukung uninstall dari Windows.
+
+---
+
+## 📝 Changelog
+
+Semua perubahan penting akan didokumentasikan di sini mengikuti format [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) dan versi mengikuti [Semantic Versioning](https://semver.org/).
+
+---
+
+### [1.0.0] — 16 November 2026 · [Rilis Pertama](https://github.com/primemirza/thermal-receipt-studio/releases/tag/v1.0.0)
+
+#### ✨ Fitur Baru
+- **Editor visual struk termal** dengan sistem blok (drag, drop, reorder)
+- **12 jenis blok** tersedia: Teks, Paragraf, Item, Total, Garis, Spacer, Tabel, Kolom, Gambar, Barcode, QR Code, Section
+- **Blok Paragraf** dengan dukungan multi-baris menggunakan tombol Enter
+- **Pratinjau real-time** yang menampilkan simulasi hasil cetak kertas termal
+- **Dukungan dua ukuran kertas**: 58mm (32 kolom) dan 80mm (48 kolom)
+- **Margin & padding** per-blok dengan kontrol independen untuk semua sisi
+- **Section/group block** sebagai pembungkus dengan margin dan padding tersendiri
+- **Inline editing** langsung di kanvas dengan double-klik
+- **Inspector panel** di sisi kiri untuk mengatur semua properti blok
+- **Alignment toolbar**: kiri, tengah, kanan untuk semua jenis blok
+- **Mode cetak Driver** via Windows Print Dialog (ESC/POS monospace)
+- **Mode cetak ESC/POS Raw** langsung ke port printer
+- **Format file `.trstudio`** (ZIP + JSON) untuk menyimpan dan memuat desain
+- **SQLite database** untuk menyimpan preferensi, profil printer, dan auto-recovery
+- **Zoom** tampilan kanvas dan preview
+- **Build distribusi**: Portable EXE + NSIS Installer untuk Windows x64
+
+#### 🔧 Teknis
+- Dibangun dengan Electron 44.9.0 + Vanilla JS (tanpa React/Vue/CDN)
+- 109 unit test dengan Node.js built-in test runner
+- Build CI/CD via GitHub Actions
+- Fully offline — tidak ada koneksi internet yang diperlukan
+
+---
+
+<!-- CHANGELOG_ENTRY_POINT
+  Panduan untuk menambah entri changelog pada rilis berikutnya:
+
+  Salin template berikut dan tempel DI ATAS baris [1.0.0]:
+
+  ### [X.Y.Z] — DD Bulan YYYY · [Lihat Rilis](https://github.com/primemirza/thermal-receipt-studio/releases/tag/vX.Y.Z)
+
+  #### ✨ Fitur Baru
+  - ...
+
+  #### 🐛 Perbaikan Bug
+  - ...
+
+  #### 🔧 Perubahan Internal
+  - ...
+
+  Lalu tambahkan juga entri aset di bagian "Releases & Download" dengan format:
+
+  ### 🔖 vX.Y.Z — Judul Rilis
+  > 📅 **DD Bulan YYYY** · [Lihat Rilis](https://github.com/primemirza/thermal-receipt-studio/releases/tag/vX.Y.Z)
+  | File | Ukuran | Unduh |
+  |------|--------|-------|
+  | `ThermalReceiptStudio-X.Y.Z-portable-x64.exe` | ~XX MB | [⬇ Unduh Portable](...) |
+  | `ThermalReceiptStudio-X.Y.Z-setup-x64.exe`    | ~XX MB | [⬇ Unduh Installer](...) |
+-->
 
 ---
 
