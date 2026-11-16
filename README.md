@@ -1,104 +1,150 @@
 # Thermal Receipt Studio
 
-Aplikasi desktop offline untuk merancang, mengedit, memvisualisasikan, dan mencetak struk thermal berstandar POS (*Point of Sale*) pada kertas ukuran **58 mm** (32 kolom) dan **80 mm** (48 kolom).
-
-Tersedia dalam dua opsi distribusi Windows x64:
-1. **Portable EXE** (`ThermalReceiptStudio-1.0.0-portable-x64.exe`) — Langsung dijalankan tanpa instalasi.
-2. **Installer Setup EXE** (`ThermalReceiptStudio-1.0.0-setup-x64.exe`) — Pemasang mandiri berbasis NSIS dengan shortcut Start Menu dan Desktop.
+> **Aplikasi desktop offline** untuk mendesain, mempratinjau, dan mencetak struk termal (58mm / 80mm) tanpa koneksi internet.
 
 ---
 
-## Fitur Utama
+## 📋 System Requirements
 
-- **Editor Visual Kanvas & Layout Thermal Monospace:**
-  - Desain interaktif kanvas dengan tata letak proporsional kertas struk thermal.
-  - Preview monospace karakter-demi-karakter (*thermal layout simulation*) yang merefleksikan hasil cetak printer thermal fisik secara presisi.
-  - Pilihan cepat lebar kertas 58 mm (32 kolom Font A) dan 80 mm (48 kolom Font A) dengan komputasi lebar otomatis.
-  - Kontrol zoom area kerja (60% hingga 150%) dan toggle panduan batas elemen (*guides*).
-
-- **Katalog Blok Elemen Lengkap:**
-  - **Teks**: Label teks tunggal dengan format ukuran (*small, normal, large, double*), tebal, miring, garis bawah, dan perataan (*left, center, right*).
-  - **Paragraf**: Blok teks multi-baris yang mendukung tombol `Enter` untuk pindah baris secara leluasa saat pengeditan di kanvas.
-  - **Item & Total**: Format item nama dan harga dengan nominal eksplisit serta perataan rapi tanpa pemaksaan prefix mata uang kaku.
-  - **Garis Pemisah (Rule)**: Garis pemisah dengan gaya solid, dashed (putus-putus), double, atau kustom karakter (`-`, `=`, `*`, dsb) dengan margin kiri/kanan yang terhitung presisi ke kolom printer.
-  - **Spacer**: Jarak kosong vertikal yang diterjemahkan menjadi baris *feed* thermal.
-  - **Tabel**: Tabel data multi-kolom dan multi-baris dengan drag-to-resize lebar kolom, opsi border (*all, horizontal, vertical, none*), dan perataan per-sel.
-  - **Kolom Teks**: Layout multi-kolom berdampingan dengan pembagi garis.
-  - **Gambar**: Penyisipan logo/gambar hitam-putih mandiri yang dienkapsulasi aman sebagai base64 data URL.
-  - **Barcode & QR Code**: Pembuat barcode 1D (CODE128) dan kode 2D (QR Code) berbasis pustaka lokal tanpa ketergantungan API eksternal.
-  - **Section**: Pengelompokan elemen bersarang (hingga 20 level) yang mendukung pengaturan margin dan padding individual pada keempat sisi (*top, right, bottom, left*).
-
-- **Format Berkas `.trstudio` Mandiri:**
-  - Berkas desain disimpan dalam format arsip ZIP `.trstudio` yang terenkapsulasi mandiri.
-  - Dilengkapi validasi skema ketat dan proteksi pencegahan *path traversal*.
-  - Riwayat berkas terkini (*Recent Files*) yang terintegrasi di database lokal.
-
-- **Pencetakan Thermal Fleksibel:**
-  - **Cetak Driver Windows**: Pencetakan HTML monospace pekat dengan kontras optimal dan print color adjust untuk semua driver thermal Windows (USB, Virtual, Bluetooth, dsb).
-  - **Cetak Raw ESC/POS Binary**: Kompiler binary byte stream ESC/POS murni (inisialisasi `ESC @`, format font, feed, barcode, QR, dan pemotong kertas otomatis `GS V`).
-  - Dropdown deteksi printer otomatis di toolbar.
-
-- **Penyimpanan Lokal & Crash Recovery:**
-  - Basis data SQLite lokal disimpan di `%APPDATA%\ThermalReceiptStudio\trs.db` (tidak mengotori folder portabel).
-  - Fitur *autosave recovery snapshot* untuk memulihkan dokumen yang belum sempat disimpan jika komputer atau aplikasi tertutup tiba-tiba.
-
-- **Keamanan & Kepatuhan Offline Murni:**
-  - 100% offline — tidak ada pemanggilan jaringan, CDN, pelacakan, atau analitik jarak jauh.
-  - *Content Security Policy* (CSP) ketat (`default-src 'none'`).
-  - Arsitektur Electron aman (`contextIsolation: true`, `nodeIntegration: false`, dan komunikasi IPC melalui kanal *whitelist* terisolasi).
+| Komponen | Spesifikasi |
+|----------|-------------|
+| **OS** | Windows 10 / Windows 11 (64-bit, x64) |
+| **Arsitektur** | x64 (AMD64) |
+| **RAM** | Minimum 256 MB |
+| **Storage** | Minimum 300 MB ruang kosong |
+| **Runtime** | ✅ Tidak diperlukan — runtime sudah terbundel di dalam aplikasi (Electron) |
+| **Printer** | Printer termal ESC/POS, lebar kertas 58mm atau 80mm |
+| **Koneksi** | Tidak diperlukan (fully offline) |
 
 ---
 
-## Persyaratan Sistem
+## 🛠️ Tentang Aplikasi
 
-- **Sistem Operasi:** Windows 10 / Windows 11 (64-bit).
-- **Arsitektur:** x64.
-- **Printer yang Didukung:** Semua printer struk thermal POS 58 mm dan 80 mm (Epson ESC/POS, Xprinter, Panda, Iware, Janz, dsb) baik melalui driver Windows maupun koneksi Raw.
+### Dibangun Dengan
+
+| Teknologi | Versi | Peran |
+|-----------|-------|-------|
+| [Electron](https://www.electronjs.org/) | 44.9.0 | Framework desktop cross-platform |
+| Vanilla JavaScript / HTML / CSS | — | UI & logika aplikasi (tanpa React/Vue/CDN) |
+| [electron-builder](https://www.electron.build/) | 26.15.3 | Packaging & distribusi (portable + installer) |
+| Node.js built-in test runner | — | Unit testing (`node --test`) |
+
+### Fungsi Aplikasi
+
+**Thermal Receipt Studio** adalah aplikasi desain struk termal berbasis desktop yang memungkinkan pengguna:
+
+- 🖊️ **Mendesain** struk secara visual dengan sistem blok (drag, drop, reorder)
+- 👁️ **Mempratinjau** hasil cetakan secara real-time di layar sebelum dicetak ke printer
+- 🖨️ **Mencetak** langsung ke printer termal via driver Windows atau raw ESC/POS
+- 💾 **Menyimpan & memuat** desain struk dalam format file `.trstudio`
+- 🔁 **Mendukung** dua lebar kertas termal: **58mm** dan **80mm**
 
 ---
 
-## Menjalankan dan Mengembangkan (Developer)
+## ✨ Fitur & Panduan Penggunaan
 
-### Prasyarat
-- Node.js versi 20 atau 22 LTS.
-- npm versi 10+.
+### Jenis Blok yang Tersedia
 
-### Langkah Pengembangan
+| Blok | Deskripsi |
+|------|-----------|
+| **Teks** | Teks satu baris; inline-edit dengan klik; properti: ukuran font, tebal, miring, garis bawah, alignment |
+| **Paragraf** | Teks multi-baris; mendukung baris baru dengan tombol Enter; properti sama dengan Teks |
+| **Item** | Baris produk dengan nama, harga satuan, dan total; layout dua kolom |
+| **Total** | Baris subtotal/total dengan label dan nilai; support layout rata kanan |
+| **Garis (Rule)** | Garis pemisah putus-putus atau solid; support margin atas/bawah |
+| **Spacer** | Spasi kosong dengan tinggi yang dapat diatur |
+| **Tabel** | Tabel multi-kolom dengan header dan baris data |
+| **Kolom** | Layout dua kolom bebas untuk konten campuran |
+| **Gambar** | Gambar yang di-embed pada struk |
+| **Barcode** | Barcode linear (CODE128, EAN, dll.) |
+| **QR Code** | QR code dari teks/URL |
+| **Section** | Grup pembungkus blok-blok lain; mendukung margin dan padding |
+
+### Cara Menggunakan
+
+#### 1. Memulai Desain
+- Buka aplikasi → klik **Kertas** di toolbar atas untuk memilih ukuran (58mm / 80mm)
+- Gunakan toolbar **Teks**, **Paragraf**, **Item**, **Total**, dll. untuk menambahkan blok ke desain
+
+#### 2. Mengedit Blok
+- **Klik** blok di kanvas untuk memilih dan melihat propertinya di panel kiri
+- **Double-klik** langsung di kanvas untuk mengedit konten inline
+- **Drag** blok untuk mengubah urutan
+- **Delete** / **Backspace** untuk menghapus blok yang dipilih
+
+#### 3. Mengatur Properti
+- Panel **Properti Elemen** di kiri menampilkan semua properti blok yang dipilih
+- Tersedia: ukuran font, tebal/miring/garis bawah, alignment (kiri/tengah/kanan), margin, padding, border, dll.
+
+#### 4. Pratinjau Real-time
+- Panel **Preview** di kanan menampilkan hasil render seperti yang akan tercetak di kertas termal
+- Preview otomatis diperbarui setiap kali desain diubah
+
+#### 5. Mencetak
+- Klik tombol **Cetak** di kanan atas
+- Pilih mode: **Driver (Windows Print Dialog)** atau **ESC/POS Raw** untuk printer termal langsung
+- Pilih printer termal yang terhubung, lalu cetak
+
+#### 6. Menyimpan & Memuat File
+- **Simpan** (Ctrl+S): menyimpan desain ke file `.trstudio`
+- **Buka** (Ctrl+O): memuat file `.trstudio` yang sebelumnya disimpan
+- **Baru** (Ctrl+N): membuat desain baru
+
+#### 7. Zoom & Tampilan
+- Gunakan kontrol **Zoom** di toolbar untuk memperbesar/memperkecil tampilan kanvas
+
+---
+
+## 📦 Build Assets & Unduh
+
+### Versi 1.0.0
+
+| File | Tipe | Deskripsi |
+|------|------|-----------|
+| `ThermalReceiptStudio-1.0.0-portable-x64.exe` | Portable | Langsung jalankan tanpa instalasi |
+| `ThermalReceiptStudio-1.0.0-setup-x64.exe` | Installer (NSIS) | Installer dengan shortcut desktop & Start Menu |
+
+> **Unduh:** Kunjungi halaman [**Releases**](https://github.com/primemirza/thermal-receipt-studio/releases/tag/v1.0.0) untuk mengunduh file build versi 1.0.0.
+>
+> Jika belum tersedia di Releases, file dapat diunduh sementara dari tab [**Actions**](https://github.com/primemirza/thermal-receipt-studio/actions) → pilih workflow run terbaru → bagian **Artifacts**.
+
+### Catatan Build
+
+- Build menggunakan `electron-builder 26.15.3` dengan target `portable` + `nsis` untuk Windows x64
+- CI otomatis berjalan melalui GitHub Actions (`build-windows.yml`) setiap push ke branch `main`
+- Unit test: 109 test case dijalankan dengan `node --test` sebelum setiap build
+
+---
+
+## 🧪 Development
+
+### Menjalankan Aplikasi (Dev Mode)
+
 ```bash
-# Pasang dependensi
-npm ci
+# Install dependencies
+npm install
 
-# Jalankan aplikasi dalam mode pengembangan
+# Jalankan aplikasi
 npm start
-
-# Jalankan seluruh rangkaian pengujian unit dan integrasi otomatis
-npm test
 ```
 
-### Smoke Test
+### Menjalankan Unit Test
+
 ```bash
-# Uji boot Electron smoke test
-npm run start:test
+npm test
+# Ekspektasi: seluruh 109 test pass
 ```
 
----
-
-## Membangun Aplikasi (Build Windows EXE)
-
-Untuk mengompilasi aplikasi menjadi berkas binary Windows:
+### Build Distribusi
 
 ```bash
 npm run dist:win
+# Output: dist/ThermalReceiptStudio-1.0.0-portable-x64.exe
+#         dist/ThermalReceiptStudio-1.0.0-setup-x64.exe
 ```
-
-Perintah di atas akan menghasilkan dua berkas di direktori `dist/`:
-1. `dist/ThermalReceiptStudio-1.0.0-portable-x64.exe` (Versi Portabel)
-2. `dist/ThermalReceiptStudio-1.0.0-setup-x64.exe` (Versi Installer NSIS)
-
-Build otomatis juga tersedia pada GitHub Actions runner `windows-latest`. Setiap perubahan yang di-push ke branch utama akan menjalankan pengujian unit, smoke test Electron, dan menghasilkan artifact siap unduh di tab **Actions**.
 
 ---
 
-## Lisensi
+## 📄 Lisensi
 
-Didistribusikan di bawah lisensi MIT. Komponen pustaka pihak ketiga lokal (ReceiptPrinterEncoder, JsBarcode, QRCode) berlisensi MIT dan tercatat di [LICENSES.md](src/renderer/vendor/LICENSES.md).
+MIT © Thermal Receipt Studio

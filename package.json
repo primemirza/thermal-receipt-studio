@@ -11,7 +11,7 @@
     "start:test": "cross-env TRS_SMOKE=1 electron .",
     "test": "node --test",
     "rebuild:native": "electron-rebuild -f -w better-sqlite3",
-    "dist:win": "electron-builder --win portable nsis --x64"
+    "dist:win": "electron-builder --win portable nsis --x64 --publish never"
   },
   "dependencies": {},
   "devDependencies": {
