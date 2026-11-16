@@ -98,6 +98,7 @@ export function validateDocument(doc) {
         if (block.width !== undefined && (!Number.isFinite(block.width) || block.width < 20 || block.width > 100)) throw new TypeError('Lebar tabel harus 20–100%.');
         if (block.offset !== undefined && (!Number.isFinite(block.offset) || block.offset < 0 || block.offset > 80 || block.offset + (block.width ?? 100) > 100)) throw new TypeError('Posisi tabel tidak valid untuk lebar yang dipilih.');
         if (block.padding !== undefined && (!Number.isFinite(block.padding) || block.padding < 0 || block.padding > 20)) throw new TypeError('Padding sel tabel harus 0–20 px.');
+        if (block.hasHeader !== undefined && typeof block.hasHeader !== 'boolean') throw new TypeError('hasHeader tabel harus boolean.');
         if (block.cellAlignments !== undefined) {
           if (!Array.isArray(block.cellAlignments) || block.cellAlignments.length !== block.rows.length + 1) throw new TypeError('Perataan sel tabel tidak valid.');
           block.cellAlignments.forEach((row, rowIndex) => assertAlignments(row, block.headers.length, 'Perataan baris tabel ' + rowIndex));

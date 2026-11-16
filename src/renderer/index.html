@@ -95,8 +95,9 @@
         </div>
         <label for="block-image-alt">Deskripsi gambar<input id="block-image-alt" type="text" maxlength="200" disabled placeholder="Teks alternatif gambar" /></label>
         <div class="inspector-fields" id="table-layout-fields" hidden>
+          <label class="inspector-check" for="block-table-header"><input id="block-table-header" type="checkbox" disabled /> Tampilkan header</label>
           <label for="block-table-width">Lebar tabel (%)<input id="block-table-width" type="number" min="20" max="100" step="1" disabled value="100" /></label>
-          <label for="block-table-padding">Padding sel (px)<input id="block-table-padding" type="number" min="0" max="20" step="1" disabled value="4" /></label>
+          <label for="block-table-padding">Padding sel (px)<input id="block-table-padding" type="number" min="0" max="20" step="1" disabled value="0" /></label>
         </div>
         <div id="columns-layout-fields" hidden>
           <div class="inspector-fields">
@@ -197,9 +198,10 @@
       <p>Tentukan struktur tabel sebelum disisipkan ke kanvas.</p>
       <div class="table-dialog-fields">
         <label for="table-columns-count">Jumlah kolom<input id="table-columns-count" type="number" min="1" max="6" value="3" required /></label>
-        <label for="table-rows-count">Jumlah baris (termasuk header)<input id="table-rows-count" type="number" min="1" max="50" value="2" required /></label>
+        <label for="table-rows-count">Jumlah baris<input id="table-rows-count" type="number" min="1" max="50" value="2" required /></label>
       </div>
       <label for="table-insert-border">Border awal<select id="table-insert-border"><option value="all">Semua sisi</option><option value="horizontal">Horizontal</option><option value="vertical">Vertikal</option><option value="none">Tanpa border</option></select></label>
+      <label class="inspector-check" for="table-insert-header"><input id="table-insert-header" type="checkbox" /> Gunakan baris pertama sebagai header</label>
       <div class="table-dialog-actions"><button type="button" id="table-dialog-cancel" class="text-button btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Batal</span></button><button type="submit" class="text-button primary-action btn-with-icon"><svg aria-hidden="true" class="btn-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M9 4v16"/></svg><span>Sisipkan tabel</span></button></div>
     </form>
   </dialog>
