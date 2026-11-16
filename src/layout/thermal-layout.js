@@ -138,20 +138,22 @@ function layoutTable(block, width, operations, leftIndent) {
       )
     );
     const height = Math.max(1, ...wrapped.map(cellLines => cellLines.length));
+    // Baris header (rowIndex===0) hanya bold jika hasHeader === true
+    const isHeaderRow = rowIndex === 0 && block.hasHeader === true;
     for (let lineIndex = 0; lineIndex < height; lineIndex += 1) {
       const rowText = wrapped.map(cellLines => cellLines[lineIndex] ?? ' '.repeat(colWidths[wrapped.indexOf(cellLines)] ?? 0)).join('');
       operations.push({
         type: 'text',
         text: (indent > 0 ? ' '.repeat(indent) : '') + rowText,
         align: 'left',
-        bold: block.bold === true || (rowIndex === 0 && block.headerBold !== false),
+        bold: block.bold === true || isHeaderRow,
         italic: block.italic === true,
         underline: block.underline === true,
         size: block.size || 'normal',
         sourceType: 'table'
       });
     }
-    if (rowIndex === 0 && block.border === 'horizontal') {
+    if (isHeaderRow && block.border === 'horizontal') {
       operations.push({ type: 'rule', style: 'solid', character: '-', width: innerWidth, marginLeft: indent });
     }
   });

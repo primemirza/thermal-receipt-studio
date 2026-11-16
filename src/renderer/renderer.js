@@ -30,6 +30,7 @@ const tableBorderInput = $('block-table-border');
 const totalAmountInput = $('block-total-amount');
 const ruleCharacterInput = $('block-rule-character');
 const imageAltInput = $('block-image-alt');
+const tableHeaderInput = $('block-table-header');
 const tableStructureActions = $('table-structure-actions');
 const tableLayoutFields = $('table-layout-fields');
 const columnsLayoutFields = $('columns-layout-fields');
@@ -155,7 +156,7 @@ function createEditableText(value, field, extra = {}) {
 }
 function styledTable(block, editable = false) {
   const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
-  table.style.setProperty('--cell-padding', (block.padding ?? 4) + 'px');
+  table.style.setProperty('--cell-padding', (block.padding ?? 0) + 'px');
   table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
   table.style.fontWeight = block.bold === true ? '700' : '400';
   table.style.fontStyle = block.italic === true ? 'italic' : 'normal';
@@ -163,28 +164,46 @@ function styledTable(block, editable = false) {
   const colgroup = document.createElement('colgroup');
   columnWidths(block).forEach(width => { const col = document.createElement('col'); col.style.width = width + '%'; colgroup.append(col); });
   table.append(colgroup);
-  const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
-  block.headers.forEach((value, colIndex) => {
-    const th = document.createElement('th');
-    th.style.textAlign = tableCellAlignment(block, -1, colIndex);
-    if (editable) {
-      th.append(createEditableText(value, 'tableCell', { rowIndex: -1, colIndex }));
-      if (colIndex < block.headers.length - 1) {
-        const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.dataset.colKind = 'table';
-        grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip);
-      }
-    } else th.textContent = value;
-    headerRow.append(th);
-  });
-  thead.append(headerRow); table.append(thead);
+  // Render thead hanya jika hasHeader === true
+  if (block.hasHeader === true) {
+    const thead = document.createElement('thead'); const headerRow = document.createElement('tr');
+    block.headers.forEach((value, colIndex) => {
+      const th = document.createElement('th');
+      th.style.textAlign = tableCellAlignment(block, -1, colIndex);
+      if (editable) {
+        const placeholder = 'Kolom ' + (colIndex + 1);
+        const displayValue = value !== '' ? value : '';
+        const editEl = createEditableText(displayValue, 'tableCell', { rowIndex: -1, colIndex });
+        if (value === '') editEl.dataset.placeholder = placeholder;
+        th.append(editEl);
+        if (colIndex < block.headers.length - 1) {
+          const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.dataset.colKind = 'table';
+          grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip);
+        }
+      } else th.textContent = value;
+      headerRow.append(th);
+    });
+    thead.append(headerRow); table.append(thead);
+  }
   const tbody = document.createElement('tbody');
-  block.rows.forEach((row, rowIndex) => {
+  // Jika tidak ada header, semua rows termasuk baris pertama adalah baris data biasa
+  const allRows = block.hasHeader !== true ? [block.headers, ...block.rows] : block.rows;
+  const rowOffset = block.hasHeader !== true ? -1 : 0; // rowIndex offset untuk alignment
+  allRows.forEach((row, rowIndex) => {
+    const actualRowIndex = rowIndex + rowOffset;
     const tr = document.createElement('tr');
     row.forEach((value, colIndex) => {
       const td = document.createElement('td');
-      td.style.textAlign = tableCellAlignment(block, rowIndex, colIndex);
-      if (editable) td.append(createEditableText(value, 'tableCell', { rowIndex, colIndex }));
-      else td.textContent = value;
+      td.style.textAlign = tableCellAlignment(block, actualRowIndex, colIndex);
+      if (editable) {
+        // Kolom A=0,B=1... Row 1,2,3... → placeholder: "cell A1", "cell B1", dst
+        const colLetter = String.fromCharCode(65 + colIndex);
+        const rowNum = rowIndex + 1;
+        const placeholder = 'cell ' + colLetter + rowNum;
+        const editEl = createEditableText(value, 'tableCell', { rowIndex: actualRowIndex, colIndex });
+        if (value === '') editEl.dataset.placeholder = placeholder;
+        td.append(editEl);
+      } else td.textContent = value;
       tr.append(td);
     });
     tbody.append(tr);
@@ -222,13 +241,16 @@ function createColumnLayout(block, editable) {
   block.columns.forEach((value, index) => {
     const cell = make('div', 'column-cell border-' + (block.border || 'vertical'));
     cell.style.flex = '0 0 calc(' + widths[index] + '% - ' + gapShare + 'px)';
-    cell.style.padding = (block.padding ?? 4) + 'px';
+    cell.style.padding = (block.padding ?? 0) + 'px';
     cell.style.textAlign = columnCellAlignment(block, index);
     cell.style.fontWeight = block.bold === true ? '700' : '400';
     cell.style.fontStyle = block.italic === true ? 'italic' : 'normal';
     cell.style.textDecoration = block.underline === true ? 'underline' : 'none';
     if (editable) {
-      cell.append(createEditableText(value, 'columnCell', { colIndex: index }));
+      const placeholder = 'col ' + (index + 1);
+      const editEl = createEditableText(value, 'columnCell', { colIndex: index });
+      if (value === '') editEl.dataset.placeholder = placeholder;
+      cell.append(editEl);
       if (index < block.columns.length - 1) {
         const grip = make('span', 'column-resize-handle column-resize-handle-columns'); grip.dataset.colResize = String(index); grip.dataset.colKind = 'columns';
         grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom teks'); cell.append(grip);
@@ -566,19 +588,16 @@ function renderPreview() {
   const fragment = document.createDocumentFragment();
   renderThermalLayoutPreview(thermalLayout, fragment);
   receiptPreview.replaceChildren(fragment);
-  // Hitung lebar preview dari jumlah kolom efektif × lebar karakter monospace (Courier New 10px ≈ 6px/karakter).
-  // Tambahkan padding visual kiri+kanan (masing-masing 10px) agar tampilan seperti kertas struk sungguhan.
-  const CHAR_WIDTH_PX = 6;
-  const PREVIEW_PADDING_X = 10;
-  const contentWidthPx = thermalLayout.profile.effectiveColumns * CHAR_WIDTH_PX;
-  const previewWidthPx = contentWidthPx + PREVIEW_PADDING_X * 2;
+  // Samakan lebar preview dengan lebar design-paper agar tampilan kertas konsisten.
+  // 58mm → 284px, 80mm → 364px (sama dengan designPaper di renderCanvas).
+  const paperWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
   receiptPreview.style.boxSizing = 'border-box';
-  receiptPreview.style.width = previewWidthPx + 'px';
+  receiptPreview.style.width = paperWidth + 'px';
   // Padding sisi disesuaikan agar konten thermal pas di dalam border kertas struk.
   receiptPreview.style.paddingTop = '12px';
-  receiptPreview.style.paddingRight = PREVIEW_PADDING_X + 'px';
+  receiptPreview.style.paddingRight = '12px';
   receiptPreview.style.paddingBottom = '12px';
-  receiptPreview.style.paddingLeft = PREVIEW_PADDING_X + 'px';
+  receiptPreview.style.paddingLeft = '12px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
@@ -628,15 +647,17 @@ function renderInspector() {
   $('table-add-column').disabled = !block || block.type !== 'table' || block.headers.length >= 6;
   $('table-remove-column').disabled = !block || block.type !== 'table' || block.headers.length <= 1;
   tableLayoutFields.hidden = !block || block.type !== 'table';
+  tableHeaderInput.disabled = !block || block.type !== 'table';
+  tableHeaderInput.checked = block?.type === 'table' ? (block.hasHeader === true) : false;
   tableWidthInput.disabled = !block || block.type !== 'table';
   tableWidthInput.value = block?.type === 'table' ? String(block.width ?? 100) : '100';
   tablePaddingInput.disabled = !block || block.type !== 'table';
-  tablePaddingInput.value = block?.type === 'table' ? String(block.padding ?? 4) : '4';
+  tablePaddingInput.value = block?.type === 'table' ? String(block.padding ?? 0) : '0';
   columnsLayoutFields.hidden = !block || block.type !== 'columns';
   columnsWidthInput.disabled = !block || block.type !== 'columns';
   columnsWidthInput.value = block?.type === 'columns' ? String(block.width ?? 100) : '100';
   columnsPaddingInput.disabled = !block || block.type !== 'columns';
-  columnsPaddingInput.value = block?.type === 'columns' ? String(block.padding ?? 4) : '4';
+  columnsPaddingInput.value = block?.type === 'columns' ? String(block.padding ?? 0) : '0';
   columnsGapInput.disabled = !block || block.type !== 'columns';
   columnsGapInput.value = block?.type === 'columns' ? String(block.gap ?? 0) : '0';
   columnsBorderInput.disabled = !block || block.type !== 'columns';
@@ -653,7 +674,7 @@ function renderInspector() {
     marginInputs[side].disabled = !block;
     marginInputs[side].value = String(block?.margin?.[side] ?? 0);
     paddingInputs[side].disabled = !block;
-    paddingInputs[side].value = String(spacingPadding?.[side] ?? (block?.type === 'section' ? 8 : 0));
+    paddingInputs[side].value = String(spacingPadding?.[side] ?? 0);
   }
   updateAlignmentButtons();
 }
@@ -704,9 +725,9 @@ function addBlock(type) {
       item: { id, type: 'item', name: 'Item baru', price: 0 },
       rule: { id, type: 'rule', style: 'solid', character: '-' },
       spacer: { id, type: 'spacer', height: 2 },
-      table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', '']], border: 'all', columnWidths: [50, 50], width: 100, padding: 4, align: 'left', size: 'normal', bold: false },
-      columns: { id, type: 'columns', columns: ['Kolom 1', 'Kolom 2'], columnWidths: [50, 50], width: 100, padding: 4, gap: 0, border: 'vertical', align: 'left' },
-      section: { id, type: 'section', name: 'Section baru', children: [], margin: { top: 0, right: 0, bottom: 0, left: 0 }, padding: { top: 8, right: 8, bottom: 8, left: 8 } },
+      table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', ''], ['', '']], border: 'all', columnWidths: [50, 50], width: 100, padding: 0, align: 'left', size: 'normal', bold: false, hasHeader: false },
+      columns: { id, type: 'columns', columns: ['', ''], columnWidths: [50, 50], width: 100, padding: 0, gap: 0, border: 'vertical', align: 'left' },
+      section: { id, type: 'section', name: 'Section baru', children: [], margin: { top: 0, right: 0, bottom: 0, left: 0 }, padding: { top: 0, right: 0, bottom: 0, left: 0 } },
       qrcode: { id, type: 'qrcode', value: 'https://example.invalid', width: 96, align: 'center' },
       barcode: { id, type: 'barcode', value: '1234567890', width: 220, align: 'center' },
       text: { id, type: 'text', text: 'Teks baru', align: 'left', bold: false, size: 'normal' },
@@ -914,10 +935,21 @@ function beginInlineEdit(editor, blockId) {
   editor.setAttribute('aria-label', 'Edit teks langsung');
   editor.setAttribute('spellcheck', 'false');
   editor.focus();
+  // Tempatkan kursor di akhir teks (bukan select-all) agar teks yang ada tidak terhapus
+  // saat pengguna langsung mengetik setelah double-klik.
   const selection = window.getSelection();
   if (selection) {
     const range = document.createRange();
-    range.selectNodeContents(editor);
+    // Cari node teks paling akhir; jika tidak ada, gunakan elemen editor itu sendiri.
+    let lastNode = editor;
+    let lastOffset = editor.childNodes.length;
+    if (editor.lastChild) {
+      const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+      let node = walker.lastChild();
+      if (!node) { node = editor.lastChild; lastNode = node; lastOffset = node.nodeType === Node.TEXT_NODE ? node.length : node.childNodes.length; }
+      else { lastNode = node; lastOffset = node.length; }
+    }
+    try { range.setStart(lastNode, lastOffset); range.collapse(true); } catch { range.selectNodeContents(editor); range.collapse(false); }
     selection.removeAllRanges();
     selection.addRange(range);
   }
@@ -1241,6 +1273,10 @@ tablePaddingInput.addEventListener('change', () => {
   const value = Math.max(0, Math.min(20, Math.round(Number(tablePaddingInput.value) || 0)));
   mutate(() => { block.padding = value; }, 'Padding sel tabel diperbarui.');
 });
+tableHeaderInput?.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'table') return;
+  mutate(() => { block.hasHeader = tableHeaderInput.checked; }, tableHeaderInput.checked ? 'Header tabel diaktifkan.' : 'Header tabel dinonaktifkan.');
+});
 columnsWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'columns') return;
   const value = Math.max(20, Math.min(100, Math.round(Number(columnsWidthInput.value) || 20)));
@@ -1340,16 +1376,24 @@ $('columns-dialog-form').addEventListener('submit', event => {
   const id = 'b-' + crypto.randomUUID();
   const widths = Array(count).fill(Number((100 / count).toFixed(2)));
   widths[count - 1] = Number((100 - widths.slice(0, -1).reduce((sum, width) => sum + width, 0)).toFixed(2));
-  const block = { id, type: 'columns', columns: Array(count).fill('').map((_, i) => 'Kolom ' + (i + 1)), columnWidths: widths, width: 100, padding: 4, gap: 0, border: 'vertical', align: 'left', size: 'normal', bold: false };
+  // Kolom dimulai kosong; placeholder 'col 1', 'col 2', dll. tampil di kanvas
+  const block = { id, type: 'columns', columns: Array(count).fill(''), columnWidths: widths, width: 100, padding: 0, gap: 0, border: 'vertical', align: 'left', size: 'normal', bold: false };
   $('columns-dialog').close(); mutate(() => insertNewBlock(block), count + ' kolom teks disisipkan.');
 });
 $('add-table-button').addEventListener('click', () => $('table-dialog').showModal());
 $('table-dialog-cancel').addEventListener('click', () => $('table-dialog').close());
 $('table-dialog-form').addEventListener('submit', event => {
-  event.preventDefault(); const cols = Math.max(1, Math.min(6, Number($('table-columns-count').value) || 1)); const rows = Math.max(1, Math.min(50, Number($('table-rows-count').value) || 1));
-  const border = $('table-insert-border').value; const id = 'b-' + crypto.randomUUID(); const headers = Array.from({length: cols}, (_, i) => 'Kolom ' + (i+1));
-  const widths = Array(cols).fill(Number((100 / cols).toFixed(2))); widths[cols-1] = Number((100-widths.slice(0,-1).reduce((sum,width)=>sum+width,0)).toFixed(2));
-  const block = { id, type: 'table', headers, rows: Array.from({length: rows - 1}, () => Array(cols).fill('')), border, columnWidths: widths, width: 100, padding: 4, align: 'left', size: 'normal', bold: false };
+  event.preventDefault();
+  const cols = Math.max(1, Math.min(6, Number($('table-columns-count').value) || 1));
+  const rows = Math.max(1, Math.min(50, Number($('table-rows-count').value) || 1));
+  const border = $('table-insert-border').value;
+  const useHeader = false; // header selalu false saat insert; aktifkan via inspector
+  const id = 'b-' + crypto.randomUUID();
+  const headers = Array.from({length: cols}, (_, i) => 'Kolom ' + (i + 1));
+  const widths = Array(cols).fill(Number((100 / cols).toFixed(2)));
+  widths[cols - 1] = Number((100 - widths.slice(0, -1).reduce((sum, width) => sum + width, 0)).toFixed(2));
+  // Semua baris adalah baris data (hasHeader: false secara default)
+  const block = { id, type: 'table', headers, rows: Array.from({length: rows}, () => Array(cols).fill('')), border, columnWidths: widths, width: 100, padding: 0, align: 'left', size: 'normal', bold: false, hasHeader: useHeader };
   $('table-dialog').close(); mutate(() => insertNewBlock(block), 'Tabel ' + rows + ' × ' + cols + ' disisipkan.');
 });
 function duplicateSelectedBlock() {

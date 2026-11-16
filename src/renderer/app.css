@@ -904,3 +904,15 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 #recovery-dialog { border: 1px solid #d6a23d; border-radius: var(--radius); }
 .recovery-meta { font-size: 12px; color: var(--muted); background: var(--bg); border-radius: 5px; padding: 8px 10px; margin: 8px 0 0; border: 1px solid var(--border); }
 
+
+/* Bugfix: Placeholder teks untuk cell kosong di tabel dan kolom */
+[data-inline-edit][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #bbb;
+  font-style: italic;
+  pointer-events: none;
+  user-select: none;
+}
+[data-inline-edit][data-placeholder][contenteditable="true"]:empty::before {
+  color: #ccc;
+}
