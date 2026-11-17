@@ -3,6 +3,34 @@ import { validateDocument } from '../renderer/document-model.js';
 const DEFAULT_COLUMNS = Object.freeze({ 58: 32, 80: 48 });
 const ALIGNMENTS = new Set(['left', 'center', 'right']);
 
+/**
+ * Lebar desain kanvas dalam piksel layar (96 DPI) untuk masing-masing ukuran kertas.
+ * Nilai ini harus konsisten dengan konstanta yang dipakai di renderer.js (renderCanvas / renderPreview).
+ */
+const DESIGN_PAPER_WIDTH_PX = Object.freeze({ 58: 284, 80: 364 });
+
+/**
+ * Lebar area cetak printer thermal dalam dots (printer 203 DPI, area cetak efektif ~48 mm untuk 58 mm
+ * dan ~72 mm untuk 80 mm). Digunakan untuk mengonversi lebar gambar dari piksel layar ke printer dots
+ * agar gambar tercetak proporsional dengan ukurannya di desain.
+ *   58 mm → ~48 mm × 8 dots/mm = 384 dots
+ *   80 mm → ~72 mm × 8 dots/mm = 576 dots
+ */
+const PRINTABLE_WIDTH_DOTS = Object.freeze({ 58: 384, 80: 576 });
+
+/**
+ * Konversi lebar gambar/kode dari piksel layar ke printer dots secara proporsional.
+ * @param {number} screenPx Lebar dalam piksel layar (dari block.width).
+ * @param {number} paperWidthMm Lebar kertas (58 atau 80).
+ * @returns {number} Lebar dalam printer dots, dibatasi maksimal lebar printable kertas.
+ */
+function screenPxToPrinterDots(screenPx, paperWidthMm) {
+  const designPx = DESIGN_PAPER_WIDTH_PX[paperWidthMm] ?? DESIGN_PAPER_WIDTH_PX[58];
+  const printableDots = PRINTABLE_WIDTH_DOTS[paperWidthMm] ?? PRINTABLE_WIDTH_DOTS[58];
+  const dots = Math.round((screenPx / designPx) * printableDots);
+  return Math.max(1, Math.min(dots, printableDots));
+}
+
 function assertWidth(paperWidthMm, columnsOverride) {
   if (![58, 80].includes(paperWidthMm)) throw new TypeError('Lebar kertas harus 58 atau 80 mm.');
   const columns = columnsOverride ?? DEFAULT_COLUMNS[paperWidthMm];
@@ -369,15 +397,31 @@ export function createThermalLayout(document, options = {}) {
           break;
 
         case 'image':
-          operations.push({ type: 'image', dataUrl: block.dataUrl, width: block.width, alt: block.alt || '' });
+          operations.push({
+            type: 'image',
+            dataUrl: block.dataUrl,
+            // Konversi lebar dari piksel layar ke printer dots agar gambar tercetak
+            // proporsional dengan ukurannya di desain kanvas.
+            width: screenPxToPrinterDots(block.width, document.paperWidthMm),
+            alt: block.alt || ''
+          });
           break;
 
         case 'qrcode':
-          operations.push({ type: 'qrcode', value: block.value, width: block.width || 96 });
+          operations.push({
+            type: 'qrcode',
+            value: block.value,
+            width: screenPxToPrinterDots(block.width || 96, document.paperWidthMm)
+          });
           break;
 
         case 'barcode':
-          operations.push({ type: 'barcode', value: block.value, width: block.width || 128, symbology: block.symbology || 'code128' });
+          operations.push({
+            type: 'barcode',
+            value: block.value,
+            width: screenPxToPrinterDots(block.width || 128, document.paperWidthMm),
+            symbology: block.symbology || 'code128'
+          });
           break;
 
         default:
