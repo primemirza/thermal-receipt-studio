@@ -555,7 +555,9 @@ function renderThermalLayoutPreview(layout, target) {
     line.style.fontWeight = operation.bold ? '700' : '400';
     line.style.fontStyle = operation.italic ? 'italic' : 'normal';
     line.style.textDecoration = operation.underline ? 'underline' : 'none';
-    line.style.fontSize = operation.size === 'double' || operation.size === 'large' ? '12px' : operation.size === 'small' ? '9px' : '10px';
+    if (operation.size === 'double' || operation.size === 'large') line.style.fontSize = '1.2em';
+    else if (operation.size === 'small') line.style.fontSize = '0.75em';
+    // ukuran normal: biarkan inherit dari baseFontSize yang dihitung di renderPreview()
     if (operation.type === 'rule' && operation.style === 'double') line.style.fontWeight = '700';
     target.append(line);
   }
@@ -591,13 +593,21 @@ function renderPreview() {
   // Samakan lebar preview dengan lebar design-paper agar tampilan kertas konsisten.
   // 58mm → 284px, 80mm → 364px (sama dengan designPaper di renderCanvas).
   const paperWidth = documentModel.paperWidthMm === 58 ? 284 : 364;
+  const PADDING_X = 12;
+  const contentWidth = paperWidth - PADDING_X * 2;
+  const columns = thermalLayout.profile.effectiveColumns;
+  // Hitung font-size agar teks monospace (Courier New, char-width ≈ 0.6× font-size)
+  // mengisi penuh lebar konten sehingga tidak ada whitespace di kanan preview.
+  const charWidthNeeded = contentWidth / columns;
+  const baseFontSize = Math.round((charWidthNeeded / 0.6) * 10) / 10;
   receiptPreview.style.boxSizing = 'border-box';
   receiptPreview.style.width = paperWidth + 'px';
+  receiptPreview.style.fontSize = baseFontSize + 'px';
   // Padding sisi disesuaikan agar konten thermal pas di dalam border kertas struk.
   receiptPreview.style.paddingTop = '12px';
-  receiptPreview.style.paddingRight = '12px';
+  receiptPreview.style.paddingRight = PADDING_X + 'px';
   receiptPreview.style.paddingBottom = '12px';
-  receiptPreview.style.paddingLeft = '12px';
+  receiptPreview.style.paddingLeft = PADDING_X + 'px';
   receiptPreview.className = 'receipt-preview zoom-' + state.zoom + ' thermal-layout-preview';
   receiptPreview.dataset.paper = String(documentModel.paperWidthMm);
   designPaper.dataset.paper = String(documentModel.paperWidthMm);
