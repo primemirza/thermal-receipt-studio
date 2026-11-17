@@ -1,5 +1,18 @@
 const ALIGNMENTS = new Set(['left', 'center', 'right']);
 
+/**
+ * ESC 3 n: Atur jarak antar baris ke n dots.
+ * Gunakan nilai 0 (rapat) sebelum gambar raster agar tidak ada spasi putih berlebih
+ * di atas/bawah gambar yang terjadi akibat line-spacing default printer (≈ 30 dots).
+ */
+const ESC_LINE_SPACING_TIGHT = [0x1b, 0x33, 0x00]; // ESC 3 0  → 0 dots
+
+/**
+ * ESC 2: Kembalikan jarak antar baris ke nilai bawaan printer (~1/6 inch ≈ 30 dots).
+ * Wajib dipanggil setelah blok gambar agar teks berikutnya tidak bertumpuk.
+ */
+const ESC_LINE_SPACING_DEFAULT = [0x1b, 0x32]; // ESC 2
+
 function setTextStyle(encoder, operation) {
   if (typeof encoder.bold === 'function') encoder.bold(operation.bold === true);
   if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
@@ -54,17 +67,34 @@ export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
         for (let line = 0; line < Math.max(0, Math.min(20, operation.lines || 0)); line += 1) encoder.newline();
         break;
       case 'qrcode':
+        // Tight line spacing agar tidak ada jarak putih berlebih di sekitar kode QR
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_TIGHT);
         encoder.align('center').qrcode(operation.value, { model: 2, size: 5 });
         encoder.newline();
+        // Kembalikan ke line spacing default untuk konten berikutnya
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_DEFAULT);
         break;
       case 'barcode':
+        // Tight line spacing agar tidak ada jarak putih berlebih di sekitar barcode
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_TIGHT);
         encoder.align('center').barcode(operation.value, operation.symbology || 'code128', { width: 2, height: 64 });
         encoder.newline();
+        // Kembalikan ke line spacing default untuk konten berikutnya
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_DEFAULT);
         break;
-      case 'image':
-        encoder.align('center').image(await toImage(operation, options.resolveImage), { width: operation.width });
+      case 'image': {
+        const imageData = await toImage(operation, options.resolveImage);
+        // Tight line spacing: hilangkan jarak putih atas/bawah akibat default line-spacing printer.
+        // Ini adalah teknik yang sama dengan yang dipakai di AplikasiStruk (receiptEscPos.js).
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_TIGHT);
+        // Kirim gambar ke encoder. operation.width sudah dikonversi ke printer dots
+        // oleh thermal-layout.js (screenPxToPrinterDots) agar ukuran proporsional dengan desain.
+        encoder.align('center').image(imageData, { width: operation.width });
         encoder.newline();
+        // Kembalikan ke line spacing default untuk konten berikutnya
+        if (typeof encoder.raw === 'function') encoder.raw(ESC_LINE_SPACING_DEFAULT);
         break;
+      }
       case 'cut':
         encoder.cut(operation.mode === 'partial' ? 'partial' : 'full');
         break;
