@@ -857,7 +857,7 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 .thermal-layout-preview { white-space: normal; }
 .thermal-layout-line {
   width: 100%; min-height: 1.45em; overflow-wrap: anywhere;
-  font-family: var(--mono); font-size: 10px; line-height: 1.45; white-space: pre;
+  font-family: var(--mono); line-height: 1.45; white-space: pre;
 }
 .thermal-layout-media { display: flex; justify-content: center; align-items: flex-start; white-space: normal; }
 .thermal-layout-media img { display: block; height: auto; }
