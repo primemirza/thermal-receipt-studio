@@ -60,7 +60,12 @@ export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
       case 'rule': {
         setTextStyle(encoder, { align: 'left' });
         const character = (operation.character || '-').slice(0, 1);
-        encoder.line(character.repeat(Math.max(1, Math.min(layout.profile.effectiveColumns, operation.width || layout.profile.effectiveColumns))));
+        const cols = layout.profile.effectiveColumns;
+        // Gunakan marginLeft sebagai spasi kiri (sama seperti jalur teks lain).
+        // Ini yang membuat alignment (center/right) pada blok garis berfungsi saat cetak fisik.
+        const leftPad = operation.marginLeft > 0 ? ' '.repeat(Math.min(operation.marginLeft, cols - 1)) : '';
+        const lineWidth = Math.max(1, Math.min(cols - leftPad.length, operation.width || cols));
+        encoder.line(leftPad + character.repeat(lineWidth));
         break;
       }
       case 'feed':
