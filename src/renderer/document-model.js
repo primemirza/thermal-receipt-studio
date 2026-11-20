@@ -83,6 +83,8 @@ export function validateDocument(doc) {
       if (block.type === 'rule') {
         if (block.style !== undefined && !['solid', 'dashed', 'double'].includes(block.style)) throw new TypeError('Gaya separator tidak valid.');
         if (block.character !== undefined) assertString(block.character, 'Karakter separator', 1);
+        if (block.width !== undefined && (!Number.isFinite(block.width) || block.width < 10 || block.width > 100)) throw new TypeError('Lebar garis harus 10–100%.');
+        if (block.align !== undefined && !['left', 'center', 'right'].includes(block.align)) throw new TypeError('Perataan garis tidak valid.');
       }
       if (block.type === 'spacer' && (!Number.isInteger(block.height) || block.height < 1 || block.height > 20)) throw new TypeError('Tinggi spacer harus 1–20 baris.');
       if (block.type === 'item' && (typeof block.name !== 'string' || block.name.length > 200 || !Number.isFinite(block.price) || block.price < 0)) throw new TypeError('Data item tidak valid.');

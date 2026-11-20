@@ -313,7 +313,7 @@ function updateAlignmentButtons() {
     const active = Boolean(block) && button.dataset.textAlign === selectedAlignment;
     button.setAttribute('aria-pressed', String(active));
     button.classList.toggle('is-active', active);
-    button.disabled = !block || !['text','paragraph','item','total','table','columns','image','qrcode','barcode'].includes(block.type);
+    button.disabled = !block || !['text','paragraph','item','total','table','columns','image','qrcode','barcode','rule'].includes(block.type);
   }
 }
 function applyAlignment(alignment) {
@@ -335,7 +335,9 @@ function applyAlignment(alignment) {
       block.columnAlignments[target.colIndex] = alignment;
     } else {
       block.align = alignment;
-      if (block.type === 'table') {
+      if (block.type === 'rule') {
+        // Saat alignment rule berubah, tidak ada perubahan data lain — hanya block.align.
+      } else if (block.type === 'table') {
         block.cellAlignments = Array.from({ length: block.rows.length + 1 }, () => Array(block.headers.length).fill(alignment));
       } else if (block.type === 'columns') {
         block.columnAlignments = Array(block.columns.length).fill(alignment);
@@ -405,11 +407,22 @@ function renderCanvasBlock(block) {
   }
   node.append(make('span', 'block-type', block.type.toUpperCase()));
   if (block.type === 'rule') {
+    const ruleWidthPct = block.width ?? 100;
+    const ruleAlign = block.align || 'left';
     const rule = make('span', 'design-rule');
     rule.classList.add('rule-' + (block.style || 'solid'));
+    rule.style.width = ruleWidthPct + '%';
+    if (ruleAlign === 'center') rule.style.marginLeft = ((100 - ruleWidthPct) / 2) + '%';
+    else if (ruleAlign === 'right') rule.style.marginLeft = (100 - ruleWidthPct) + '%';
+    else rule.style.marginLeft = '0';
     const character = block.character || '-';
     if (character !== '-') { rule.classList.add('rule-character'); rule.textContent = character.repeat(documentModel.paperWidthMm === 58 ? 32 : 48); }
     node.append(rule);
+    // Handle drag untuk mengubah panjang garis.
+    const ruleHandle = make('span', 'rule-resize-handle');
+    ruleHandle.dataset.ruleResize = 'true';
+    ruleHandle.title = 'Tarik untuk mengubah panjang garis';
+    node.append(ruleHandle);
   } else if (block.type === 'spacer') {
     node.append(make('span', 'object-placeholder', 'Spacer · ' + block.height + ' baris')); node.style.minHeight = (block.height * 8) + 'px';
   } else if (block.type === 'table') {
@@ -743,7 +756,7 @@ function addBlock(type) {
   mutate(() => {
     const templates = {
       item: { id, type: 'item', name: 'Item baru', price: 0 },
-      rule: { id, type: 'rule', style: 'solid', character: '-' },
+      rule: { id, type: 'rule', style: 'solid', character: '-', width: 100, align: 'left' },
       spacer: { id, type: 'spacer', height: 2 },
       table: { id, type: 'table', headers: ['Kolom 1', 'Kolom 2'], rows: [['', ''], ['', '']], border: 'all', columnWidths: [50, 50], width: 100, padding: 0, align: 'left', size: 'normal', bold: false, hasHeader: false },
       columns: { id, type: 'columns', columns: ['', ''], columnWidths: [50, 50], width: 100, padding: 0, gap: 0, border: 'vertical', align: 'left' },
@@ -1219,6 +1232,44 @@ designPaper.addEventListener('pointerdown', event => {
     };
     document.addEventListener('pointermove', move);
     document.addEventListener('pointerup', finish, { once: true });
+    return;
+  }
+  // --- Drag handle untuk mengatur panjang garis (rule block) ---
+  const ruleResizeHandle = event.target.closest('[data-rule-resize]');
+  if (ruleResizeHandle) {
+    event.preventDefault(); event.stopPropagation();
+    const blockId = ruleResizeHandle.closest('[data-block-id]')?.dataset.blockId;
+    const block = findBlockEntry(blockId)?.block;
+    if (!block || block.type !== 'rule') return;
+    const startX = event.clientX;
+    const paperStyle = window.getComputedStyle(designPaper);
+    const paperWidth = Math.max(1, designPaper.clientWidth - parseFloat(paperStyle.paddingLeft) - parseFloat(paperStyle.paddingRight));
+    const startWidth = block.width ?? 100;
+    const ruleEl = ruleResizeHandle.closest('[data-block-id]')?.querySelector('.design-rule');
+    const computeWidth = clientX => Math.max(10, Math.min(100, startWidth + (clientX - startX) / paperWidth * 100));
+    const move = moveEvent => {
+      if (ruleEl) ruleEl.style.width = computeWidth(moveEvent.clientX) + '%';
+    };
+    const finish = upEvent => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      if (Math.abs(upEvent.clientX - startX) < 1) return;
+      const newWidth = Number(computeWidth(upEvent.clientX).toFixed(1));
+      mutate(() => {
+        const cur = findBlockEntry(blockId)?.block;
+        if (cur?.type === 'rule') cur.width = newWidth;
+      }, 'Panjang garis diperbarui.');
+    };
+    const cancel = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', finish);
+      document.removeEventListener('pointercancel', cancel);
+      if (ruleEl) ruleEl.style.width = startWidth + '%';
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', finish, { once: true });
+    document.addEventListener('pointercancel', cancel, { once: true });
     return;
   }
   const grip = event.target.closest('[data-col-resize]');

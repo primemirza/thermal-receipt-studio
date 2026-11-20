@@ -373,13 +373,20 @@ export function createThermalLayout(document, options = {}) {
 
         case 'rule': {
           const character = block.character || (block.style === 'double' ? '=' : '-');
-          // blockWidth sudah dikurangi margin kiri/kanan; blockLeftIndent adalah offset spasi kiri.
+          // Hitung lebar garis berdasarkan persentase (block.width, 10–100%).
+          const ruleWidthPct = block.width !== undefined ? block.width : 100;
+          const ruleWidth = Math.max(1, Math.round(blockWidth * ruleWidthPct / 100));
+          // Hitung marginLeft berdasarkan alignment.
+          const ruleAlign = block.align || 'left';
+          let ruleMLeft = blockLeftIndent;
+          if (ruleAlign === 'center') ruleMLeft += Math.floor((blockWidth - ruleWidth) / 2);
+          else if (ruleAlign === 'right') ruleMLeft += blockWidth - ruleWidth;
           operations.push({
             type: 'rule',
             style: block.style || 'solid',
             character,
-            width: blockWidth,
-            marginLeft: blockLeftIndent
+            width: ruleWidth,
+            marginLeft: ruleMLeft
           });
           break;
         }
