@@ -65,13 +65,29 @@ export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
   for (const operation of layout.operations) {
     switch (operation.type) {
       case 'text':
-        setTextStyle(encoder, operation);
         if (operation.doubleHeight === true && typeof encoder.raw === 'function') {
-          // Aktifkan mode double-height via raw GS! sebelum baris, reset setelahnya.
-          encoder.raw(GS_CHAR_SIZE_DOUBLE_HEIGHT);
-          encoder.line(operation.text);
-          encoder.raw(GS_CHAR_SIZE_NORMAL);
+          // Double-height: bangun seluruh baris sebagai raw bytes self-contained.
+          // Ini menghindari konflik dengan internal state ReceiptPrinterEncoder
+          // yang terjadi jika encoder.raw() disisipkan antara encoder.align() dan encoder.line().
+          if (typeof encoder.bold === 'function') encoder.bold(operation.bold === true);
+          if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
+          if (typeof encoder.underline === 'function') encoder.underline(operation.underline === true);
+          if (typeof encoder.size === 'function') encoder.size(1);
+          const ALIGN_BYTES = { left: 0x00, center: 0x01, right: 0x02 };
+          const alignByte = ALIGN_BYTES[operation.align] ?? 0x00;
+          const textBytes = [...new TextEncoder().encode(operation.text)];
+          encoder.raw([
+            0x1B, 0x61, alignByte,  // ESC a n — set alignment
+            0x1D, 0x21, 0x10,       // GS ! 0x10 — double height, normal width
+            ...textBytes,
+            0x0A,                   // LF — newline
+            0x1D, 0x21, 0x00,       // GS ! 0x00 — reset character size
+            0x1B, 0x61, 0x00,       // ESC a 0 — reset alignment to left
+          ]);
+          // Sinkronkan internal state encoder: alignment kembali ke left setelah baris ini.
+          if (typeof encoder.align === 'function') encoder.align('left');
         } else {
+          setTextStyle(encoder, operation);
           encoder.line(operation.text);
         }
         break;

@@ -290,18 +290,10 @@ function applyTextStyle(node, block) {
   node.style.fontWeight = block.bold === true ? '700' : '400';
   node.style.fontStyle = block.italic === true ? 'italic' : 'normal';
   node.style.textDecoration = block.underline === true ? 'underline' : 'none';
-  // Double-height: tinggi huruf 2× tanpa mengubah lebar (scaleY via line-height + transform).
-  if (block.doubleHeight === true) {
-    node.style.lineHeight = '2';
-    node.style.transform = 'scaleY(2)';
-    node.style.transformOrigin = 'top left';
-    node.style.display = 'inline-block';
-    node.style.width = '100%';
-  } else {
-    node.style.lineHeight = '';
-    node.style.transform = '';
-    node.style.transformOrigin = '';
-  }
+  // Reset doubleHeight remnants: efek visual diterapkan di text child element, bukan block node.
+  node.style.lineHeight = '';
+  node.style.transform = '';
+  node.style.transformOrigin = '';
 }
 function tableCellAlignment(block, rowIndex, colIndex) {
   return block.cellAlignments?.[rowIndex + 1]?.[colIndex] || block.align || 'left';
@@ -462,7 +454,18 @@ function renderCanvasBlock(block) {
     paraEl.style.wordBreak = 'break-word';
     node.append(paraEl);
   } else {
-    node.append(createEditableText(block.text, 'text'));
+    const textEl = createEditableText(block.text, 'text');
+    if (block.doubleHeight === true) {
+      // Terapkan doubleHeight pada text child element (bukan block node) agar layout flow
+      // tetap mereservasi ruang yang cukup dan tidak tumpang tindih dengan blok berikutnya.
+      const fontSizePx = { small: 9, normal: 11, large: 14, double: 17 }[block.size || 'normal'];
+      textEl.style.display = 'block';
+      textEl.style.width = '100%';
+      textEl.style.transform = 'scaleY(2)';
+      textEl.style.transformOrigin = 'top center';
+      textEl.style.marginBottom = fontSizePx + 'px';
+    }
+    node.append(textEl);
   }
   return node;
 }
@@ -594,6 +597,14 @@ function renderThermalLayoutPreview(layout, target) {
     if (operation.size === 'double' || operation.size === 'large') line.style.fontSize = '1.2em';
     else if (operation.size === 'small') line.style.fontSize = '0.75em';
     // ukuran normal: biarkan inherit dari baseFontSize yang dihitung di renderPreview()
+    if (operation.doubleHeight === true) {
+      // Visualisasikan double-height di preview: scaleY(2) + marginBottom untuk mencegah overlap.
+      line.style.display = 'inline-block';
+      line.style.width = '100%';
+      line.style.transform = 'scaleY(2)';
+      line.style.transformOrigin = 'top center';
+      line.style.marginBottom = '0.6em';
+    }
     if (operation.type === 'rule' && operation.style === 'double') line.style.fontWeight = '700';
     target.append(line);
   }
