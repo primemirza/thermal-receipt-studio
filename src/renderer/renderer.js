@@ -203,6 +203,12 @@ function styledTable(block, editable = false) {
         const editEl = createEditableText(value, 'tableCell', { rowIndex: actualRowIndex, colIndex });
         if (value === '') editEl.dataset.placeholder = placeholder;
         td.append(editEl);
+        // Tambahkan grip resize pada baris pertama tbody jika tidak ada thead
+        // (hasHeader=false), agar drag-resize kolom tetap berfungsi.
+        if (rowIndex === 0 && block.hasHeader !== true && colIndex < row.length - 1) {
+          const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.dataset.colKind = 'table';
+          grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); td.append(grip);
+        }
       } else td.textContent = value;
       tr.append(td);
     });
@@ -250,6 +256,10 @@ function createColumnLayout(block, editable) {
       const placeholder = 'col ' + (index + 1);
       const editEl = createEditableText(value, 'columnCell', { colIndex: index });
       if (value === '') editEl.dataset.placeholder = placeholder;
+      // Kolom mendukung teks berbaris-baris seperti paragraph:
+      // white-space: pre-wrap agar newline ditampilkan, word-break agar tidak overflow.
+      editEl.style.whiteSpace = 'pre-wrap';
+      editEl.style.wordBreak = 'break-word';
       cell.append(editEl);
       if (index < block.columns.length - 1) {
         const grip = make('span', 'column-resize-handle column-resize-handle-columns'); grip.dataset.colResize = String(index); grip.dataset.colKind = 'columns';
@@ -878,9 +888,9 @@ function setInlineModelValue(block, cell, value) {
 }
 function inlineValueForCommit(cell, block) {
   const field = cell.dataset.field;
-  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : block.type === 'paragraph' ? 2000 : 200;
-  // For paragraph blocks, preserve newlines from contenteditable via innerText.
-  const raw = block.type === 'paragraph' ? (cell.innerText ?? cell.textContent) : cell.textContent;
+  const max = field === 'value' && block.type === 'qrcode' ? 2000 : field === 'value' && block.type === 'barcode' ? 128 : block.type === 'paragraph' ? 2000 : field === 'columnCell' ? 2000 : 200;
+  // Untuk paragraph dan columnCell: preserve newlines via innerText.
+  const raw = (block.type === 'paragraph' || field === 'columnCell') ? (cell.innerText ?? cell.textContent) : cell.textContent;
   return raw.slice(0, max);
 }
 function ensureInlineEditSession(cell, blockId) {
@@ -1114,10 +1124,10 @@ designPaper.addEventListener('keydown', event => {
     : null;
   if (!cell) return;
   if (event.key === 'Enter') {
-    // Paragraph blocks allow Enter to insert newlines; other blocks commit on Enter.
+    // Paragraph dan columnCell memperbolehkan Enter untuk baris baru; blok lain commit saat Enter.
     const blockNode = cell.closest('[data-block-id]');
     const block = findBlockEntry(blockNode?.dataset.blockId)?.block;
-    if (block?.type === 'paragraph') return; // let browser handle newline
+    if (block?.type === 'paragraph' || cell.dataset.field === 'columnCell') return; // let browser handle newline
     event.preventDefault();
     finishInlineEdit(cell);
     cell.blur();
