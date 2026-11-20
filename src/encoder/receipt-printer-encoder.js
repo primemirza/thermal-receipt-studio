@@ -65,26 +65,27 @@ export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
   for (const operation of layout.operations) {
     switch (operation.type) {
       case 'text':
-        if (operation.doubleHeight === true && typeof encoder.raw === 'function') {
-          // Double-height: bangun seluruh baris sebagai raw bytes self-contained.
-          // Ini menghindari konflik dengan internal state ReceiptPrinterEncoder
-          // yang terjadi jika encoder.raw() disisipkan antara encoder.align() dan encoder.line().
+        if (operation.doubleHeight === true) {
+          // Double-height: gunakan encoder.size(1, 2) lalu encoder.line() lalu reset.
+          // ReceiptPrinterEncoder v4 mendukung size(width, height) secara terpisah:
+          //   size(1, 2) → width 1× (normal), height 2× (double-height) → GS ! 0x10
+          // Pendekatan ini WAJIB digunakan (bukan encoder.raw + LF manual) karena:
+          //   1. encoder.raw() yang mengandung 0x0A (LF) menyebabkan double newline:
+          //      LF manual kita + LF dari library (feedAfterBlock:true) = 2× newline per baris.
+          //   2. encoder.align() bersifat lazy dan bytes-nya di-emit oleh encoder.line(),
+          //      sehingga alignment bekerja benar tanpa perlu mengelola raw bytes secara manual.
           if (typeof encoder.bold === 'function') encoder.bold(operation.bold === true);
           if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
           if (typeof encoder.underline === 'function') encoder.underline(operation.underline === true);
-          if (typeof encoder.size === 'function') encoder.size(1);
-          const ALIGN_BYTES = { left: 0x00, center: 0x01, right: 0x02 };
-          const alignByte = ALIGN_BYTES[operation.align] ?? 0x00;
-          const textBytes = [...new TextEncoder().encode(operation.text)];
-          encoder.raw([
-            0x1B, 0x61, alignByte,  // ESC a n — set alignment
-            0x1D, 0x21, 0x10,       // GS ! 0x10 — double height, normal width
-            ...textBytes,
-            0x0A,                   // LF — newline
-            0x1D, 0x21, 0x00,       // GS ! 0x00 — reset character size
-            0x1B, 0x61, 0x00,       // ESC a 0 — reset alignment to left
-          ]);
-          // Sinkronkan internal state encoder: alignment kembali ke left setelah baris ini.
+          // Set double-height: width=1 (normal), height=2 (2×)
+          if (typeof encoder.size === 'function') encoder.size(1, 2);
+          // Set alignment (lazy — bytes akan di-emit saat encoder.line() dipanggil)
+          const align = ALIGNMENTS.has(operation.align) ? operation.align : 'left';
+          if (typeof encoder.align === 'function') encoder.align(align);
+          encoder.line(operation.text);
+          // Reset ke ukuran normal setelah baris double-height
+          if (typeof encoder.size === 'function') encoder.size(1, 1);
+          // Reset alignment ke left agar baris selanjutnya tidak terpengaruh
           if (typeof encoder.align === 'function') encoder.align('left');
         } else {
           setTextStyle(encoder, operation);
