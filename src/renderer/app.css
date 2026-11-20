@@ -105,7 +105,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .design-block:last-child { border-bottom: 0; }
 .block-type { display: none; color: #0067c0; font: 9px var(--ui); background: #e8f2fc; padding: 2px 4px; border-radius: 3px; }
 .block-price { margin-left: auto; white-space: nowrap; }
-.design-rule { flex: 1; border-bottom: 1px dashed #555; }
+.design-rule { flex: none; display: block; border-bottom: 1px dashed #555; }
 .design-block-paragraph { white-space: pre-wrap; word-break: break-word; }
 .design-block-paragraph [data-inline-edit] { white-space: pre-wrap; word-break: break-word; min-width: 60px; display: block; }
 .muted-block { color: #555; }
@@ -673,9 +673,31 @@ body .inspector-panel #block-spacing-fields[hidden] { display: none !important; 
 
 /* A divider is itself the only stroke of a rule block. */
 .design-block.design-block-rule { border-bottom: 0 !important; }
-.design-block.design-block-rule > .design-rule { align-self: center; min-height: 0; }
+.design-block.design-block-rule { position: relative; }
+.design-block.design-block-rule > .design-rule { align-self: flex-start; min-height: 0; flex: none; }
 .design-rule.rule-character { border-bottom: 0 !important; }
 .receipt-line.rule-character { border-bottom: 0 !important; }
+
+/* Drag handle di ujung kanan garis — untuk mengatur panjang rule. */
+.rule-resize-handle {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 20px;
+  cursor: ew-resize;
+  touch-action: none;
+  background: transparent;
+  border-radius: 2px;
+  z-index: 4;
+  pointer-events: auto;
+}
+.rule-resize-handle:hover,
+.rule-resize-handle:active {
+  background: #0078d4;
+  opacity: 0.6;
+}
 
 /* Image, QR and barcode can be resized directly on the canvas. */
 .resizable-object {
