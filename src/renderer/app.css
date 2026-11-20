@@ -938,3 +938,92 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
 [data-inline-edit][data-placeholder][contenteditable="true"]:empty::before {
   color: #ccc;
 }
+
+
+/* ── Tab Bar ── */
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface-2, #f0f0f0);
+  border-bottom: 1px solid var(--border, #d0d0d0);
+  min-height: 32px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px 3px 0;
+}
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  min-width: 100px;
+  max-width: 200px;
+  background: var(--surface-3, #e0e0e0);
+  border: 1px solid var(--border, #d0d0d0);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.tab-item.is-active {
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  font-weight: 500;
+  z-index: 1;
+}
+.tab-item .tab-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tab-item .tab-dirty {
+  color: var(--accent, #0066cc);
+  font-size: 14px;
+  line-height: 1;
+}
+.tab-item .tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.6;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.tab-item .tab-close:hover { opacity: 1; background: rgba(0,0,0,0.1); }
+.tab-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  align-self: center;
+  border: 1px solid var(--border, #d0d0d0);
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary, #555);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+.tab-new-btn:hover { background: var(--surface-3, #e0e0e0); }

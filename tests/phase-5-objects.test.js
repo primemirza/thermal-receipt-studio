@@ -527,13 +527,16 @@ test('saving and opening a document synchronize the real Electron title with its
   const js = fs.readFileSync(path.join(root, 'src/renderer/renderer.js'), 'utf8');
   const preload = fs.readFileSync(path.join(root, 'src/preload/preload.cjs'), 'utf8');
   const main = fs.readFileSync(path.join(root, 'src/main/main.js'), 'utf8');
-  assert.ok(js.includes("document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio'"));
-  assert.ok(js.includes('window.trs.setWindowTitle(document.title)'));
-  assert.ok(js.includes("savedName.replace(/\\.trstudio$/i, '')"), 'remove .trstudio extension from visible title');
+  // Sejak implementasi multi-tab: title bar hanya menampilkan nama aplikasi;
+  // nama file ditampilkan di tab lewat getTabTitle() dan renderTabBar().
+  assert.ok(js.includes("const title = 'Thermal Receipt Studio'"), 'title bar hanya nama aplikasi');
+  assert.ok(js.includes("document.title = title"), 'document.title diset ke judul aplikasi');
+  assert.ok(js.includes('window.trs.setWindowTitle(title).catch'), 'setWindowTitle dipanggil dengan judul aplikasi');
+  assert.ok(js.includes("replace(/\\.trstudio$/i, '')"), 'hapus ekstensi .trstudio dari nama tab');
   assert.ok(preload.includes("setWindowTitle: (title) => invoke('window:setTitle', [title])"));
   assert.ok(main.includes("'window:setTitle'"));
   assert.ok(main.includes('mainWindow?.setTitle(title)'));
-  assert.ok(js.includes('currentFilePath = null; updateWindowTitle()'));
+  assert.ok(js.includes('currentFilePath = result.value.path'), 'path file disimpan setelah save');
 });
 
 test('context menu duplicate inserts a full independent copy immediately below selected block', async () => {

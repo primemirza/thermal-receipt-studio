@@ -39,7 +39,7 @@
       "icon": "build/icon.ico"
     },
     "portable": {
-      "artifactName": "ThermalReceiptStudio-${version}-portable-x64.${ext}"
+      "artifactName": "ThermalReceiptStudio-${version}-win-x64.${ext}"
     },
     "nsis": {
       "oneClick": false,
