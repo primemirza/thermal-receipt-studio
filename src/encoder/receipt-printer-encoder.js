@@ -13,16 +13,21 @@ const ESC_LINE_SPACING_TIGHT = [0x1b, 0x33, 0x00]; // ESC 3 0  → 0 dots
  */
 const ESC_LINE_SPACING_DEFAULT = [0x1b, 0x32]; // ESC 2
 
+// GS ! n — Character Size command.
+// byte n: bit4-6 = height multiplier (0=1×, 1=2×), bit0-2 = width multiplier (0=1×, 1=2×).
+// Double-height only: n = 0x10 (height 2×, width 1×).
+// Reset to normal:    n = 0x00.
+const GS_CHAR_SIZE_DOUBLE_HEIGHT = [0x1D, 0x21, 0x10];
+const GS_CHAR_SIZE_NORMAL        = [0x1D, 0x21, 0x00];
+
 function setTextStyle(encoder, operation) {
   if (typeof encoder.bold === 'function') encoder.bold(operation.bold === true);
   if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
   if (typeof encoder.underline === 'function') encoder.underline(operation.underline === true);
   if (typeof encoder.size === 'function') {
-    if (operation.doubleHeight === true) {
-      // Tinggi ganda: lebar normal (1×), tinggi dobel (2×) — ESC/POS GS ! mode.
-      // ReceiptPrinterEncoder v4 mendukung size({ width: N, height: N }).
-      encoder.size({ width: 1, height: 2 });
-    } else {
+    // doubleHeight pakai raw GS! — tidak lewat encoder.size() karena library
+    // hanya menerima angka skalar dan tidak mendukung width/height terpisah.
+    if (operation.doubleHeight !== true) {
       const size = operation.size === 'large' || operation.size === 'double' ? 2 : 1;
       encoder.size(size);
     }
@@ -61,7 +66,14 @@ export async function encodeThermalLayout(layout, EncoderClass, options = {}) {
     switch (operation.type) {
       case 'text':
         setTextStyle(encoder, operation);
-        encoder.line(operation.text);
+        if (operation.doubleHeight === true && typeof encoder.raw === 'function') {
+          // Aktifkan mode double-height via raw GS! sebelum baris, reset setelahnya.
+          encoder.raw(GS_CHAR_SIZE_DOUBLE_HEIGHT);
+          encoder.line(operation.text);
+          encoder.raw(GS_CHAR_SIZE_NORMAL);
+        } else {
+          encoder.line(operation.text);
+        }
         break;
       case 'rule': {
         setTextStyle(encoder, { align: 'left' });
