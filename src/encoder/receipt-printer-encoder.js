@@ -18,8 +18,14 @@ function setTextStyle(encoder, operation) {
   if (typeof encoder.italic === 'function') encoder.italic(operation.italic === true);
   if (typeof encoder.underline === 'function') encoder.underline(operation.underline === true);
   if (typeof encoder.size === 'function') {
-    const size = operation.size === 'large' || operation.size === 'double' ? 2 : 1;
-    encoder.size(size);
+    if (operation.doubleHeight === true) {
+      // Tinggi ganda: lebar normal (1×), tinggi dobel (2×) — ESC/POS GS ! mode.
+      // ReceiptPrinterEncoder v4 mendukung size({ width: N, height: N }).
+      encoder.size({ width: 1, height: 2 });
+    } else {
+      const size = operation.size === 'large' || operation.size === 'double' ? 2 : 1;
+      encoder.size(size);
+    }
   }
   const align = ALIGNMENTS.has(operation.align) ? operation.align : 'left';
   if (typeof encoder.align === 'function') encoder.align(align);

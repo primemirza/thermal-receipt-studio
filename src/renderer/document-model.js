@@ -48,9 +48,12 @@ export function validateDocument(doc) {
     throw new TypeError('Versi dokumen tidak didukung.');
   }
   if (![58, 80].includes(doc.paperWidthMm)) throw new TypeError('Lebar kertas harus 58 atau 80 mm.');
+  // Batas maksimum margin/padding disesuaikan dengan lebar kertas:
+  // 80 mm butuh ruang lebih dari 60 mm (maks 120 px untuk 80 mm, 60 px untuk 58 mm).
+  const maxSpacing = doc.paperWidthMm === 80 ? 120 : 60;
   if (doc.layout !== undefined) {
     if (!doc.layout || typeof doc.layout !== 'object') throw new TypeError('Layout dokumen tidak valid.');
-    if (doc.layout.margins !== undefined) assertBox(doc.layout.margins, 'Margin global', 60);
+    if (doc.layout.margins !== undefined) assertBox(doc.layout.margins, 'Margin global', maxSpacing);
   }
   const ids = new Set();
   let totalBlocks = 0;
@@ -64,11 +67,11 @@ export function validateDocument(doc) {
       ids.add(block.id);
       if (!BLOCK_TYPES.includes(block.type) && block.type !== 'dynamic') throw new TypeError('Jenis elemen tidak didukung.');
       if (block.align !== undefined && !ALIGNMENTS.includes(block.align)) throw new TypeError('Perataan elemen tidak valid.');
-      if (block.margin !== undefined) assertBox(block.margin, block.type === 'section' ? 'Margin section' : 'Margin blok', 60);
-      if (block.blockPadding !== undefined) assertBox(block.blockPadding, 'Padding blok', 60);
+      if (block.margin !== undefined) assertBox(block.margin, block.type === 'section' ? 'Margin section' : 'Margin blok', maxSpacing);
+      if (block.blockPadding !== undefined) assertBox(block.blockPadding, 'Padding blok', maxSpacing);
       if (block.type === 'section') {
         assertString(block.name || 'Section', 'Nama section');
-        if (block.padding !== undefined) assertBox(block.padding, 'Padding section', 60);
+        if (block.padding !== undefined) assertBox(block.padding, 'Padding section', maxSpacing);
         validateBlocks(block.children, depth + 1);
         continue;
       }
@@ -80,6 +83,7 @@ export function validateDocument(doc) {
       }
       if (block.size !== undefined && !['small', 'normal', 'large', 'double'].includes(block.size)) throw new TypeError('Ukuran teks tidak valid.');
       for (const key of ['bold', 'italic', 'underline']) if (block[key] !== undefined && typeof block[key] !== 'boolean') throw new TypeError('Opsi format teks tidak valid.');
+      if (block.doubleHeight !== undefined && typeof block.doubleHeight !== 'boolean') throw new TypeError('Tinggi ganda harus boolean.');
       if (block.type === 'rule') {
         if (block.style !== undefined && !['solid', 'dashed', 'double'].includes(block.style)) throw new TypeError('Gaya separator tidak valid.');
         if (block.character !== undefined) assertString(block.character, 'Karakter separator', 1);
