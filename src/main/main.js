@@ -1,4 +1,4 @@
-﻿// Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
+// Thermal Receipt Studio — main process (FASE 1: fondasi minimal)
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -184,12 +184,19 @@ if (!gotLock) {
       }
 
       case 'document:open': {
-        const picked = await dialog.showOpenDialog(mainWindow, { title: 'Buka dokumen struk', properties: ['openFile'], filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] });
+        // Baca folder terakhir yang digunakan; fallback ke Downloads jika belum ada.
+        let lastOpenDir;
+        try { lastOpenDir = getDb().getAllPreferences()?.lastOpenDir; } catch {}
+        const openDialogOptions = { title: 'Buka dokumen struk', properties: ['openFile'], filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] };
+        if (lastOpenDir) openDialogOptions.defaultPath = lastOpenDir;
+        const picked = await dialog.showOpenDialog(mainWindow, openDialogOptions);
         if (picked.canceled || !picked.filePaths[0]) return { ok: true, value: null };
         try {
           const filePath = picked.filePaths[0];
           const parsed = parseTrstudio(fs.readFileSync(filePath), validateDocument);
           currentFiles.set(event.sender.id, filePath);
+          // Simpan folder terakhir agar dialog berikutnya langsung terbuka di sini.
+          try { getDb().setPreference('lastOpenDir', path.dirname(filePath)); } catch {}
           try {
             getDb().addRecentFile(filePath, parsed.document.title || 'Tanpa Judul', parsed.document.paperWidthMm || 58);
           } catch {}
@@ -204,7 +211,11 @@ if (!gotLock) {
           if (!['save', 'saveAs'].includes(mode)) return { ok: false, error: 'INVALID_ARGS' };
           let filePath = mode === 'saveAs' ? null : currentFiles.get(event.sender.id);
           if (!filePath) {
-            const picked = await dialog.showSaveDialog(mainWindow, { title: mode === 'saveAs' ? 'Simpan dokumen sebagai' : 'Simpan dokumen struk', defaultPath: 'Struk baru.trstudio', buttonLabel: 'Simpan', filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] });
+            // Baca folder terakhir untuk dialog simpan juga.
+            let lastOpenDir2;
+            try { lastOpenDir2 = getDb().getAllPreferences()?.lastOpenDir; } catch {}
+            const saveDialogOptions = { title: mode === 'saveAs' ? 'Simpan dokumen sebagai' : 'Simpan dokumen struk', defaultPath: lastOpenDir2 ? path.join(lastOpenDir2, 'Struk baru.trstudio') : 'Struk baru.trstudio', buttonLabel: 'Simpan', filters: [{ name: 'Thermal Receipt Studio', extensions: ['trstudio'] }] };
+            const picked = await dialog.showSaveDialog(mainWindow, saveDialogOptions);
             if (picked.canceled || !picked.filePath) return { ok: true, value: null };
             filePath = picked.filePath.toLowerCase().endsWith('.trstudio') ? picked.filePath : picked.filePath + '.trstudio';
           }
@@ -216,6 +227,8 @@ if (!gotLock) {
           try {
             getDb().addRecentFile(filePath, document.title || 'Tanpa Judul', document.paperWidthMm || 58);
             getDb().clearRecoverySnapshot();
+            // Simpan folder terakhir dari file yang baru disimpan.
+            getDb().setPreference('lastOpenDir', path.dirname(filePath));
           } catch {}
           return { ok: true, value: { path: filePath } };
         } catch (err) { return { ok: false, error: 'SAVE_FAILED', message: String(err?.message || err) }; }

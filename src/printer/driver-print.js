@@ -44,7 +44,10 @@ export function buildThermalDriverHtml(thermalLayout, paperWidthMm = 58) {
       if (op.bold) style += 'font-weight:bold;';
       if (op.italic) style += 'font-style:italic;';
       if (op.underline) style += 'text-decoration:underline;';
-      if (op.size === 'double-height' || op.size === 'double' || op.size === 'large') {
+      if (op.doubleHeight) {
+        // Tinggi ganda: lebar karakter normal, tinggi 2× — ditampilkan sebagai scaleY(2).
+        style += 'display:inline-block;width:100%;transform:scaleY(2);transform-origin:top left;line-height:1;';
+      } else if (op.size === 'double-height' || op.size === 'double' || op.size === 'large') {
         style += 'font-size:1.35em;line-height:1.2;';
       }
       if (style) {

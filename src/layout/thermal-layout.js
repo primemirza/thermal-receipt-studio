@@ -133,7 +133,8 @@ function pushText(operations, text, block, width, leftIndent) {
       bold: block.bold === true,
       italic: block.italic === true,
       underline: block.underline === true,
-      size: block.size || 'normal'
+      size: block.size || 'normal',
+      doubleHeight: block.doubleHeight === true
     });
   }
 }
@@ -338,6 +339,7 @@ export function createThermalLayout(document, options = {}) {
             italic: block.italic === true,
             underline: block.underline === true,
             size: block.size || 'normal',
+            doubleHeight: block.doubleHeight === true,
             sourceType: 'item'
           });
           for (const line of names.slice(1)) {
@@ -366,6 +368,7 @@ export function createThermalLayout(document, options = {}) {
             italic: block.italic === true,
             underline: block.underline === true,
             size: block.size || 'normal',
+            doubleHeight: block.doubleHeight === true,
             sourceType: 'total'
           });
           break;

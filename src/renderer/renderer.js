@@ -23,6 +23,7 @@ const sizeInput = $('block-size-input');
 const boldInput = $('block-bold-input');
 const italicInput = $('block-italic-input');
 const underlineInput = $('block-underline-input');
+const doubleHeightInput = $('block-double-height-input');
 const spacerHeightInput = $('block-spacer-height');
 const imageWidthInput = $('block-image-width');
 const ruleStyleInput = $('block-rule-style');
@@ -289,6 +290,18 @@ function applyTextStyle(node, block) {
   node.style.fontWeight = block.bold === true ? '700' : '400';
   node.style.fontStyle = block.italic === true ? 'italic' : 'normal';
   node.style.textDecoration = block.underline === true ? 'underline' : 'none';
+  // Double-height: tinggi huruf 2× tanpa mengubah lebar (scaleY via line-height + transform).
+  if (block.doubleHeight === true) {
+    node.style.lineHeight = '2';
+    node.style.transform = 'scaleY(2)';
+    node.style.transformOrigin = 'top left';
+    node.style.display = 'inline-block';
+    node.style.width = '100%';
+  } else {
+    node.style.lineHeight = '';
+    node.style.transform = '';
+    node.style.transformOrigin = '';
+  }
 }
 function tableCellAlignment(block, rowIndex, colIndex) {
   return block.cellAlignments?.[rowIndex + 1]?.[colIndex] || block.align || 'left';
@@ -660,6 +673,8 @@ function renderInspector() {
   italicInput.checked = Boolean(block?.italic);
   underlineInput.disabled = !block || !['text','paragraph','item','total','table','columns'].includes(block.type);
   underlineInput.checked = Boolean(block?.underline);
+  doubleHeightInput.disabled = !block || !['text','item','total'].includes(block.type);
+  doubleHeightInput.checked = Boolean(block?.doubleHeight);
   spacerHeightInput.disabled = !block || block.type !== 'spacer';
   spacerHeightInput.value = block?.type === 'spacer' ? String(block.height) : '';
   imageWidthInput.disabled = !block || !['image','qrcode','barcode'].includes(block.type);
@@ -734,6 +749,20 @@ function setPaper(width) {
   if (![58, 80].includes(width)) return;
   mutate(() => { documentModel.paperWidthMm = width; }, 'Lebar kertas diubah ke ' + width + ' mm.');
   window.trs?.setPreference?.('defaultPaperWidth', width).catch(() => {});
+  // Perbarui atribut max pada input margin/padding sesuai lebar kertas baru.
+  updateSpacingMaxAttr(width);
+}
+function updateSpacingMaxAttr(paperWidthMm) {
+  const max = paperWidthMm === 80 ? '120' : '60';
+  for (const side of spacingSides) {
+    marginInputs[side].max = max;
+    paddingInputs[side].max = max;
+  }
+  // Perbarui juga input margin global di dialog.
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    const el = $('global-margin-' + side);
+    if (el) el.max = max;
+  }
 }
 function setZoom(value) {
   state.zoom = Math.min(150, Math.max(60, value));
@@ -1321,6 +1350,7 @@ sizeInput.addEventListener('change', () => { const block = selectedBlock(); if (
 boldInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.bold = boldInput.checked; }, 'Format tebal diperbarui.'); });
 italicInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.italic = italicInput.checked; }, 'Format miring diperbarui.'); });
 underlineInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','paragraph','item','total','table','columns'].includes(block.type)) return; mutate(() => { block.underline = underlineInput.checked; }, 'Garis bawah diperbarui.'); });
+doubleHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['text','item','total'].includes(block.type)) return; mutate(() => { block.doubleHeight = doubleHeightInput.checked; }, 'Tinggi ganda diperbarui.'); });
 spacerHeightInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'spacer') return; const value = Math.max(1, Math.min(20, Math.round(Number(spacerHeightInput.value) || 1))); mutate(() => { block.height = value; }, 'Tinggi spacer diperbarui.'); });
 imageWidthInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || !['image','qrcode','barcode'].includes(block.type)) return; const min = block.type === 'qrcode' ? 32 : block.type === 'barcode' ? 64 : 1; const value = Math.max(min, Math.min(512, Math.round(Number(imageWidthInput.value) || min))); mutate(() => { block.width = value; }, 'Lebar ' + (block.type === 'image' ? 'gambar' : block.type === 'qrcode' ? 'QR code' : 'barcode') + ' diperbarui.'); });
 ruleStyleInput.addEventListener('change', () => { const block = selectedBlock(); if (!block || block.type !== 'rule' || !['solid','dashed','double'].includes(ruleStyleInput.value)) return; mutate(() => { block.style = ruleStyleInput.value; }, 'Gaya garis diperbarui.'); });
@@ -1382,14 +1412,16 @@ sectionNameInput.addEventListener('change', () => {
 for (const side of spacingSides) {
   marginInputs[side].addEventListener('change', () => {
     const block = selectedBlock(); if (!block) return;
-    const value = Math.max(0, Math.min(60, Math.round(Number(marginInputs[side].value) || 0)));
+    const maxSpacing = documentModel.paperWidthMm === 80 ? 120 : 60;
+    const value = Math.max(0, Math.min(maxSpacing, Math.round(Number(marginInputs[side].value) || 0)));
     mutate(() => {
       block.margin = { top: 0, right: 0, bottom: 0, left: 0, ...(block.margin || {}), [side]: value };
     }, 'Margin ' + side + ' diperbarui.');
   });
   paddingInputs[side].addEventListener('change', () => {
     const block = selectedBlock(); if (!block) return;
-    const value = Math.max(0, Math.min(60, Math.round(Number(paddingInputs[side].value) || 0)));
+    const maxSpacing = documentModel.paperWidthMm === 80 ? 120 : 60;
+    const value = Math.max(0, Math.min(maxSpacing, Math.round(Number(paddingInputs[side].value) || 0)));
     const key = block.type === 'section' ? 'padding' : 'blockPadding';
     mutate(() => {
       const defaultBox = block.type === 'section'
@@ -1686,6 +1718,8 @@ async function boot() {
             b.setAttribute('aria-pressed', String(active));
           });
         }
+        // Perbarui atribut max margin/padding sesuai lebar kertas yang dimuat.
+        updateSpacingMaxAttr(documentModel.paperWidthMm);
         renderAll();
       }
     } catch (e) { console.warn('Gagal memuat preferensi:', e); }
