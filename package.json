@@ -33,10 +33,11 @@
     "asar": true,
     "win": {
       "target": [
-        "portable",
-        "nsis"
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "nsis",     "arch": ["x64"] }
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "artifactName": "ThermalReceiptStudio-${version}-win-x64.${ext}"
     },
     "portable": {
       "artifactName": "ThermalReceiptStudio-${version}-win-x64.${ext}"
