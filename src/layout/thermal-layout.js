@@ -236,9 +236,11 @@ export function createThermalProfile(paperWidthMm, options = {}) {
   // The document model stores margins in CSS pixels; Font A is approximately 12 px per character.
   const marginColumns = Math.ceil(leftPx / 12) + Math.ceil(rightPx / 12);
   const effectiveColumns = Math.max(1, columns - marginColumns);
-  // Convert vertical margins to feed lines (thermal printer line height ~3px at normal font size)
-  const topFeedLines = Math.max(0, Math.ceil(topPx / 3));
-  const bottomFeedLines = Math.max(0, Math.ceil(bottomPx / 3));
+  // Convert vertical margins to feed lines (thermal printer line height ≈ Font A 12px).
+  // Gunakan 12px per baris (konsisten dengan 1 baris teks thermal ≈ Font A 12px).
+  // Ini mencegah margin kecil (mis. 12px) menghasilkan terlalu banyak feed (4 baris).
+  const topFeedLines = Math.max(0, Math.ceil(topPx / 12));
+  const bottomFeedLines = Math.max(0, Math.ceil(bottomPx / 12));
   return Object.freeze({
     paperWidthMm,
     columns,

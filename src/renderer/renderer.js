@@ -59,6 +59,126 @@ let activeInlineEditSession = null;
 let isDirty = false;
 let currentFilePath = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [] };
+
+// ── Tab state ──
+let tabIdCounter = 0;
+function makeTab(doc, filePath = null) {
+  return {
+    id: ++tabIdCounter,
+    documentModel: doc,
+    selectedBlockId: null,
+    activeInlineTarget: null,
+    activeInlineEditSession: null,
+    isDirty: false,
+    currentFilePath: filePath,
+    undo: [],
+    redo: [],
+    zoom: 100,
+  };
+}
+let tabs = [makeTab(documentModel)];
+let activeTabIdx = 0;
+
+function saveTabState() {
+  const tab = tabs[activeTabIdx];
+  if (!tab) return;
+  tab.documentModel = documentModel;
+  tab.selectedBlockId = selectedBlockId;
+  tab.activeInlineTarget = activeInlineTarget;
+  tab.activeInlineEditSession = activeInlineEditSession;
+  tab.isDirty = isDirty;
+  tab.currentFilePath = currentFilePath;
+  tab.undo = state.undo;
+  tab.redo = state.redo;
+  tab.zoom = state.zoom;
+}
+function loadTabState(idx) {
+  const tab = tabs[idx];
+  if (!tab) return;
+  activeTabIdx = idx;
+  documentModel = tab.documentModel;
+  selectedBlockId = tab.selectedBlockId;
+  activeInlineTarget = tab.activeInlineTarget;
+  activeInlineEditSession = tab.activeInlineEditSession;
+  isDirty = tab.isDirty;
+  currentFilePath = tab.currentFilePath;
+  state.undo = tab.undo;
+  state.redo = tab.redo;
+  state.zoom = tab.zoom || 100;
+}
+function switchTab(idx) {
+  if (idx === activeTabIdx) return;
+  saveTabState();
+  loadTabState(idx);
+  renderTabBar();
+  renderAll();
+}
+function addTab(doc, filePath = null) {
+  saveTabState();
+  tabs.push(makeTab(doc, filePath));
+  activeTabIdx = tabs.length - 1;
+  loadTabState(activeTabIdx);
+  renderTabBar();
+  renderAll();
+}
+function closeTab(idx) {
+  const tab = tabs[idx];
+  const isDirtyTab = idx === activeTabIdx ? isDirty : tab.isDirty;
+  if (isDirtyTab && !window.confirm('Perubahan belum disimpan pada tab ini. Tutup?')) return;
+  tabs.splice(idx, 1);
+  if (tabs.length === 0) {
+    tabs.push(makeTab(createSampleDocument()));
+    activeTabIdx = 0;
+  } else if (activeTabIdx >= tabs.length) {
+    activeTabIdx = tabs.length - 1;
+  } else if (idx < activeTabIdx) {
+    activeTabIdx -= 1;
+  }
+  loadTabState(activeTabIdx);
+  renderTabBar();
+  renderAll();
+}
+function getTabTitle(tab) {
+  if (tab.currentFilePath) {
+    return String(tab.currentFilePath).split(/[/\\]/).pop().replace(/\.trstudio$/i, '');
+  }
+  return 'Tanpa Judul';
+}
+function renderTabBar() {
+  const bar = document.getElementById('tab-bar');
+  if (!bar) return;
+  const newBtn = document.getElementById('tab-new-btn');
+  while (bar.firstChild && bar.firstChild !== newBtn) bar.removeChild(bar.firstChild);
+  tabs.forEach((tab, idx) => {
+    const el = document.createElement('div');
+    el.className = 'tab-item' + (idx === activeTabIdx ? ' is-active' : '');
+    el.setAttribute('role', 'tab');
+    el.setAttribute('aria-selected', idx === activeTabIdx ? 'true' : 'false');
+    el.tabIndex = idx === activeTabIdx ? 0 : -1;
+    const isDirtyTab = idx === activeTabIdx ? isDirty : tab.isDirty;
+    if (isDirtyTab) {
+      const dot = document.createElement('span');
+      dot.className = 'tab-dirty';
+      dot.textContent = '•';
+      dot.title = 'Ada perubahan belum disimpan';
+      el.appendChild(dot);
+    }
+    const titleEl = document.createElement('span');
+    titleEl.className = 'tab-title';
+    titleEl.textContent = getTabTitle(tab);
+    titleEl.title = tab.currentFilePath || 'Dokumen baru';
+    el.appendChild(titleEl);
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'tab-close';
+    closeBtn.textContent = '×';
+    closeBtn.title = 'Tutup tab';
+    closeBtn.setAttribute('aria-label', 'Tutup tab ' + getTabTitle(tab));
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); closeTab(idx); });
+    el.appendChild(closeBtn);
+    el.addEventListener('click', () => switchTab(idx));
+    bar.insertBefore(el, newBtn);
+  });
+}
 const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 // Harga ditampilkan sebagai angka berkelompok; mata uang/prefix tidak dipaksakan oleh editor.
 const money = (amount) => currency.format(amount);
@@ -1550,6 +1670,9 @@ document.addEventListener('keydown', event => {
   else if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   else if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }
   else if (key === 'y') { event.preventDefault(); restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'); }
+  // Ctrl+T = tab baru, Ctrl+W = tutup tab aktif
+  if (event.ctrlKey && key === 't') { event.preventDefault(); addTab(createSampleDocument()); setStatus('Tab baru dibuat.'); }
+  if (event.ctrlKey && key === 'w') { event.preventDefault(); closeTab(activeTabIdx); }
 });
 $('undo-button').addEventListener('click', () => restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'));
 $('redo-button').addEventListener('click', () => restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'));
@@ -1590,7 +1713,7 @@ $('printer-button').addEventListener('click', async () => {
     // Encode layout ke ESC/POS bytes di renderer, lalu kirim raw bytes ke main process
     // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
     // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
-    const layout = createThermalLayout(documentModel, { feedBeforeCut: 3, cut: true });
+    const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
     // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
     const layoutPlain = JSON.parse(JSON.stringify(layout));
     // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
@@ -1663,31 +1786,30 @@ async function saveCurrent(mode = 'save') {
   setStatus('Dokumen tersimpan: ' + currentFilePath);
   // Hapus recovery snapshot karena dokumen sudah tersimpan
   window.trs.clearRecoverySnapshot().catch(() => {});
+  renderTabBar();
   return true;
 }
 function updateWindowTitle() {
-  const savedName = currentFilePath ? String(currentFilePath).split(/[\\/]/).pop() : '';
-  const fileName = savedName.replace(/\.trstudio$/i, '');
-  document.title = fileName ? 'Thermal Receipt Studio - ' + fileName : 'Thermal Receipt Studio';
-  window.trs.setWindowTitle(document.title).catch(() => {});
+  // Title bar hanya menampilkan nama aplikasi; nama file tampil di tab.
+  const title = 'Thermal Receipt Studio';
+  document.title = title;
+  window.trs.setWindowTitle(title).catch(() => {});
+  renderTabBar();
 }
 function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
 $('new-document-button').addEventListener('click', () => {
-  if (!confirmDiscard()) return;
-  documentModel = createSampleDocument(); selectedBlockId = null; currentFilePath = null; updateWindowTitle(); isDirty = false;
-  state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen baru dibuat.');
+  addTab(createSampleDocument());
+  setStatus('Dokumen baru dibuat di tab baru.');
 });
 $('open-document-button').addEventListener('click', async () => {
-  if (!confirmDiscard()) return;
   const result = await window.trs.openDocument();
   if (!result?.ok) { setStatus('Gagal membuka file: ' + (result?.message || result?.error || 'file tidak valid')); return; }
   if (!result.value) { setStatus('Buka file dibatalkan.'); return; }
   try {
     const openedDocument = migrateLegacyDocument(result.value.document);
     validateDocument(openedDocument);
-    documentModel = cloneDocument(openedDocument);
-    selectedBlockId = null; currentFilePath = result.value.path; updateWindowTitle(); isDirty = false;
-    state.undo = []; state.redo = []; renderAll(); setStatus('Dokumen dibuka: ' + currentFilePath);
+    addTab(cloneDocument(openedDocument), result.value.path);
+    setStatus('Dokumen dibuka: ' + result.value.path);
   } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
 });
 $('save-document-button').addEventListener('click', () => saveCurrent('save'));
@@ -1696,6 +1818,11 @@ $('save-as-document-button').addEventListener('click', () => saveCurrent('saveAs
 async function boot() {
   updateWindowTitle();
   renderAll();
+  renderTabBar();
+  document.getElementById('tab-new-btn')?.addEventListener('click', () => {
+    addTab(createSampleDocument());
+    setStatus('Tab baru dibuat.');
+  });
   try {
     const ver = await window.trs.getVersion();
     if (ver.ok) statusVersion.textContent = 'v' + ver.value;

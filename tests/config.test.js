@@ -22,7 +22,7 @@ test('konfigurasi electron-builder menargetkan portable dan NSIS installer win x
   assert.deepEqual(b.win.target, ['portable', 'nsis']);
   assert.match(pkg.scripts['dist:win'], /portable/);
   assert.match(pkg.scripts['dist:win'], /nsis/);
-  assert.match(b.portable.artifactName, /portable-x64/);
+  assert.match(b.portable.artifactName, /win-x64/);
   assert.match(b.nsis.artifactName, /setup-x64/);
   const targets = JSON.stringify(b).toLowerCase();
   assert.ok(!targets.includes('"msi"'), 'tanpa target MSI');
