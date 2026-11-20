@@ -19,7 +19,10 @@ test('konfigurasi electron-builder menargetkan portable dan NSIS installer win x
   const pkg = JSON.parse(read('package.json'));
   const b = pkg.build;
   assert.ok(b, 'blok build ada');
-  assert.deepEqual(b.win.target, ['portable', 'nsis']);
+  // win.target bisa berupa array string atau array objek target
+  const targetIds = b.win.target.map(t => (typeof t === 'string' ? t : t.target));
+  assert.ok(targetIds.includes('portable'), 'target portable ada');
+  assert.ok(targetIds.includes('nsis'), 'target nsis ada');
   assert.match(pkg.scripts['dist:win'], /portable/);
   assert.match(pkg.scripts['dist:win'], /nsis/);
   assert.match(b.portable.artifactName, /win-x64/);

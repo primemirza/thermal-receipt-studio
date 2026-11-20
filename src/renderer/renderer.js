@@ -1713,7 +1713,12 @@ $('printer-button').addEventListener('click', async () => {
     // Encode layout ke ESC/POS bytes di renderer, lalu kirim raw bytes ke main process
     // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
     // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
-    const layout = createThermalLayout(documentModel, { feedBeforeCut: 1, cut: true });
+    // feedBeforeCut disesuaikan per ukuran kertas:
+    // - 58mm: printer tidak menambah feed sendiri → butuh 2 baris eksplisit agar tidak terpotong
+    // - 80mm: printer menambah ~2 baris ekstra sendiri → cukup 0 baris eksplisit → total 2 baris
+    const feedBeforeCutByWidth = { 58: 2, 80: 0 };
+    const feedBeforeCut = feedBeforeCutByWidth[documentModel.paperWidthMm] ?? 2;
+    const layout = createThermalLayout(documentModel, { feedBeforeCut, cut: true });
     // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
     const layoutPlain = JSON.parse(JSON.stringify(layout));
     // Lengkapi grafik QR code dan Barcode di sisi renderer sebelum dikirim ke main process
