@@ -1782,12 +1782,16 @@ $('printer-button').addEventListener('click', async () => {
 });
 
 async function saveCurrent(mode = 'save') {
-  const result = await window.trs.saveDocument(cloneDocument(documentModel), mode);
+  // Kirim currentFilePath per-tab ke main process agar save selalu ke file yang benar
+  // terlepas dari urutan membuka/menyimpan dokumen di tab lain.
+  const result = await window.trs.saveDocument(cloneDocument(documentModel), mode, currentFilePath || null);
   if (!result?.ok) { setStatus('Gagal menyimpan: ' + (result?.message || result?.error || 'kesalahan tidak diketahui')); return false; }
   if (!result.value) { setStatus('Penyimpanan dibatalkan.'); return false; }
   currentFilePath = result.value.path;
-  updateWindowTitle();
   isDirty = false;
+  // Sync state yang baru ke objek tab agar switch tab tidak memuat state lama
+  saveTabState();
+  updateWindowTitle();
   setStatus('Dokumen tersimpan: ' + currentFilePath);
   // Hapus recovery snapshot karena dokumen sudah tersimpan
   window.trs.clearRecoverySnapshot().catch(() => {});

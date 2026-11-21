@@ -204,12 +204,15 @@ if (!gotLock) {
         } catch (err) { return { ok: false, error: 'FILE_INVALID', message: String(err?.message || err) }; }
       }
       case 'document:save': {
-        const [document, mode] = args;
+        const [document, mode, tabFilePath] = args;
         try {
           validateDocument(document);
           if (Buffer.byteLength(JSON.stringify(document), 'utf8') > MAX_DOCUMENT_JSON_BYTES) return { ok: false, error: 'DOCUMENT_TOO_LARGE' };
           if (!['save', 'saveAs'].includes(mode)) return { ok: false, error: 'INVALID_ARGS' };
-          let filePath = mode === 'saveAs' ? null : currentFiles.get(event.sender.id);
+          // Gunakan filePath dari renderer (per-tab) agar multi-tab bekerja benar.
+          // Jika tabFilePath tersedia dan mode bukan saveAs, pakai tabFilePath;
+          // fallback ke currentFiles hanya untuk kompatibilitas mundur.
+          let filePath = mode === 'saveAs' ? null : (tabFilePath || null);
           if (!filePath) {
             // Baca folder terakhir untuk dialog simpan juga.
             let lastOpenDir2;
