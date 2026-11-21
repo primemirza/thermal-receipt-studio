@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('trs', {
   getVersion: () => invoke('app:getVersion'),
   getUserDataDir: () => invoke('app:getUserDataDir'),
   openDocument: () => invoke('document:open'),
-  saveDocument: (document, mode = 'save') => invoke('document:save', [document, mode]),
+  saveDocument: (document, mode = 'save', filePath = null) => invoke('document:save', [document, mode, filePath]),
   setWindowTitle: (title) => invoke('window:setTitle', [title]),
   listPrinters: () => invoke('printer:list'),
   printViaDriver: (receiptMarkup, paperWidthMm, printerName = '') => invoke('printer:driver', [receiptMarkup, paperWidthMm, printerName]),
