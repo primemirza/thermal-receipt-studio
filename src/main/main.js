@@ -309,7 +309,14 @@ if (process.env.TRS_SMOKE === '1') {
       }
       try {
         const result = await wins[0].webContents.executeJavaScript(`(() => {
-          const target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
+          let target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
+          if (!target) {
+            // Karena aplikasi dimulai dengan tab kosong (tanpa template terbuka),
+            // buka dokumen baru untuk smoke test pengujian inline-edit.
+            const newBtn = document.querySelector('#new-document-button') || document.querySelector('#tab-new-btn');
+            newBtn?.click();
+            target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
+          }
           if (!target) return { ok: false, reason: 'editable sample text not found' };
           const paper = document.querySelector('#design-paper');
           const diagnostics = {
