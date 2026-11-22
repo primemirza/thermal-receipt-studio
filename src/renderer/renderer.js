@@ -52,7 +52,7 @@ const paddingInputs = Object.fromEntries(spacingSides.map(side => [side, $('bloc
 const globalLayoutDialog = $('global-layout-dialog');
 const blockContextMenu = $('block-context-menu');
 
-let documentModel = createSampleDocument();
+let documentModel = null;
 let selectedBlockId = null;
 let activeInlineTarget = null;
 let activeInlineEditSession = null;
@@ -76,20 +76,24 @@ function makeTab(doc, filePath = null) {
     zoom: 100,
   };
 }
-let tabs = [makeTab(documentModel)];
-let activeTabIdx = 0;
+// Mulai dengan array tab kosong — dokumen hanya ada setelah user membuat/membuka
+let tabs = [];
+let activeTabIdx = -1;
+
+function hasActiveTab() { return activeTabIdx >= 0 && activeTabIdx < tabs.length; }
 
 function saveTabState() {
+  if (!hasActiveTab()) return;
   const tab = tabs[activeTabIdx];
-  if (!tab) return;
   tab.documentModel = documentModel;
   tab.selectedBlockId = selectedBlockId;
   tab.activeInlineTarget = activeInlineTarget;
   tab.activeInlineEditSession = activeInlineEditSession;
   tab.isDirty = isDirty;
   tab.currentFilePath = currentFilePath;
-  tab.undo = state.undo;
-  tab.redo = state.redo;
+  // Clone array undo/redo agar tidak berbagi referensi antar tab
+  tab.undo = [...state.undo];
+  tab.redo = [...state.redo];
   tab.zoom = state.zoom;
 }
 function loadTabState(idx) {
@@ -102,8 +106,9 @@ function loadTabState(idx) {
   activeInlineEditSession = tab.activeInlineEditSession;
   isDirty = tab.isDirty;
   currentFilePath = tab.currentFilePath;
-  state.undo = tab.undo;
-  state.redo = tab.redo;
+  // Clone array undo/redo agar state global tidak berpengaruh ke tab lain saat dimodifikasi
+  state.undo = [...tab.undo];
+  state.redo = [...tab.redo];
   state.zoom = tab.zoom || 100;
 }
 function switchTab(idx) {
@@ -116,8 +121,7 @@ function switchTab(idx) {
 function addTab(doc, filePath = null) {
   saveTabState();
   tabs.push(makeTab(doc, filePath));
-  activeTabIdx = tabs.length - 1;
-  loadTabState(activeTabIdx);
+  loadTabState(tabs.length - 1);
   renderTabBar();
   renderAll();
 }
@@ -127,14 +131,20 @@ function closeTab(idx) {
   if (isDirtyTab && !window.confirm('Perubahan belum disimpan pada tab ini. Tutup?')) return;
   tabs.splice(idx, 1);
   if (tabs.length === 0) {
-    tabs.push(makeTab(createSampleDocument()));
-    activeTabIdx = 0;
-  } else if (activeTabIdx >= tabs.length) {
-    activeTabIdx = tabs.length - 1;
-  } else if (idx < activeTabIdx) {
-    activeTabIdx -= 1;
+    // Semua tab ditutup — kembali ke kondisi kosong
+    activeTabIdx = -1;
+    documentModel = null;
+    selectedBlockId = null;
+    activeInlineTarget = null;
+    activeInlineEditSession = null;
+    isDirty = false;
+    currentFilePath = null;
+    state.undo = [];
+    state.redo = [];
+  } else {
+    const newIdx = idx >= tabs.length ? tabs.length - 1 : idx;
+    loadTabState(newIdx);
   }
-  loadTabState(activeTabIdx);
   renderTabBar();
   renderAll();
 }
@@ -184,7 +194,7 @@ const currency = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 const money = (amount) => currency.format(amount);
 
 function setStatus(message) { statusText.textContent = message; }
-function findBlockEntry(id, blocks = documentModel.blocks, parentSection = null) {
+function findBlockEntry(id, blocks = documentModel?.blocks ?? [], parentSection = null) {
   if (!id) return null;
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index];
@@ -197,7 +207,7 @@ function findBlockEntry(id, blocks = documentModel.blocks, parentSection = null)
   return null;
 }
 function selectedBlock() { return findBlockEntry(selectedBlockId)?.block ?? null; }
-function countAllBlocks(blocks = documentModel.blocks) {
+function countAllBlocks(blocks = documentModel?.blocks ?? []) {
   return blocks.reduce((sum, block) => sum + 1 + (block.type === 'section' ? countAllBlocks(block.children) : 0), 0);
 }
 function insertNewBlock(block) {
@@ -205,7 +215,7 @@ function insertNewBlock(block) {
   selectedBlockId = block.id;
 }
 function captureHistoryState() {
-  return { document: cloneDocument(documentModel), selectedBlockId };
+  return { document: documentModel ? cloneDocument(documentModel) : null, selectedBlockId };
 }
 function saveUndoPoint() {
   state.undo.push(captureHistoryState());
@@ -218,6 +228,7 @@ function updateHistoryButtons() {
   $('redo-button').disabled = state.redo.length === 0;
 }
 function mutate(mutator, message) {
+  if (!documentModel) return false;
   const before = captureHistoryState();
   const undoBefore = [...state.undo];
   const redoBefore = [...state.redo];
@@ -590,6 +601,16 @@ function renderCanvasBlock(block) {
   return node;
 }
 function renderCanvas() {
+  if (!documentModel) {
+    // Kondisi kosong: tidak ada dokumen terbuka — tampilkan welcome screen
+    designPaper.replaceChildren(make('div', 'welcome-screen',
+      'Buka atau buat template baru untuk memulai'));
+    designPaper.style.boxSizing = '';
+    designPaper.style.width = '';
+    designPaper.style.zoom = '';
+    designPaper.style.padding = '';
+    return;
+  }
   const fragment = document.createDocumentFragment();
   documentModel.blocks.forEach(block => fragment.append(renderCanvasBlock(block)));
   designPaper.replaceChildren(fragment);
@@ -753,6 +774,12 @@ function renderPreviewBlocks(blocks, target, columns) {
   }
 }
 function renderPreview() {
+  if (!documentModel) {
+    receiptPreview.replaceChildren();
+    receiptPreview.style.width = '';
+    receiptPreview.style.fontSize = '';
+    return;
+  }
   const thermalLayout = createThermalLayout(documentModel);
   const fragment = document.createDocumentFragment();
   renderThermalLayoutPreview(thermalLayout, fragment);
@@ -860,8 +887,9 @@ function renderInspector() {
 function renderAll() {
   renderCanvas();
   renderPreview();
-  renderInspector();
-  const countLabel = $('element-count'); if (countLabel) countLabel.textContent = countAllBlocks() + ' elemen';
+  if (documentModel) renderInspector();
+  const countLabel = $('element-count');
+  if (countLabel) countLabel.textContent = documentModel ? (countAllBlocks() + ' elemen') : '0 elemen';
   updateHistoryButtons();
 }
 let recoveryTimer = null;
@@ -1782,18 +1810,21 @@ $('printer-button').addEventListener('click', async () => {
 });
 
 async function saveCurrent(mode = 'save') {
-  // Kirim currentFilePath per-tab ke main process agar save selalu ke file yang benar
-  // terlepas dari urutan membuka/menyimpan dokumen di tab lain.
-  const result = await window.trs.saveDocument(cloneDocument(documentModel), mode, currentFilePath || null);
+  if (!documentModel) { setStatus('Tidak ada dokumen yang aktif.'); return false; }
+  // Kirim currentFilePath per-tab ke main process (parameter ke-3).
+  // mode='save' + filePath terisi → simpan langsung ke file yang ada (tidak ada dialog).
+  // mode='save' + filePath null → dokumen baru, tampilkan dialog simpan.
+  // mode='saveAs' → selalu tampilkan dialog simpan (kirim null agar main tampilkan dialog).
+  const filePathToSend = mode === 'saveAs' ? null : (currentFilePath || null);
+  const result = await window.trs.saveDocument(cloneDocument(documentModel), mode, filePathToSend);
   if (!result?.ok) { setStatus('Gagal menyimpan: ' + (result?.message || result?.error || 'kesalahan tidak diketahui')); return false; }
   if (!result.value) { setStatus('Penyimpanan dibatalkan.'); return false; }
   currentFilePath = result.value.path;
   isDirty = false;
-  // Sync state yang baru ke objek tab agar switch tab tidak memuat state lama
+  // Sync state terbaru ke objek tab agar switch tab tidak memuat state lama
   saveTabState();
   updateWindowTitle();
   setStatus('Dokumen tersimpan: ' + currentFilePath);
-  // Hapus recovery snapshot karena dokumen sudah tersimpan
   window.trs.clearRecoverySnapshot().catch(() => {});
   renderTabBar();
   return true;
@@ -1808,6 +1839,8 @@ function updateWindowTitle() {
 function confirmDiscard() { return !isDirty || window.confirm('Perubahan belum disimpan. Buang perubahan?'); }
 $('new-document-button').addEventListener('click', () => {
   addTab(createSampleDocument());
+  isDirty = false;
+  saveTabState();
   setStatus('Dokumen baru dibuat di tab baru.');
 });
 $('open-document-button').addEventListener('click', async () => {
@@ -1815,10 +1848,23 @@ $('open-document-button').addEventListener('click', async () => {
   if (!result?.ok) { setStatus('Gagal membuka file: ' + (result?.message || result?.error || 'file tidak valid')); return; }
   if (!result.value) { setStatus('Buka file dibatalkan.'); return; }
   try {
+    const openedPath = result.value.path;
+    // Cek apakah file sudah terbuka di tab lain — aktifkan tab itu jika ada
+    const existingIdx = tabs.findIndex(t => {
+      const p = t.currentFilePath || (t === tabs[activeTabIdx] ? currentFilePath : null);
+      return p && p.toLowerCase() === openedPath.toLowerCase();
+    });
+    if (existingIdx >= 0) {
+      switchTab(existingIdx);
+      setStatus('Template sudah terbuka di tab yang ada.');
+      return;
+    }
     const openedDocument = migrateLegacyDocument(result.value.document);
     validateDocument(openedDocument);
-    addTab(cloneDocument(openedDocument), result.value.path);
-    setStatus('Dokumen dibuka: ' + result.value.path);
+    addTab(cloneDocument(openedDocument), openedPath);
+    isDirty = false;
+    saveTabState();
+    setStatus('Dokumen dibuka: ' + openedPath);
   } catch (err) { setStatus('Dokumen tidak valid: ' + String(err?.message || err)); }
 });
 $('save-document-button').addEventListener('click', () => saveCurrent('save'));
@@ -1826,10 +1872,12 @@ $('save-as-document-button').addEventListener('click', () => saveCurrent('saveAs
 
 async function boot() {
   updateWindowTitle();
-  renderAll();
+  renderAll();     // akan menampilkan welcome screen karena tabs kosong
   renderTabBar();
   document.getElementById('tab-new-btn')?.addEventListener('click', () => {
     addTab(createSampleDocument());
+    isDirty = false;
+    saveTabState();
     setStatus('Tab baru dibuat.');
   });
   try {
@@ -1855,8 +1903,8 @@ async function boot() {
           guideButton.setAttribute('aria-pressed', 'true');
           guideButton.title = 'Sembunyikan panduan';
         }
-        // Pulihkan lebar kertas default jika dokumen baru (sample)
-        if ((prefs.defaultPaperWidth === 80 || prefs.defaultPaperWidth === 58) &&
+        // Pulihkan lebar kertas default jika dokumen baru (sample) dan ada dokumen aktif
+        if (documentModel && (prefs.defaultPaperWidth === 80 || prefs.defaultPaperWidth === 58) &&
             documentModel.paperWidthMm !== prefs.defaultPaperWidth) {
           documentModel.paperWidthMm = prefs.defaultPaperWidth;
           paperButtons.forEach(b => {
@@ -1866,7 +1914,7 @@ async function boot() {
           });
         }
         // Perbarui atribut max margin/padding sesuai lebar kertas yang dimuat.
-        updateSpacingMaxAttr(documentModel.paperWidthMm);
+        if (documentModel) updateSpacingMaxAttr(documentModel.paperWidthMm);
         renderAll();
       }
     } catch (e) { console.warn('Gagal memuat preferensi:', e); }
@@ -1904,14 +1952,13 @@ async function boot() {
             recoveryMeta.textContent = 'Terakhir disimpan otomatis: ' + date + filePart;
           }
           recoveryDialog.showModal();
-          // Tombol pulihkan
+          // Tombol pulihkan — buka dokumen recovery sebagai tab baru
           $('recovery-restore').onclick = () => {
             try {
               validateDocument(snap.document);
-              documentModel = cloneDocument(snap.document);
-              currentFilePath = snap.filePath || null;
+              addTab(cloneDocument(snap.document), snap.filePath || null);
               isDirty = true;
-              state.undo = []; state.redo = [];
+              saveTabState();
               renderAll();
               updateWindowTitle();
               setStatus('Dokumen dipulihkan dari autosave terakhir.');

@@ -1027,3 +1027,19 @@ body .toolbar .toolbar-global-layout > #global-layout-button {
   margin-left: 2px;
 }
 .tab-new-btn:hover { background: var(--surface-3, #e0e0e0); }
+
+/* ── Welcome screen (kondisi tidak ada dokumen terbuka) ── */
+.welcome-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 200px;
+  color: var(--text-muted, #888);
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  user-select: none;
+}
