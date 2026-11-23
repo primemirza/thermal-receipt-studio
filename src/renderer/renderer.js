@@ -1742,9 +1742,9 @@ $('printer-button').addEventListener('click', async () => {
     // untuk dikirim via Windows API RAW (bukan webContents.print) untuk kompatibilitas
     // dengan driver thermal seperti XPrinter/EPPOS yang tidak merender HTML dengan benar.
     // feedBeforeCut disesuaikan per ukuran kertas:
-    // - 58mm: printer tidak menambah feed sendiri → butuh 2 baris eksplisit agar tidak terpotong
+    // - 58mm: butuh 3 baris eksplisit agar tidak terpotong saat kertas dipotong
     // - 80mm: printer menambah ~2 baris ekstra sendiri → cukup 0 baris eksplisit → total 2 baris
-    const feedBeforeCutByWidth = { 58: 2, 80: 0 };
+    const feedBeforeCutByWidth = { 58: 3, 80: 0 };
     const feedBeforeCut = feedBeforeCutByWidth[documentModel.paperWidthMm] ?? 2;
     const layout = createThermalLayout(documentModel, { feedBeforeCut, cut: true });
     // IPC hanya mendukung nilai yang dapat di-serialize (JSON); konversi ke plain object.
