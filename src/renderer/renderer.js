@@ -1694,7 +1694,7 @@ document.addEventListener('keydown', event => {
     applyAlignment(({ l: 'left', e: 'center', r: 'right' })[key]);
     return;
   }
-  if (key === 's') { event.preventDefault(); document.activeElement?.blur?.(); saveCurrent('save'); }
+  if (key === 's') { event.preventDefault(); document.activeElement?.blur?.(); saveCurrent(event.shiftKey ? 'saveAs' : 'save'); }
   else if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   else if (key === 'z') { event.preventDefault(); restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.'); }
   else if (key === 'y') { event.preventDefault(); restoreHistory(state.redo, state.undo, 'Perubahan diulangi.'); }
@@ -1879,6 +1879,35 @@ async function boot() {
     isDirty = false;
     saveTabState();
     setStatus('Tab baru dibuat.');
+  });
+  // Daftarkan pendengar untuk aksi dari menu bar native (main → renderer via IPC).
+  window.trs?.onMenuAction?.((action) => {
+    switch (action) {
+      case 'new':
+        $('new-document-button')?.click();
+        break;
+      case 'open':
+        $('open-document-button')?.click();
+        break;
+      case 'save':
+        saveCurrent('save');
+        break;
+      case 'saveAs':
+        saveCurrent('saveAs');
+        break;
+      case 'undo':
+        restoreHistory(state.undo, state.redo, 'Perubahan diurungkan.');
+        break;
+      case 'redo':
+        restoreHistory(state.redo, state.undo, 'Perubahan diulangi.');
+        break;
+      case 'zoomIn':
+        if (state.zoom < 150) { state.zoom = Math.min(150, state.zoom + 10); designPaper.style.zoom = String(state.zoom / 100); zoomValue.textContent = state.zoom + '%'; window.trs?.setPreference?.('zoom', state.zoom).catch(() => {}); }
+        break;
+      case 'zoomOut':
+        if (state.zoom > 60) { state.zoom = Math.max(60, state.zoom - 10); designPaper.style.zoom = String(state.zoom / 100); zoomValue.textContent = state.zoom + '%'; window.trs?.setPreference?.('zoom', state.zoom).catch(() => {}); }
+        break;
+    }
   });
   try {
     const ver = await window.trs.getVersion();
