@@ -142,7 +142,7 @@ if (!gotLock) {
       return { ok: false, error: 'CHANNEL_NOT_ALLOWED' };
     }
     const expectedArgs = ({
-      'document:save': 2,
+      'document:save': 3,
       'window:setTitle': 1,
       'printer:driver': 3,
       'prefs:set': 2,
@@ -284,8 +284,80 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
-    // Hapus menu bar bawaan Electron; hotkeys (Ctrl+S/Z/Y/Shift+L/E/R) ditangani di renderer.
-    Menu.setApplicationMenu(null);
+    // Menu bar aplikasi — menyediakan akses DevTools dan scorcă keyboard standar.
+    // autoHideMenuBar=true (di BrowserWindow) menyembunyikan menu kecuali tombol Alt ditekan.
+    const menuTemplate = [
+      {
+        label: 'File',
+        submenu: [
+          {
+            label: 'Template Baru',
+            accelerator: 'CmdOrCtrl+N',
+            click: () => mainWindow?.webContents.send('menu:action', 'new'),
+          },
+          {
+            label: 'Buka...',
+            accelerator: 'CmdOrCtrl+O',
+            click: () => mainWindow?.webContents.send('menu:action', 'open'),
+          },
+          { type: 'separator' },
+          {
+            label: 'Simpan',
+            accelerator: 'CmdOrCtrl+S',
+            click: () => mainWindow?.webContents.send('menu:action', 'save'),
+          },
+          {
+            label: 'Simpan Sebagai...',
+            accelerator: 'CmdOrCtrl+Shift+S',
+            click: () => mainWindow?.webContents.send('menu:action', 'saveAs'),
+          },
+          { type: 'separator' },
+          { label: 'Keluar', accelerator: 'Alt+F4', click: () => app.quit() },
+        ],
+      },
+      {
+        label: 'Edit',
+        submenu: [
+          {
+            label: 'Urungkan',
+            accelerator: 'CmdOrCtrl+Z',
+            click: () => mainWindow?.webContents.send('menu:action', 'undo'),
+          },
+          {
+            label: 'Ulangi',
+            accelerator: 'CmdOrCtrl+Y',
+            click: () => mainWindow?.webContents.send('menu:action', 'redo'),
+          },
+        ],
+      },
+      {
+        label: 'Tampilan',
+        submenu: [
+          {
+            label: 'Developer Tools',
+            accelerator: 'F12',
+            click: () => mainWindow?.webContents.toggleDevTools(),
+          },
+          {
+            label: 'Reload',
+            accelerator: 'CmdOrCtrl+R',
+            click: () => mainWindow?.webContents.reload(),
+          },
+          { type: 'separator' },
+          {
+            label: 'Perbesar',
+            accelerator: 'CmdOrCtrl+Equal',
+            click: () => mainWindow?.webContents.send('menu:action', 'zoomIn'),
+          },
+          {
+            label: 'Perkecil',
+            accelerator: 'CmdOrCtrl+Minus',
+            click: () => mainWindow?.webContents.send('menu:action', 'zoomOut'),
+          },
+        ],
+      },
+    ];
+    Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
     createWindow();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -308,13 +380,15 @@ if (process.env.TRS_SMOKE === '1') {
         return;
       }
       try {
-        const result = await wins[0].webContents.executeJavaScript(`(() => {
+        const result = await wins[0].webContents.executeJavaScript(`(async () => {
           let target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
           if (!target) {
             // Karena aplikasi dimulai dengan tab kosong (tanpa template terbuka),
             // buka dokumen baru untuk smoke test pengujian inline-edit.
             const newBtn = document.querySelector('#new-document-button') || document.querySelector('#tab-new-btn');
             newBtn?.click();
+            // Tunggu microtask dan satu frame agar renderAll() selesai memperbarui DOM.
+            await new Promise(r => setTimeout(r, 100));
             target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
           }
           if (!target) return { ok: false, reason: 'editable sample text not found' };

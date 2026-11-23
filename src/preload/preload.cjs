@@ -13,6 +13,10 @@ async function invoke(channel, args = []) {
 }
 
 contextBridge.exposeInMainWorld('trs', {
+  // Daftarkan callback untuk menerima aksi dari menu bar native (main → renderer).
+  onMenuAction: (callback) => {
+    ipcRenderer.on('menu:action', (_event, action) => callback(action));
+  },
   getVersion: () => invoke('app:getVersion'),
   getUserDataDir: () => invoke('app:getUserDataDir'),
   openDocument: () => invoke('document:open'),
