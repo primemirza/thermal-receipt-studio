@@ -61,9 +61,18 @@ let isDirty = false;
 let currentFilePath = null;
 // activeCellKey: kunci "rowIndex,colIndex" dari cell tabel yang aktif diklik (untuk inspector per-cell)
 let activeCellKey = null;
+// duplicatedBlockIds: ID blok hasil duplikasi saat layout terkunci (per-tab)
+let duplicatedBlockIds = new Set();
 const state = { zoom: 100, guides: false, undo: [], redo: [], layoutLocked: false };
 // Helper: kembalikan status lock dari tab aktif (fallback ke state global)
 function isLayoutLocked() { return hasActiveTab() ? (tabs[activeTabIdx].layoutLocked === true) : state.layoutLocked; }
+function canDeleteBlock(blockId) { return !isLayoutLocked() || duplicatedBlockIds.has(blockId); }
+function collectBlockIds(block, target = []) {
+  if (!block) return target;
+  if (block.id) target.push(block.id);
+  if (Array.isArray(block.children)) block.children.forEach(child => collectBlockIds(child, target));
+  return target;
+}
 
 // ── Tab state ──
 let tabIdCounter = 0;
@@ -81,6 +90,7 @@ function makeTab(doc, filePath = null) {
     zoom: 100,
     layoutLocked: false,
     activeCellKey: null,
+    duplicatedBlockIds: new Set(),
   };
 }
 // Mulai dengan array tab kosong — dokumen hanya ada setelah user membuat/membuka
@@ -104,6 +114,7 @@ function saveTabState() {
   tab.zoom = state.zoom;
   tab.layoutLocked = state.layoutLocked;
   tab.activeCellKey = activeCellKey;
+  tab.duplicatedBlockIds = new Set(duplicatedBlockIds);
 }
 function loadTabState(idx) {
   const tab = tabs[idx];
@@ -121,6 +132,7 @@ function loadTabState(idx) {
   state.zoom = tab.zoom || 100;
   state.layoutLocked = tab.layoutLocked === true;
   activeCellKey = tab.activeCellKey ?? null;
+  duplicatedBlockIds = new Set(tab.duplicatedBlockIds || []);
   // Sinkronkan ikon & state tombol lock sesuai tab yang diaktifkan
   const llb = $('layout-lock-button');
   if (llb) {
@@ -166,6 +178,7 @@ function closeTab(idx) {
     state.redo = [];
     state.layoutLocked = false;
     activeCellKey = null;
+    duplicatedBlockIds = new Set();
   } else {
     const newIdx = idx >= tabs.length ? tabs.length - 1 : idx;
     loadTabState(newIdx);
@@ -1036,8 +1049,12 @@ const layoutLockButton = $('layout-lock-button');
 layoutLockButton?.addEventListener('click', () => {
   if (!hasActiveTab()) { setStatus('Buka dokumen untuk menggunakan kunci layout.'); return; }
   state.layoutLocked = !state.layoutLocked;
+  // Reset pelacakan blok duplikat setiap kali status lock berubah:
+  // blok yang sudah ada saat dikunci tidak dapat dihapus.
+  duplicatedBlockIds = new Set();
   // Simpan status lock ke tab aktif agar per-dokumen
   tabs[activeTabIdx].layoutLocked = state.layoutLocked;
+  tabs[activeTabIdx].duplicatedBlockIds = new Set();
   layoutLockButton.setAttribute('aria-pressed', String(state.layoutLocked));
   // Ikon gembok: closed-lock saat terkunci, open-lock saat bebas
   layoutLockButton.innerHTML = state.layoutLocked
@@ -1322,9 +1339,14 @@ designPaper.addEventListener('contextmenu', event => {
   activeInlineTarget = null;
   selectBlock(node.dataset.blockId);
   // Sembunyikan item menu yang tidak diizinkan saat layout terkunci
+  const locked = isLayoutLocked();
   blockContextMenu.querySelectorAll('[data-lock-hidden]').forEach(el => {
-    el.hidden = state.layoutLocked;
+    el.hidden = locked;
   });
+  const deleteMenuItem = blockContextMenu.querySelector('[data-context-action="delete"]');
+  if (deleteMenuItem) {
+    deleteMenuItem.hidden = !canDeleteBlock(node.dataset.blockId);
+  }
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
   blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 245)) + 'px';
@@ -1340,7 +1362,7 @@ blockContextMenu.addEventListener('click', event => {
   else if (action === 'insert-paragraph') addBlock('paragraph');
   else if (action === 'insert-section') addBlock('section');
   else if (action === 'duplicate') duplicateSelectedBlock();
-  else if (action === 'delete') deleteSelectedBlock(true);
+  else if (action === 'delete') deleteSelectedBlock();
   else if (action === 'move-up' || action === 'move-down') {
     const entry = findBlockEntry(selectedBlockId);
     if (!entry) return;
@@ -1796,17 +1818,25 @@ function duplicateSelectedBlock() {
     if (!current) return;
     current.list.splice(current.index + 1, 0, duplicate);
     selectedBlockId = duplicate.id;
+    // Tandai blok hasil duplikasi saat layout terkunci agar tetap bisa dihapus
+    if (isLayoutLocked()) {
+      collectBlockIds(duplicate).forEach(id => duplicatedBlockIds.add(id));
+    }
   }, 'Elemen diduplikasi.');
 }
-function deleteSelectedBlock(fromContextMenu = false) {
+function deleteSelectedBlock() {
   if (!selectedBlock()) return;
-  // Keyboard Delete diblokir saat terkunci; hapus via klik kanan tetap diizinkan
-  if (state.layoutLocked && !fromContextMenu) { setStatus('Layout terkunci — tekan kanan lalu Hapus untuk menghapus elemen.'); return; }
+  if (!canDeleteBlock(selectedBlockId)) {
+    setStatus('Layout terkunci — hanya blok hasil duplikasi yang dapat dihapus.');
+    return;
+  }
+  const targetId = selectedBlockId;
   mutate(() => {
-    const entry = findBlockEntry(selectedBlockId);
+    const entry = findBlockEntry(targetId);
     if (!entry) return;
     const parentId = entry.parentSection?.id || null;
-    entry.list.splice(entry.index, 1);
+    const [removed] = entry.list.splice(entry.index, 1);
+    collectBlockIds(removed).forEach(id => duplicatedBlockIds.delete(id));
     selectedBlockId = parentId;
   }, 'Elemen dihapus.');
 }
@@ -1814,7 +1844,10 @@ document.addEventListener('keydown', event => {
   if (event.key !== 'Delete' && event.key !== 'Del') return;
   if (event.target.closest('input, textarea, select, [contenteditable="true"], dialog')) return;
   if (!selectedBlock()) return;
-  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan via keyboard.'); return; }
+  if (!canDeleteBlock(selectedBlockId)) {
+    setStatus('Layout terkunci — hanya blok hasil duplikasi yang dapat dihapus.');
+    return;
+  }
   event.preventDefault(); deleteSelectedBlock();
 });
 document.addEventListener('keydown', event => {
