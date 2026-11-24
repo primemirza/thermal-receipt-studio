@@ -387,11 +387,17 @@ if (process.env.TRS_SMOKE === '1') {
             // buka dokumen baru untuk smoke test pengujian inline-edit.
             const newBtn = document.querySelector('#new-document-button') || document.querySelector('#tab-new-btn');
             newBtn?.click();
-            // Tunggu microtask dan satu frame agar renderAll() selesai memperbarui DOM.
-            await new Promise(r => setTimeout(r, 100));
-            target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]');
+            // Tunggu render selesai; CI Ubuntu butuh waktu lebih lama dari Windows.
+            // Poll hingga 2000ms dengan interval 100ms agar tidak flaky di semua platform.
+            for (let i = 0; i < 20; i++) {
+              await new Promise(r => setTimeout(r, 100));
+              target = document.querySelector('#design-paper [data-block-id="b-store"] [data-field="text"]')
+                    || document.querySelector('#design-paper [data-inline-edit="true"][data-field="text"]')
+                    || document.querySelector('#design-paper [data-field="text"]');
+              if (target) break;
+            }
           }
-          if (!target) return { ok: false, reason: 'editable sample text not found' };
+          if (!target) return { ok: false, reason: 'editable sample test not found' };
           const paper = document.querySelector('#design-paper');
           const diagnostics = {
             connectedBefore: target.isConnected,

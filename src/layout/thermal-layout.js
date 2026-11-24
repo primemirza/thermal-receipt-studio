@@ -159,13 +159,21 @@ function layoutTable(block, width, operations, leftIndent) {
   }
 
   const rows = [block.headers, ...block.rows];
+  const noWrap = block.wrapText === false;
   rows.forEach((row, rowIndex) => {
     const alignments = block.cellAlignments?.[rowIndex] || [];
-    const wrapped = row.map((cell, columnIndex) =>
-      wrapText(cell, colWidths[columnIndex]).map(line =>
-        padCell(line, colWidths[columnIndex], ALIGNMENTS.has(alignments[columnIndex]) ? alignments[columnIndex] : 'left')
-      )
-    );
+    const wrapped = row.map((cell, columnIndex) => {
+      const colW = colWidths[columnIndex];
+      if (noWrap) {
+        // Potong teks agar hanya 1 baris sesuai lebar kolom (tidak di-wrap)
+        const singleLine = String(cell ?? '').replace(/\r?\n/g, ' ');
+        const truncated = singleLine.length > colW ? singleLine.slice(0, colW) : singleLine;
+        return [padCell(truncated, colW, ALIGNMENTS.has(alignments[columnIndex]) ? alignments[columnIndex] : 'left')];
+      }
+      return wrapText(cell, colW).map(line =>
+        padCell(line, colW, ALIGNMENTS.has(alignments[columnIndex]) ? alignments[columnIndex] : 'left')
+      );
+    });
     const height = Math.max(1, ...wrapped.map(cellLines => cellLines.length));
     // Baris header (rowIndex===0) hanya bold jika hasHeader === true
     const isHeaderRow = rowIndex === 0 && block.hasHeader === true;
