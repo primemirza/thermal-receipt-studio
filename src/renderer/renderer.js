@@ -32,6 +32,7 @@ const totalAmountInput = $('block-total-amount');
 const ruleCharacterInput = $('block-rule-character');
 const imageAltInput = $('block-image-alt');
 const tableHeaderInput = $('block-table-header');
+const tableWrapInput = $('block-table-wrap');
 const tableStructureActions = $('table-structure-actions');
 const tableLayoutFields = $('table-layout-fields');
 const columnsLayoutFields = $('columns-layout-fields');
@@ -58,7 +59,7 @@ let activeInlineTarget = null;
 let activeInlineEditSession = null;
 let isDirty = false;
 let currentFilePath = null;
-const state = { zoom: 100, guides: false, undo: [], redo: [] };
+const state = { zoom: 100, guides: false, undo: [], redo: [], layoutLocked: false };
 
 // ── Tab state ──
 let tabIdCounter = 0;
@@ -287,6 +288,7 @@ function createEditableText(value, field, extra = {}) {
   return span;
 }
 function styledTable(block, editable = false) {
+  const noWrap = block.wrapText === false;
   const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
   table.style.setProperty('--cell-padding', (block.padding ?? 0) + 'px');
   table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
@@ -302,6 +304,7 @@ function styledTable(block, editable = false) {
     block.headers.forEach((value, colIndex) => {
       const th = document.createElement('th');
       th.style.textAlign = tableCellAlignment(block, -1, colIndex);
+      if (noWrap) { th.style.whiteSpace = 'nowrap'; th.style.overflow = 'hidden'; th.style.maxWidth = '0'; }
       if (editable) {
         const placeholder = 'Kolom ' + (colIndex + 1);
         const displayValue = value !== '' ? value : '';
@@ -327,6 +330,7 @@ function styledTable(block, editable = false) {
     row.forEach((value, colIndex) => {
       const td = document.createElement('td');
       td.style.textAlign = tableCellAlignment(block, actualRowIndex, colIndex);
+      if (noWrap) { td.style.whiteSpace = 'nowrap'; td.style.overflow = 'hidden'; td.style.maxWidth = '0'; }
       if (editable) {
         // Kolom A=0,B=1... Row 1,2,3... → placeholder: "cell A1", "cell B1", dst
         const colLetter = String.fromCharCode(65 + colIndex);
@@ -855,6 +859,8 @@ function renderInspector() {
   tableLayoutFields.hidden = !block || block.type !== 'table';
   tableHeaderInput.disabled = !block || block.type !== 'table';
   tableHeaderInput.checked = block?.type === 'table' ? (block.hasHeader === true) : false;
+  tableWrapInput.disabled = !block || block.type !== 'table';
+  tableWrapInput.checked = block?.type === 'table' ? (block.wrapText !== false) : true;
   tableWidthInput.disabled = !block || block.type !== 'table';
   tableWidthInput.value = block?.type === 'table' ? String(block.width ?? 100) : '100';
   tablePaddingInput.disabled = !block || block.type !== 'table';
@@ -881,6 +887,11 @@ function renderInspector() {
     marginInputs[side].value = String(block?.margin?.[side] ?? 0);
     paddingInputs[side].disabled = !block;
     paddingInputs[side].value = String(spacingPadding?.[side] ?? 0);
+  }
+  // Saat layout terkunci, nonaktifkan seluruh input properti (kecuali hanya duplikasi yang tetap bisa dilakukan).
+  if (state.layoutLocked) {
+    const allInputs = $('block-inspector').querySelectorAll('input, select, button');
+    allInputs.forEach(el => { el.disabled = true; });
   }
   updateAlignmentButtons();
 }
@@ -940,6 +951,7 @@ function selectBlock(id) {
   renderInspector();
 }
 function addBlock(type) {
+  if (state.layoutLocked) { setStatus('Layout terkunci — tambah elemen tidak diizinkan.'); return; }
   const id = 'b-' + crypto.randomUUID();
   mutate(() => {
     const templates = {
@@ -970,10 +982,26 @@ guideButton.addEventListener('click', () => {
   setStatus(state.guides ? 'Panduan ukuran ditampilkan.' : 'Panduan ukuran disembunyikan.');
   window.trs?.setPreference?.('guides', state.guides).catch(() => {});
 });
+const layoutLockButton = $('layout-lock-button');
+layoutLockButton?.addEventListener('click', () => {
+  state.layoutLocked = !state.layoutLocked;
+  layoutLockButton.setAttribute('aria-pressed', String(state.layoutLocked));
+  // Ikon gembok: closed-lock saat terkunci, open-lock saat bebas
+  layoutLockButton.innerHTML = state.layoutLocked
+    ? `<svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+    : `<svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`;
+  layoutLockButton.title = state.layoutLocked
+    ? 'Layout terkunci — klik untuk membuka kunci'
+    : 'Kunci layout (mencegah perubahan properti dan drag)';
+  layoutLockButton.classList.toggle('is-active', state.layoutLocked);
+  if (documentModel) renderInspector();
+  setStatus(state.layoutLocked ? 'Layout terkunci. Teks masih bisa diedit.' : 'Kunci layout dibuka.');
+});
 let draggedBlockId = null;
 designPaper.addEventListener('dragstart', event => {
   const handle = event.target.closest('[data-drag-handle]');
   if (!handle) { event.preventDefault(); return; }
+  if (state.layoutLocked) { event.preventDefault(); return; }
   const node = handle.closest('[data-block-id]');
   if (!node) { event.preventDefault(); return; }
   draggedBlockId = node.dataset.blockId;
@@ -987,6 +1015,7 @@ designPaper.addEventListener('dragover', event => {
 });
 designPaper.addEventListener('drop', event => {
   if (!draggedBlockId) return;
+  if (state.layoutLocked) { draggedBlockId = null; return; }
   const sourceId = draggedBlockId; const targetNode = event.target.closest('[data-block-id]');
   draggedBlockId = null;
   if (!targetNode || targetNode.dataset.blockId === sourceId) return;
@@ -1218,6 +1247,10 @@ designPaper.addEventListener('contextmenu', event => {
   event.preventDefault();
   activeInlineTarget = null;
   selectBlock(node.dataset.blockId);
+  // Sembunyikan item menu yang tidak diizinkan saat layout terkunci
+  blockContextMenu.querySelectorAll('[data-lock-hidden]').forEach(el => {
+    el.hidden = state.layoutLocked;
+  });
   blockContextMenu.hidden = false;
   blockContextMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - 230)) + 'px';
   blockContextMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - 245)) + 'px';
@@ -1537,6 +1570,10 @@ tableHeaderInput?.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'table') return;
   mutate(() => { block.hasHeader = tableHeaderInput.checked; }, tableHeaderInput.checked ? 'Header tabel diaktifkan.' : 'Header tabel dinonaktifkan.');
 });
+tableWrapInput?.addEventListener('change', () => {
+  const block = selectedBlock(); if (!block || block.type !== 'table') return;
+  mutate(() => { block.wrapText = tableWrapInput.checked; }, tableWrapInput.checked ? 'Wrap teks tabel diaktifkan.' : 'Wrap teks tabel dinonaktifkan.');
+});
 columnsWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'columns') return;
   const value = Math.max(20, Math.min(100, Math.round(Number(columnsWidthInput.value) || 20)));
@@ -1672,6 +1709,7 @@ function duplicateSelectedBlock() {
 }
 function deleteSelectedBlock() {
   if (!selectedBlock()) return;
+  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan.'); return; }
   mutate(() => {
     const entry = findBlockEntry(selectedBlockId);
     if (!entry) return;
@@ -1684,6 +1722,7 @@ document.addEventListener('keydown', event => {
   if (event.key !== 'Delete' && event.key !== 'Del') return;
   if (event.target.closest('input, textarea, select, [contenteditable="true"], dialog')) return;
   if (!selectedBlock()) return;
+  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan.'); return; }
   event.preventDefault(); deleteSelectedBlock();
 });
 document.addEventListener('keydown', event => {

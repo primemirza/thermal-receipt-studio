@@ -67,6 +67,7 @@
     <div class="tool-section toolbar-print-section" aria-label="Cetak">
       <span class="tool-label">Cetak</span>
       <div class="tool-group">
+        <button type="button" class="icon-button" id="layout-lock-button" aria-pressed="false" title="Kunci layout (layout terkunci: tidak bisa ubah properti/drag, teks masih bisa diedit)" aria-label="Kunci layout"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
         <select id="toolbar-printer-device" class="toolbar-printer-select" title="Pilih printer" aria-label="Pilih printer"><option value="">Memuat printer…</option></select>
         <button type="button" class="icon-button" id="printer-button" title="Cetak struk" aria-label="Cetak struk"><svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
       </div>
@@ -102,6 +103,7 @@
         <label for="block-image-alt">Deskripsi gambar<input id="block-image-alt" type="text" maxlength="200" disabled placeholder="Teks alternatif gambar" /></label>
         <div class="inspector-fields" id="table-layout-fields" hidden>
           <label class="inspector-check" for="block-table-header"><input id="block-table-header" type="checkbox" disabled /> Tampilkan header</label>
+          <label class="inspector-check" for="block-table-wrap"><input id="block-table-wrap" type="checkbox" disabled checked /> Wrap teks sel</label>
           <label for="block-table-width">Lebar tabel (%)<input id="block-table-width" type="number" min="20" max="100" step="1" disabled value="100" /></label>
           <label for="block-table-padding">Padding sel (px)<input id="block-table-padding" type="number" min="0" max="20" step="1" disabled value="0" /></label>
         </div>
@@ -246,13 +248,13 @@
     </form>
   </dialog>
   <div id="block-context-menu" class="block-context-menu" role="menu" hidden>
-    <button type="button" role="menuitem" data-context-action="insert-text">Sisipkan teks setelah ini</button>
-    <button type="button" role="menuitem" data-context-action="insert-paragraph">Sisipkan paragraf setelah ini</button>
-    <button type="button" role="menuitem" data-context-action="insert-section">Sisipkan section setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="insert-text" data-lock-hidden>Sisipkan teks setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="insert-paragraph" data-lock-hidden>Sisipkan paragraf setelah ini</button>
+    <button type="button" role="menuitem" data-context-action="insert-section" data-lock-hidden>Sisipkan section setelah ini</button>
     <button type="button" role="menuitem" data-context-action="duplicate">Duplikat elemen</button>
-    <button type="button" role="menuitem" data-context-action="move-up">Pindah ke atas</button>
-    <button type="button" role="menuitem" data-context-action="move-down">Pindah ke bawah</button>
-    <button type="button" role="menuitem" data-context-action="delete">Hapus elemen (Del)</button>
+    <button type="button" role="menuitem" data-context-action="move-up" data-lock-hidden>Pindah ke atas</button>
+    <button type="button" role="menuitem" data-context-action="move-down" data-lock-hidden>Pindah ke bawah</button>
+    <button type="button" role="menuitem" data-context-action="delete" data-lock-hidden>Hapus elemen (Del)</button>
   </div>
 
   <footer class="statusbar">
