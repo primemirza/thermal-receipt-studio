@@ -103,7 +103,7 @@
         <label for="block-image-alt">Deskripsi gambar<input id="block-image-alt" type="text" maxlength="200" disabled placeholder="Teks alternatif gambar" /></label>
         <div class="inspector-fields" id="table-layout-fields" hidden>
           <label class="inspector-check" for="block-table-header"><input id="block-table-header" type="checkbox" disabled /> Tampilkan header</label>
-          <label class="inspector-check" for="block-table-wrap"><input id="block-table-wrap" type="checkbox" disabled checked /> Wrap teks sel</label>
+          <label class="inspector-check" for="block-table-wrap"><input id="block-table-wrap" type="checkbox" disabled checked /> Wrap teks sel <span id="cell-wrap-info" class="cell-info-hint">(klik cell)</span></label>
           <label for="block-table-width">Lebar tabel (%)<input id="block-table-width" type="number" min="20" max="100" step="1" disabled value="100" /></label>
           <label for="block-table-padding">Padding sel (px)<input id="block-table-padding" type="number" min="0" max="20" step="1" disabled value="0" /></label>
         </div>
@@ -254,7 +254,7 @@
     <button type="button" role="menuitem" data-context-action="duplicate">Duplikat elemen</button>
     <button type="button" role="menuitem" data-context-action="move-up" data-lock-hidden>Pindah ke atas</button>
     <button type="button" role="menuitem" data-context-action="move-down" data-lock-hidden>Pindah ke bawah</button>
-    <button type="button" role="menuitem" data-context-action="delete" data-lock-hidden>Hapus elemen (Del)</button>
+    <button type="button" role="menuitem" data-context-action="delete">Hapus elemen (Del)</button>
   </div>
 
   <footer class="statusbar">

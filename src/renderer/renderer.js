@@ -59,7 +59,11 @@ let activeInlineTarget = null;
 let activeInlineEditSession = null;
 let isDirty = false;
 let currentFilePath = null;
+// activeCellKey: kunci "rowIndex,colIndex" dari cell tabel yang aktif diklik (untuk inspector per-cell)
+let activeCellKey = null;
 const state = { zoom: 100, guides: false, undo: [], redo: [], layoutLocked: false };
+// Helper: kembalikan status lock dari tab aktif (fallback ke state global)
+function isLayoutLocked() { return hasActiveTab() ? (tabs[activeTabIdx].layoutLocked === true) : state.layoutLocked; }
 
 // ── Tab state ──
 let tabIdCounter = 0;
@@ -75,6 +79,8 @@ function makeTab(doc, filePath = null) {
     undo: [],
     redo: [],
     zoom: 100,
+    layoutLocked: false,
+    activeCellKey: null,
   };
 }
 // Mulai dengan array tab kosong — dokumen hanya ada setelah user membuat/membuka
@@ -96,6 +102,8 @@ function saveTabState() {
   tab.undo = [...state.undo];
   tab.redo = [...state.redo];
   tab.zoom = state.zoom;
+  tab.layoutLocked = state.layoutLocked;
+  tab.activeCellKey = activeCellKey;
 }
 function loadTabState(idx) {
   const tab = tabs[idx];
@@ -111,6 +119,20 @@ function loadTabState(idx) {
   state.undo = [...tab.undo];
   state.redo = [...tab.redo];
   state.zoom = tab.zoom || 100;
+  state.layoutLocked = tab.layoutLocked === true;
+  activeCellKey = tab.activeCellKey ?? null;
+  // Sinkronkan ikon & state tombol lock sesuai tab yang diaktifkan
+  const llb = $('layout-lock-button');
+  if (llb) {
+    llb.setAttribute('aria-pressed', String(state.layoutLocked));
+    llb.classList.toggle('is-active', state.layoutLocked);
+    llb.innerHTML = state.layoutLocked
+      ? `<svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+      : `<svg aria-hidden="true" class="toolbar-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>`;
+    llb.title = state.layoutLocked
+      ? 'Layout terkunci — klik untuk membuka kunci'
+      : 'Kunci layout (mencegah perubahan properti dan drag)';
+  }
 }
 function switchTab(idx) {
   if (idx === activeTabIdx) return;
@@ -142,6 +164,8 @@ function closeTab(idx) {
     currentFilePath = null;
     state.undo = [];
     state.redo = [];
+    state.layoutLocked = false;
+    activeCellKey = null;
   } else {
     const newIdx = idx >= tabs.length ? tabs.length - 1 : idx;
     loadTabState(newIdx);
@@ -288,7 +312,11 @@ function createEditableText(value, field, extra = {}) {
   return span;
 }
 function styledTable(block, editable = false) {
-  const noWrap = block.wrapText === false;
+  // cellNoWrap: object { "rowIndex,colIndex": true } — per-cell, row -1 = header
+  // Fallback lama: block.wrapText === false berarti semua cell no-wrap (migrasi).
+  const globalNoWrap = block.wrapText === false;
+  const cellNoWrapMap = (block.cellNoWrap && typeof block.cellNoWrap === 'object') ? block.cellNoWrap : {};
+  const isCellNoWrap = (rowIdx, colIdx) => globalNoWrap || cellNoWrapMap[rowIdx + ',' + colIdx] === true;
   const table = make('table', (editable ? 'canvas-table' : 'preview-table') + ' border-' + (block.border || 'all'));
   table.style.setProperty('--cell-padding', (block.padding ?? 0) + 'px');
   table.style.fontSize = ({ small: '9px', normal: '11px', large: '13px', double: '15px' })[block.size || 'normal'];
@@ -304,6 +332,7 @@ function styledTable(block, editable = false) {
     block.headers.forEach((value, colIndex) => {
       const th = document.createElement('th');
       th.style.textAlign = tableCellAlignment(block, -1, colIndex);
+      const noWrap = isCellNoWrap(-1, colIndex);
       if (noWrap) { th.style.whiteSpace = 'nowrap'; th.style.overflow = 'hidden'; th.style.maxWidth = '0'; }
       if (editable) {
         const placeholder = 'Kolom ' + (colIndex + 1);
@@ -311,6 +340,7 @@ function styledTable(block, editable = false) {
         const editEl = createEditableText(displayValue, 'tableCell', { rowIndex: -1, colIndex });
         if (value === '') editEl.dataset.placeholder = placeholder;
         th.append(editEl);
+        if (editable && activeCellKey === (-1) + ',' + colIndex) th.classList.add('is-active-cell');
         if (colIndex < block.headers.length - 1) {
           const grip = make('span', 'column-resize-handle'); grip.dataset.colResize = String(colIndex); grip.dataset.colKind = 'table';
           grip.title = 'Tarik untuk mengubah lebar kolom'; grip.setAttribute('aria-label', 'Ubah lebar kolom'); th.append(grip);
@@ -330,6 +360,7 @@ function styledTable(block, editable = false) {
     row.forEach((value, colIndex) => {
       const td = document.createElement('td');
       td.style.textAlign = tableCellAlignment(block, actualRowIndex, colIndex);
+      const noWrap = isCellNoWrap(actualRowIndex, colIndex);
       if (noWrap) { td.style.whiteSpace = 'nowrap'; td.style.overflow = 'hidden'; td.style.maxWidth = '0'; }
       if (editable) {
         // Kolom A=0,B=1... Row 1,2,3... → placeholder: "cell A1", "cell B1", dst
@@ -339,6 +370,7 @@ function styledTable(block, editable = false) {
         const editEl = createEditableText(value, 'tableCell', { rowIndex: actualRowIndex, colIndex });
         if (value === '') editEl.dataset.placeholder = placeholder;
         td.append(editEl);
+        if (activeCellKey === actualRowIndex + ',' + colIndex) td.classList.add('is-active-cell');
         // Tambahkan grip resize pada baris pertama tbody jika tidak ada thead
         // (hasHeader=false), agar drag-resize kolom tetap berfungsi.
         if (rowIndex === 0 && block.hasHeader !== true && colIndex < row.length - 1) {
@@ -859,8 +891,26 @@ function renderInspector() {
   tableLayoutFields.hidden = !block || block.type !== 'table';
   tableHeaderInput.disabled = !block || block.type !== 'table';
   tableHeaderInput.checked = block?.type === 'table' ? (block.hasHeader === true) : false;
-  tableWrapInput.disabled = !block || block.type !== 'table';
-  tableWrapInput.checked = block?.type === 'table' ? (block.wrapText !== false) : true;
+  // Wrap per-cell: tampilkan status wrap untuk cell yang aktif; jika tidak ada cell aktif, disabled
+  if (block?.type === 'table' && activeCellKey !== null) {
+    tableWrapInput.disabled = false;
+    const globalNoWrap = block.wrapText === false;
+    const cellNoWrapMap = (block.cellNoWrap && typeof block.cellNoWrap === 'object') ? block.cellNoWrap : {};
+    const cellIsNoWrap = globalNoWrap || cellNoWrapMap[activeCellKey] === true;
+    tableWrapInput.checked = !cellIsNoWrap;
+    const cellInfoEl = $('cell-wrap-info');
+    if (cellInfoEl) {
+      const [rStr, cStr] = activeCellKey.split(',');
+      const r = Number(rStr), c = Number(cStr);
+      const colLetter = String.fromCharCode(65 + c);
+      cellInfoEl.textContent = r < 0 ? '(Header ' + colLetter + ')' : '(Baris ' + (r + 1) + ' Kol ' + colLetter + ')';
+    }
+  } else {
+    tableWrapInput.disabled = true;
+    tableWrapInput.checked = true;
+    const cellInfoEl = $('cell-wrap-info');
+    if (cellInfoEl) cellInfoEl.textContent = block?.type === 'table' ? '(klik cell)' : '';
+  }
   tableWidthInput.disabled = !block || block.type !== 'table';
   tableWidthInput.value = block?.type === 'table' ? String(block.width ?? 100) : '100';
   tablePaddingInput.disabled = !block || block.type !== 'table';
@@ -889,7 +939,7 @@ function renderInspector() {
     paddingInputs[side].value = String(spacingPadding?.[side] ?? 0);
   }
   // Saat layout terkunci, nonaktifkan seluruh input properti (kecuali hanya duplikasi yang tetap bisa dilakukan).
-  if (state.layoutLocked) {
+  if (isLayoutLocked()) {
     const allInputs = $('block-inspector').querySelectorAll('input, select, button');
     allInputs.forEach(el => { el.disabled = true; });
   }
@@ -951,7 +1001,7 @@ function selectBlock(id) {
   renderInspector();
 }
 function addBlock(type) {
-  if (state.layoutLocked) { setStatus('Layout terkunci — tambah elemen tidak diizinkan.'); return; }
+  if (isLayoutLocked()) { setStatus('Layout terkunci — tambah elemen tidak diizinkan.'); return; }
   const id = 'b-' + crypto.randomUUID();
   mutate(() => {
     const templates = {
@@ -984,7 +1034,10 @@ guideButton.addEventListener('click', () => {
 });
 const layoutLockButton = $('layout-lock-button');
 layoutLockButton?.addEventListener('click', () => {
+  if (!hasActiveTab()) { setStatus('Buka dokumen untuk menggunakan kunci layout.'); return; }
   state.layoutLocked = !state.layoutLocked;
+  // Simpan status lock ke tab aktif agar per-dokumen
+  tabs[activeTabIdx].layoutLocked = state.layoutLocked;
   layoutLockButton.setAttribute('aria-pressed', String(state.layoutLocked));
   // Ikon gembok: closed-lock saat terkunci, open-lock saat bebas
   layoutLockButton.innerHTML = state.layoutLocked
@@ -1001,7 +1054,7 @@ let draggedBlockId = null;
 designPaper.addEventListener('dragstart', event => {
   const handle = event.target.closest('[data-drag-handle]');
   if (!handle) { event.preventDefault(); return; }
-  if (state.layoutLocked) { event.preventDefault(); return; }
+  if (isLayoutLocked()) { event.preventDefault(); return; }
   const node = handle.closest('[data-block-id]');
   if (!node) { event.preventDefault(); return; }
   draggedBlockId = node.dataset.blockId;
@@ -1015,7 +1068,7 @@ designPaper.addEventListener('dragover', event => {
 });
 designPaper.addEventListener('drop', event => {
   if (!draggedBlockId) return;
-  if (state.layoutLocked) { draggedBlockId = null; return; }
+  if (isLayoutLocked()) { draggedBlockId = null; return; }
   const sourceId = draggedBlockId; const targetNode = event.target.closest('[data-block-id]');
   draggedBlockId = null;
   if (!targetNode || targetNode.dataset.blockId === sourceId) return;
@@ -1213,6 +1266,26 @@ designPaper.addEventListener('click', event => {
     trackInlineTarget(editor, blockNode.dataset.blockId);
     // Selection is class-only; never render the canvas from this handler.
     selectBlock(blockNode.dataset.blockId);
+    // Tracking cell aktif tabel untuk inspector per-cell
+    const tableCell = target.closest('td, th');
+    if (tableCell && blockNode) {
+      const editEl = tableCell.querySelector('[data-inline-edit]');
+      if (editEl && editEl.dataset.rowIndex !== undefined && editEl.dataset.colIndex !== undefined) {
+        const newKey = editEl.dataset.rowIndex + ',' + editEl.dataset.colIndex;
+        if (newKey !== activeCellKey) {
+          activeCellKey = newKey;
+          // Hapus highlight lama & tambahkan ke cell baru (tanpa re-render penuh)
+          blockNode.querySelectorAll('.is-active-cell').forEach(el => el.classList.remove('is-active-cell'));
+          tableCell.classList.add('is-active-cell');
+          renderInspector();
+        }
+      }
+    } else if (!tableCell && findBlockEntry(blockNode.dataset.blockId)?.block?.type === 'table') {
+      // Klik di luar cell tabel tapi masih di block — pertahankan cell aktif
+    } else if (!tableCell) {
+      // Pindah ke blok non-tabel — reset cell aktif
+      if (activeCellKey !== null) { activeCellKey = null; renderInspector(); }
+    }
     if (event.detail >= 2 && editor) {
       event.preventDefault();
       beginInlineEdit(editor, blockNode.dataset.blockId);
@@ -1220,6 +1293,7 @@ designPaper.addEventListener('click', event => {
   } else if (target === designPaper || target?.closest('.section-children') && target.classList.contains('section-empty') === false && target.children.length === 0) {
     activeInlineTarget = null;
     selectedBlockId = null;
+    activeCellKey = null;
     renderCanvas();
     renderInspector();
   }
@@ -1266,7 +1340,7 @@ blockContextMenu.addEventListener('click', event => {
   else if (action === 'insert-paragraph') addBlock('paragraph');
   else if (action === 'insert-section') addBlock('section');
   else if (action === 'duplicate') duplicateSelectedBlock();
-  else if (action === 'delete') deleteSelectedBlock();
+  else if (action === 'delete') deleteSelectedBlock(true);
   else if (action === 'move-up' || action === 'move-down') {
     const entry = findBlockEntry(selectedBlockId);
     if (!entry) return;
@@ -1371,6 +1445,12 @@ designPaper.addEventListener('keydown', event => {
 });
 
 designPaper.addEventListener('pointerdown', event => {
+  // Saat layout terkunci, semua drag resize (kolom, tabel, rule, objek) diblokir
+  if (isLayoutLocked() && event.target.closest('[data-col-resize],[data-table-width],[data-rule-resize],[data-object-resize]')) {
+    event.preventDefault(); event.stopPropagation();
+    setStatus('Layout terkunci — ubah ukuran tidak diizinkan.');
+    return;
+  }
   const objectHandle = event.target.closest('[data-object-resize]');
   if (objectHandle) {
     event.preventDefault(); event.stopPropagation();
@@ -1572,7 +1652,18 @@ tableHeaderInput?.addEventListener('change', () => {
 });
 tableWrapInput?.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'table') return;
-  mutate(() => { block.wrapText = tableWrapInput.checked; }, tableWrapInput.checked ? 'Wrap teks tabel diaktifkan.' : 'Wrap teks tabel dinonaktifkan.');
+  if (activeCellKey === null) return; // Butuh cell aktif untuk mengubah wrap per-cell
+  const key = activeCellKey;
+  mutate(() => {
+    if (!block.cellNoWrap || typeof block.cellNoWrap !== 'object') block.cellNoWrap = {};
+    if (tableWrapInput.checked) {
+      delete block.cellNoWrap[key]; // Hapus no-wrap → kembali ke wrap
+    } else {
+      block.cellNoWrap[key] = true; // Set no-wrap untuk cell ini
+    }
+    // Bersihkan legacy block.wrapText agar tidak override per-cell
+    delete block.wrapText;
+  }, tableWrapInput.checked ? 'Wrap teks cell diaktifkan.' : 'Wrap teks cell dinonaktifkan.');
 });
 columnsWidthInput.addEventListener('change', () => {
   const block = selectedBlock(); if (!block || block.type !== 'columns') return;
@@ -1707,9 +1798,10 @@ function duplicateSelectedBlock() {
     selectedBlockId = duplicate.id;
   }, 'Elemen diduplikasi.');
 }
-function deleteSelectedBlock() {
+function deleteSelectedBlock(fromContextMenu = false) {
   if (!selectedBlock()) return;
-  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan.'); return; }
+  // Keyboard Delete diblokir saat terkunci; hapus via klik kanan tetap diizinkan
+  if (state.layoutLocked && !fromContextMenu) { setStatus('Layout terkunci — tekan kanan lalu Hapus untuk menghapus elemen.'); return; }
   mutate(() => {
     const entry = findBlockEntry(selectedBlockId);
     if (!entry) return;
@@ -1722,7 +1814,7 @@ document.addEventListener('keydown', event => {
   if (event.key !== 'Delete' && event.key !== 'Del') return;
   if (event.target.closest('input, textarea, select, [contenteditable="true"], dialog')) return;
   if (!selectedBlock()) return;
-  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan.'); return; }
+  if (state.layoutLocked) { setStatus('Layout terkunci — hapus elemen tidak diizinkan via keyboard.'); return; }
   event.preventDefault(); deleteSelectedBlock();
 });
 document.addEventListener('keydown', event => {
@@ -2052,3 +2144,4 @@ async function boot() {
   }
 }
 boot();
+
