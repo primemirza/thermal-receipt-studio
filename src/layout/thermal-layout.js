@@ -159,12 +159,16 @@ function layoutTable(block, width, operations, leftIndent) {
   }
 
   const rows = [block.headers, ...block.rows];
-  const noWrap = block.wrapText === false;
+  // cellNoWrap per-cell: { "rowIndex,colIndex": true }. Fallback: block.wrapText===false = semua cell.
+  const globalNoWrap = block.wrapText === false;
+  const cellNoWrapMap = (block.cellNoWrap && typeof block.cellNoWrap === 'object') ? block.cellNoWrap : {};
+  const isCellNoWrap = (rowIdx, colIdx) => globalNoWrap || cellNoWrapMap[rowIdx + ',' + colIdx] === true;
   rows.forEach((row, rowIndex) => {
     const alignments = block.cellAlignments?.[rowIndex] || [];
     const wrapped = row.map((cell, columnIndex) => {
       const colW = colWidths[columnIndex];
-      if (noWrap) {
+      if (isCellNoWrap(rowIndex - 1, columnIndex)) {
+        // row 0 = headers (rowIndex -1 dalam model), row 1+ = data rows (rowIndex - 1 >= 0)
         // Potong teks agar hanya 1 baris sesuai lebar kolom (tidak di-wrap)
         const singleLine = String(cell ?? '').replace(/\r?\n/g, ' ');
         const truncated = singleLine.length > colW ? singleLine.slice(0, colW) : singleLine;

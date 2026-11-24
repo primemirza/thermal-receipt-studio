@@ -202,6 +202,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .canvas-table th, .canvas-table td, .preview-table th, .preview-table td { position: relative; min-width: 0; padding: 4px 5px; vertical-align: top; overflow-wrap: anywhere; word-break: break-word; }
 .canvas-table th { background: #f1f5f9; font-weight: 700; }
 .canvas-table th [data-inline-edit], .canvas-table td [data-inline-edit] { display: block; min-height: 1.2em; }
+/* Highlight cell aktif tabel */
+.canvas-table td.is-active-cell, .canvas-table th.is-active-cell { outline: 2px solid #0067c0; outline-offset: -2px; background: #dbeafe !important; }
+/* Info cell aktif di label inspector */
+.cell-info-hint { font-size: 0.75em; color: #64748b; font-weight: 400; margin-left: 4px; }
 .canvas-table.border-all th, .canvas-table.border-all td, .preview-table.border-all th, .preview-table.border-all td { border: 1px solid #777; }
 .canvas-table.border-horizontal th, .canvas-table.border-horizontal td, .preview-table.border-horizontal th, .preview-table.border-horizontal td { border: 0; border-bottom: 1px solid #888; }
 .canvas-table.border-none th, .canvas-table.border-none td, .preview-table.border-none th, .preview-table.border-none td { border: 0; }
